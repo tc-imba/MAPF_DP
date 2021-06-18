@@ -1,0 +1,224 @@
+//
+// Created by liu on 28/4/2021.
+//
+
+#include "Graph.h"
+#include <boost/graph/johnson_all_pairs_shortest.hpp>
+#include <boost/graph/floyd_warshall_shortest.hpp>
+#include <boost/graph/graphviz.hpp>
+
+#include <random>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+
+Graph::Graph() {
+
+}
+
+void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
+    std::ofstream distFileOut;
+    if (!filename.empty()) distFileOut.open(filename + (dp ? ".dp.distance" : ".distance"));
+    std::ostream &distOut = !distFileOut.is_open() ? std::cout : distFileOut;
+
+    auto vertices = boost::vertices(g);
+    auto edges = boost::edges(g);
+/*    unsigned int V = vertices.second - vertices.first;
+    unsigned int E = 0;
+    for (auto it = vertices.first; it != vertices.second; ++it) {
+        E += boost::out_degree(*it, g);
+    }*/
+    unsigned int V = nodeNum, E = edgeNum;
+
+    distances.resize(V, std::vector<double>(V, 0));
+//    std::vector<std::vector<double>> distances(V, std::vector<double>(V, 0));
+
+
+    for (auto it = edges.first; it != edges.second; ++it) {
+        if (dp) {
+            g[*it]._distance = g[*it].length / (1 - g[*it].dp);
+        } else {
+            g[*it]._distance = g[*it].length;
+        }
+    }
+    double density = (double) E * 2 / (V) / (V - 1);
+    std::cout << "V: " << V << " E: " << E << " density: " << density << std::endl;
+    if (density < 0.1) {
+        boost::johnson_all_pairs_shortest_paths(g, distances,
+                                                boost::weight_map(boost::get(&Edge::_distance, g)));
+    } else {
+        boost::floyd_warshall_all_pairs_shortest_paths(g, distances,
+                                                       boost::weight_map(boost::get(&Edge::_distance, g)));
+    }
+    distFileOut << V << std::endl;
+    for (unsigned int i = 0; i < V; i++) {
+        for (unsigned int j = 0; j < V; j++) {
+            distFileOut << distances[i][j] << " ";
+        }
+        distFileOut << std::endl;
+    }
+
+}
+
+void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::string &filename, size_t seed) {
+
+    std::ofstream gridFileOut;
+    if (!filename.empty()) gridFileOut.open(filename + ".grid");
+    std::ostream &gridOut = !gridFileOut.is_open() ? std::cout : gridFileOut;
+    std::ofstream graphFileOut;
+    if (!filename.empty()) graphFileOut.open(filename + ".graph");
+    std::ostream &graphOut = !graphFileOut.is_open() ? std::cout : graphFileOut;
+
+    auto height = gridGraph.size();
+    auto width = gridGraph[0].size();
+
+    std::mt19937 generator(seed);
+//    std::uniform_real_distribution<double> distribution(0, 0.5);
+    std::uniform_real_distribution<double> distribution(minDP, maxDP);
+
+    std::vector<std::vector<unsigned int>> gridGraphIds(height, std::vector<unsigned int>(width, height * width));
+
+    g.clear();
+    unsigned int V = 0;
+
+    for (unsigned int i = 0; i < height; i++) {
+        for (unsigned int j = 0; j < width; j++) {
+            if (gridGraph[i][j] != '@') {
+                gridGraphIds[i][j] = boost::add_vertex(g);
+                g[gridGraphIds[i][j]].type = gridGraph[i][j];
+                V++;
+                gridOut << " " << std::setw(3) << gridGraphIds[i][j] << " ";
+            } else {
+                gridOut << "  @  ";
+            }
+        }
+        gridOut << std::endl << std::endl;
+    }
+
+    unsigned int E = 0;
+    for (unsigned int i = 0; i < height; i++) {
+        for (unsigned int j = 0; j < width; j++) {
+            if (gridGraph[i][j] != '@') {
+                std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
+                                                                                {i,     j + 1}};
+                for (auto[x, y] : neighbors) {
+                    if (x < height && y < width && gridGraph[x][y] != '@') {
+                        auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
+                        g[p.first].length = 1;
+                        g[p.first].dp = distribution(generator);
+                        E++;
+                    }
+                }
+            }
+        }
+    }
+    std::cout << V << " " << E << std::endl;
+    nodeNum = V;
+    edgeNum = E;
+
+    boost::dynamic_properties dp;
+    dp.property("node_id", boost::get(boost::vertex_index, g));
+    dp.property("type", boost::get(&Node::type, g));
+    dp.property("length", boost::get(&Edge::length, g));
+    dp.property("dp", boost::get(&Edge::dp, g));
+
+    boost::write_graphviz_dp(graphOut, g, dp);
+}
+
+void Graph::initDelayProbability(double minDP, double maxDP) {
+    this->minDP = minDP;
+    this->maxDP = maxDP;
+}
+
+
+void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
+                                const std::string &filename, size_t seed) {
+
+    assert(obstacles <= height * width);
+
+    std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
+
+    std::vector<unsigned int> v(height * width);
+    std::iota(v.begin(), v.end(), 0);
+    std::mt19937 generator(seed);
+    std::shuffle(v.begin(), v.end(), generator);
+    std::uniform_real_distribution<double> distribution(minDP, maxDP);
+
+    for (unsigned int i = 0; i < obstacles; i++) {
+        auto x = v[i] / height, y = v[i] % height;
+        gridGraph[x][y] = '@';
+    }
+
+    generateGraph(gridGraph, filename, generator());
+}
+
+
+void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, unsigned int maxY,
+                              const std::string &filename, size_t seed) {
+
+    std::vector<std::vector<char>> gridGraph(maxX, std::vector<char>(maxY, '.'));
+
+    for (unsigned int i = 0; i < maxX; i++) {
+        for (unsigned int j = 0; j < maxY; j++) {
+            if (i % 3 != 0 && j >= 7 && (j - 7) % (deliveryWidth + 1) != deliveryWidth && j < maxY - 7) {
+                gridGraph[i][j] = '@';
+            }
+        }
+    }
+
+    /*for (unsigned int i = 1; i < maxX; i += 2) {
+        for (unsigned int j = 7; j < maxY - 7; j++) {
+            if ((j - 7) % (deliveryWidth + 1) != deliveryWidth) {
+                gridGraph[i][j] = 't';
+            }
+        }
+    }*/
+
+    std::vector<unsigned int> parkingY = {0, 1, 2, 3, 4, 5};
+    std::vector<unsigned int> taskY = {maxY - 6, maxY - 5, maxY - 4, maxY - 5, maxY - 2, maxY - 1};
+    for (unsigned int i = 0; i < maxX; i++) {
+        for (unsigned int j : parkingY) {
+            gridGraph[i][j] = 'p';
+        }
+        for (unsigned int j : taskY) {
+            gridGraph[i][j] = 't';
+        }
+    }
+
+    generateGraph(gridGraph, filename, seed);
+}
+
+void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
+    unsigned int height = 5, width = 5;
+
+    std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '@'));
+    for (unsigned int i = 1; i < height - 1; i++) {
+        gridGraph[i][0] = gridGraph[i][width - 1] = '.';
+    }
+    for (unsigned int i = 0; i < width; i++) {
+        gridGraph[height / 2][i] = '.';
+    }
+    gridGraph[0][0] = gridGraph[height - 1][0] = 'p';
+    gridGraph[0][width - 1] = gridGraph[height - 1][width - 1] = 't';
+
+    generateGraph(gridGraph, filename, seed);
+}
+
+double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
+    assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
+    return distances[nodeId1][nodeId2];
+}
+
+const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
+    assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
+    auto neighborEdges = boost::out_edges(nodeId1, g);
+    for (auto edge : boost::make_iterator_range(neighborEdges)) {
+        unsigned int neighborNodeId = edge.m_target;
+        if (neighborNodeId == nodeId2) {
+            return g[edge];
+        }
+    }
+    assert(0);
+}
+
+
