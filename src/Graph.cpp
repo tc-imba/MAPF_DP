@@ -42,7 +42,7 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
         }
     }
     double density = (double) E * 2 / (V) / (V - 1);
-    std::cout << "V: " << V << " E: " << E << " density: " << density << std::endl;
+    std::cerr << "V: " << V << " E: " << E << " density: " << density << std::endl;
     if (density < 0.1) {
         boost::johnson_all_pairs_shortest_paths(g, distances,
                                                 boost::weight_map(boost::get(&Edge::_distance, g)));
@@ -112,7 +112,7 @@ void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::s
             }
         }
     }
-    std::cout << V << " " << E << std::endl;
+    std::cerr << V << " " << E << std::endl;
     nodeNum = V;
     edgeNum = E;
 
@@ -198,8 +198,8 @@ void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
     for (unsigned int i = 0; i < width; i++) {
         gridGraph[height / 2][i] = '.';
     }
-    gridGraph[0][0] = gridGraph[height - 1][0] = 'p';
-    gridGraph[0][width - 1] = gridGraph[height - 1][width - 1] = 't';
+    gridGraph[0][0] = gridGraph[0][width - 1] = 'p';
+    gridGraph[height - 1][0] = gridGraph[height - 1][width - 1] = 't';
 
     generateGraph(gridGraph, filename, seed);
 }

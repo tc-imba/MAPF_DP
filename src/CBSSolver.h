@@ -28,14 +28,14 @@ private:
     };
 
     struct Label {
-        unsigned int nodeId;
-        unsigned int state;
-        double estimatedTime;
-        double heuristic;
+        unsigned int nodeId;    // id of the node
+        unsigned int state;     // state of the agent
+        double estimatedTime;   // expected timestep from start
+        double heuristic;       // expected timestep to goal
     };
 
     struct AgentPlan {
-        std::deque<Label> path;
+        std::deque<Label> path; // planned path is consisted of labels
     };
 
     struct CBSNode {

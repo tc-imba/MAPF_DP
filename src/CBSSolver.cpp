@@ -6,11 +6,11 @@
 #include <iostream>
 #include <random>
 
-std::shared_ptr<CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned int agentId, double key) {
-    std::shared_ptr<AgentPlan> plan = std::make_shared<AgentPlan>();
+std::shared_ptr <CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned int agentId, double key) {
+    std::shared_ptr <AgentPlan> plan = std::make_shared<AgentPlan>();
     FocalNodePtrComp comp(key + 1 - currentTimestep);
-    std::priority_queue<FocalNodePtr, std::vector<FocalNodePtr>, FocalNodePtrComp> open(comp);
-    std::unordered_map<Label, FocalNodePtr, LabelHash, LabelEqual> focalNodes;
+    std::priority_queue <FocalNodePtr, std::vector<FocalNodePtr>, FocalNodePtrComp> open(comp);
+    std::unordered_map <Label, FocalNodePtr, LabelHash, LabelEqual> focalNodes;
 //    auto compareLabel = LabelComp{};
 
     auto &agent = agents[agentId];
@@ -62,7 +62,7 @@ std::shared_ptr<CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, u
             }
         }
 
-        std::vector<Label> newLabels;
+        std::vector <Label> newLabels;
         auto neighborEdges = boost::out_edges(current->label.nodeId, graph.g);
         bool needWaiting = true;
 
@@ -73,33 +73,33 @@ std::shared_ptr<CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, u
                 newLabel.estimatedTime = getEstimate(newLabel, current->label)
                                          + graph.g[edge].length / (1.0 - graph.g[edge].dp);
                 newLabel.heuristic = graph.getHeuristic(newLabel.nodeId, agent.goal);
-                if (newLabel.heuristic < current->label.heuristic) {
-                    needWaiting = false;
-                }
                 newLabels.push_back(newLabel);
             }
         }
 //        if (newLabels.empty()) {
-        if (needWaiting) {
-            Label newLabel = {current->label.nodeId, current->label.state + 1, 0, 0};
-            if (constraintSet.find(newLabel) == constraintSet.end()) {
-                newLabel.estimatedTime = getEstimate(newLabel, current->label) + 1;
-                newLabel.heuristic = graph.getHeuristic(newLabel.nodeId, agent.goal);
-                newLabels.push_back(newLabel);
-            }
+//        if (needWaiting) {
+        Label newLabel = {current->label.nodeId, current->label.state + 1, 0, 0};
+        if (constraintSet.find(newLabel) == constraintSet.end()) {
+            newLabel.estimatedTime = getEstimate(newLabel, current->label) + 1;
+            newLabel.heuristic = graph.getHeuristic(newLabel.nodeId, agent.goal);
+            newLabels.push_back(newLabel);
         }
-        for (auto &label : newLabels) {
+//        }
+        for (unsigned int i = 0; i < newLabels.size(); i++) {
+            if (i == newLabels.size() - 1 && !needWaiting) {
+                continue;
+            }
+            auto &label = newLabels[i];
+            auto goalIt = goalAgentMap.find(label.nodeId);
+            if (goalIt != goalAgentMap.end() && goalIt->second != agentId) {
+                auto goalAgentId = goalIt->second;
+                if (cbsNode.plans[goalAgentId] && cbsNode.plans[goalAgentId]->path.back().state <= label.state) {
+                    continue;
+                }
+            }
             auto result = findConflict(label, agentId, true, false);
             unsigned int conflict = 0;
-            if (!result.empty()) conflict = 1;
-            /*auto cit = conflictMap.find(label);
-            if (cit != conflictMap.end()) {
-                if (cit->second.size() > 1) {
-                    conflict = 1;
-                } else if (cit->second.size() == 1 && cit->second.front() != agentId) {
-                    conflict = 1;
-                }
-            }*/
+            if (!result.empty() && (allConstraint || label.state < window)) conflict = 1;
 
             auto it = focalNodes.find(label);
             auto newNode = std::make_shared<FocalNode>();
@@ -128,6 +128,10 @@ std::shared_ptr<CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, u
                 focalNodes.emplace_hint(it, newNode->label, newNode);
                 open.emplace(std::move(newNode));
             }
+
+            if (label.heuristic < current->label.heuristic) {
+                needWaiting = false;
+            }
         }
     }
 
@@ -136,9 +140,9 @@ std::shared_ptr<CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, u
 }
 
 
-std::vector<CBSSolver::Constraint>
+std::vector <CBSSolver::Constraint>
 CBSSolver::findConflict(const Label &label, unsigned int agentId, bool find, bool edit) {
-    std::vector<CBSSolver::Constraint> result;
+    std::vector <CBSSolver::Constraint> result;
     auto it1 = conflictMap.find(label);
     if (find) {
         if (it1 != conflictMap.end() && it1->second.front() != agentId) {
@@ -177,9 +181,9 @@ CBSSolver::findConflict(const Label &label, unsigned int agentId, bool find, boo
 }
 
 
-std::vector<CBSSolver::Constraint> CBSSolver::findConflicts(CBSNode &cbsNode) {
-    std::vector<CBSSolver::Constraint> result;
-    std::vector<std::pair<unsigned int, unsigned int>> lastStates(agents.size(), {0, 0});
+std::vector <CBSSolver::Constraint> CBSSolver::findConflicts(CBSNode &cbsNode) {
+    std::vector <CBSSolver::Constraint> result;
+    std::vector <std::pair<unsigned int, unsigned int>> lastStates(agents.size(), {0, 0});
     for (unsigned agentId = 0; agentId < cbsNode.plans.size(); agentId++) {
         lastStates[agentId].second = agentId;
     }
@@ -361,7 +365,7 @@ void CBSSolver::initCBS(unsigned int _window) {
         goalAgentMap[agents[i].goal] = i;
     }
 
-    std::priority_queue<CBSNodePtr, std::vector<CBSNodePtr>, CBSNodePtrComp> newQueue;
+    std::priority_queue <CBSNodePtr, std::vector<CBSNodePtr>, CBSNodePtrComp> newQueue;
     queue.swap(newQueue);
     estimateMap.clear();
     constraintSet.clear();
@@ -486,7 +490,7 @@ unsigned int CBSSolver::generateConstraintSet(CBSSolver::CBSNode &cbsNode) {
 
 bool CBSSolver::simulate() {
     if (!success) return true;
-    std::unordered_map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> nodes;
+    std::unordered_map < unsigned int, std::vector < std::pair < unsigned int, unsigned int>>> nodes;
 //    std::vector<unsigned int> agentStates(agents.size(), 0);
     std::unordered_map<unsigned int, int> nodeStates;
 

@@ -96,7 +96,7 @@ void Solver::generateWarehouseAgents(size_t seed, bool swap) {
             agents[i].start = v1[i];
             agents[i].goal = v2[i];
         }
-        std::cout << "agent " << i << " " << v1[i] << " -> " << v2[i]
+        std::cerr << "agent " << i << " " << v1[i] << " -> " << v2[i]
                   << " (" << graph.getHeuristic(v1[i], v2[i]) << ")" << std::endl;
     }
 

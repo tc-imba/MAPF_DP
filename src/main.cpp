@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "Graph.h"
 #include "CBSSolver.h"
 #include "ezOptionParser.hpp"
@@ -15,7 +16,8 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Debug Mode", "-d", "--debug");
     optionParser.add("", false, 0, 0, "All Constraints", "--all");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
-    optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "-o", "--objective");
+    optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
+    optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit)", "-w", "--window", validWindowSize);
@@ -42,12 +44,13 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective;
+    std::string mapType, objective, outputFileName;
     unsigned long window, seed, agents, iteration;
     double minDP, maxDP;
     bool debug, allConstraint;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
+    optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--seed")->getULong(seed);
     optionParser.get("--agents")->getULong(agents);
@@ -60,7 +63,15 @@ int main(int argc, const char *argv[]) {
     if (window == 0) {
         window = std::numeric_limits<unsigned int>::max() / 2;
     }
-    std::cout << "window: " << window << std::endl;
+//    std::cout << "window: " << window << std::endl;
+
+    std::ofstream fout;
+    if (!outputFileName.empty()) {
+        fout.open(outputFileName);
+        std::cerr << outputFileName << std::endl;
+    }
+    std::ostream &out = fout.is_open() ? fout : std::cout;
+
 
     Graph graph;
     unsigned int height = 30;
@@ -88,6 +99,7 @@ int main(int argc, const char *argv[]) {
         filename = "hardcoded";
         graph.generateHardCodedGraph(filename, seed);
         agents = 2;
+        seed = 1;
     }
 
     graph.calculateAllPairShortestPath(filename, true);
@@ -123,7 +135,11 @@ int main(int argc, const char *argv[]) {
             approx = solver.approxAverageMakeSpan(*solver.solution);
             solver.simulate();
         }
-        std::cout << solver.averageMakeSpan() << "\t" << approx << std::endl;
+        out << solver.averageMakeSpan() << "," << approx << std::endl;
+    }
+
+    if (fout.is_open()) {
+        fout.close();
     }
 
     return 0;
