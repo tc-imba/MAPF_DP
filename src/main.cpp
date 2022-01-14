@@ -2,6 +2,8 @@
 #include <fstream>
 #include "Graph.h"
 #include "CBSSolver.h"
+#include "DefaultSimulator.h"
+#include "OnlineSimulator.h"
 #include "ezOptionParser.hpp"
 
 int main(int argc, const char *argv[]) {
@@ -29,7 +31,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("35", false, 1, 0, "Agents Number", "-a", "--agents", validAgents);
 
     auto validIteration = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("10", false, 1, 0, "Iteration Number", "-i", "--iteration", validAgents);
+    optionParser.add("10", false, 1, 0, "Iteration Number", "-i", "--iteration", validIteration);
 
     auto validMin = new ez::ezOptionValidator("d", "ge", "0");
     auto validMax = new ez::ezOptionValidator("d", "ge", "0");
@@ -45,7 +47,7 @@ int main(int argc, const char *argv[]) {
     }
 
     std::string mapType, objective, outputFileName;
-    unsigned long window, seed, agents, iteration;
+    unsigned long window, seed, agentNum, iteration;
     double minDP, maxDP;
     bool debug, allConstraint;
     optionParser.get("--map")->getString(mapType);
@@ -53,7 +55,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--seed")->getULong(seed);
-    optionParser.get("--agents")->getULong(agents);
+    optionParser.get("--agents")->getULong(agentNum);
     optionParser.get("--iteration")->getULong(iteration);
     optionParser.get("--min")->getDouble(minDP);
     optionParser.get("--max")->getDouble(maxDP);
@@ -98,45 +100,74 @@ int main(int argc, const char *argv[]) {
     } else if (mapType == "hardcoded") {
         filename = "hardcoded";
         graph.generateHardCodedGraph(filename, seed);
-        agents = 2;
+        agentNum = 2;
         seed = 1;
     }
-
     graph.calculateAllPairShortestPath(filename, true);
+
+
+    std::vector<Agent> agents;
+    if (mapType == "random") {
+        agents = graph.generateRandomAgents(agentNum, seed);
+    } else if (mapType == "warehouse") {
+        agents = graph.generateWarehouseAgents(agentNum, seed, true);
+    } else if (mapType == "hardcoded") {
+        agents = graph.generateWarehouseAgents(agentNum, seed, false);
+    }
+
     CBSSolver solver(graph, agents);
     solver.debug = debug;
     solver.allConstraint = allConstraint;
 
-    if (mapType == "random") {
-        solver.generateRandomAgents(seed);
-    } else if (mapType == "warehouse") {
-        solver.generateWarehouseAgents(seed, true);
-    } else if (mapType == "hardcoded") {
-        solver.generateWarehouseAgents(seed, false);
+    MakeSpanType makeSpanType = MakeSpanType::UNKNOWN;
+    if (objective == "maximum") {
+        makeSpanType = MakeSpanType::MAXIMUM;
+    } else if (objective == "average") {
+        makeSpanType = MakeSpanType::AVERAGE;
+    } else {
+        assert(0);
     }
+    solver.init(0, makeSpanType);
+    solver.initCBS(window);
+    while (solver.step()) {}
+    double approx = solver.approxAverageMakeSpan(*solver.solution);
+    std::unique_ptr<Simulator> simulator;
 
     for (unsigned int i = 0; i < iteration; i++) {
-        if (objective == "maximum") {
-            solver.init(i, Solver::MakeSpanType::MAXIMUM);
-        } else if (objective == "average") {
-            solver.init(i, Solver::MakeSpanType::AVERAGE);
+//        simulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+        simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
+        simulator->setSolution(solver.solution);
+        unsigned int currentTimestep = 1;
+        bool unfinish = simulator->simulate(currentTimestep, currentTimestep + 1000);
+        if (!unfinish) {
+            out << simulator->averageMakeSpan(makeSpanType) << "," << approx << std::endl;
         }
-        double approx = 0;
-        if (i == 0 || window < std::numeric_limits<unsigned int>::max() / 2) {
-            do {
-                solver.initCBS(window);
-                while (solver.step()) {
-
-                }
-                approx = solver.approxAverageMakeSpan(*solver.solution);
-//                std::cout << "timestep: " << solver.currentTimestep - 1 << " " << approx << std::endl;
-            } while (solver.simulate());
-        } else {
-            approx = solver.approxAverageMakeSpan(*solver.solution);
-            solver.simulate();
-        }
-        out << solver.averageMakeSpan() << "," << approx << std::endl;
     }
+
+
+
+//    for (unsigned int i = 0; i < iteration; i++) {
+//        if (objective == "maximum") {
+//            solver.init(i, MakeSpanType::MAXIMUM);
+//        } else if (objective == "average") {
+//            solver.init(i, MakeSpanType::AVERAGE);
+//        }
+//        double approx = 0;
+//        if (i == 0 || window < std::numeric_limits<unsigned int>::max() / 2) {
+//            do {
+//                solver.initCBS(window);
+//                while (solver.step()) {
+//
+//                }
+//                approx = solver.approxAverageMakeSpan(*solver.solution);
+////                std::cout << "timestep: " << solver.currentTimestep - 1 << " " << approx << std::endl;
+//            } while (solver.simulate());
+//        } else {
+//            approx = solver.approxAverageMakeSpan(*solver.solution);
+//            solver.simulate();
+//        }
+//        out << solver.averageMakeSpan() << "," << approx << std::endl;
+//    }
 
     if (fout.is_open()) {
         fout.close();

@@ -7,6 +7,11 @@
 
 #include <boost/graph/adjacency_list.hpp>
 
+struct Agent {
+    unsigned int start, goal, current;
+    unsigned int state;
+    unsigned int timestep;
+};
 
 class Graph {
 private:
@@ -54,6 +59,10 @@ public:
     [[nodiscard]] auto getNodeNum() const { return nodeNum; }
 
     [[nodiscard]] auto getEdgeNum() const { return edgeNum; }
+
+    std::vector<Agent> generateRandomAgents(unsigned int agentNum, size_t seed = 0);
+
+    std::vector<Agent> generateWarehouseAgents(unsigned int agentNum, size_t seed = 0, bool swap = false);
 };
 
 

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-std::shared_ptr <CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned int agentId, double key) {
+std::shared_ptr <AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned int agentId, double key) {
     std::shared_ptr <AgentPlan> plan = std::make_shared<AgentPlan>();
     FocalNodePtrComp comp(key + 1 - currentTimestep);
     std::priority_queue <FocalNodePtr, std::vector<FocalNodePtr>, FocalNodePtrComp> open(comp);
@@ -53,11 +53,11 @@ std::shared_ptr <CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, 
                     plan->path.emplace_front(temp->label);
                     temp = temp->parent.get();
                 }
-                if (debug) {
+#ifndef NDEBUG
                     std::cout << "agent: " << agentId << ", estimate: "
                               << currentTimestep - 1 + current->label.estimatedTime
                               << ", conflicts: " << current->conflicts << ", steps: " << count << std::endl;
-                }
+#endif
                 return plan;
             }
         }
@@ -70,8 +70,10 @@ std::shared_ptr <CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, 
             unsigned int neighborNodeId = edge.m_target;
             Label newLabel = {neighborNodeId, current->label.state + 1, 0, 0};
             if (constraintSet.find(newLabel) == constraintSet.end()) {
+                double dp = graph.g[edge].dp;
+                dp = 1.0 - dp;
                 newLabel.estimatedTime = getEstimate(newLabel, current->label)
-                                         + graph.g[edge].length / (1.0 - graph.g[edge].dp);
+                                         + graph.g[edge].length / (1.0 - dp);
                 newLabel.heuristic = graph.getHeuristic(newLabel.nodeId, agent.goal);
                 newLabels.push_back(newLabel);
             }
@@ -140,9 +142,8 @@ std::shared_ptr <CBSSolver::AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, 
 }
 
 
-std::vector <CBSSolver::Constraint>
-CBSSolver::findConflict(const Label &label, unsigned int agentId, bool find, bool edit) {
-    std::vector <CBSSolver::Constraint> result;
+std::vector <Constraint> CBSSolver::findConflict(const Label &label, unsigned int agentId, bool find, bool edit) {
+    std::vector <Constraint> result;
     auto it1 = conflictMap.find(label);
     if (find) {
         if (it1 != conflictMap.end() && it1->second.front() != agentId) {
@@ -181,8 +182,8 @@ CBSSolver::findConflict(const Label &label, unsigned int agentId, bool find, boo
 }
 
 
-std::vector <CBSSolver::Constraint> CBSSolver::findConflicts(CBSNode &cbsNode) {
-    std::vector <CBSSolver::Constraint> result;
+std::vector <Constraint> CBSSolver::findConflicts(CBSNode &cbsNode) {
+    std::vector <Constraint> result;
     std::vector <std::pair<unsigned int, unsigned int>> lastStates(agents.size(), {0, 0});
     for (unsigned agentId = 0; agentId < cbsNode.plans.size(); agentId++) {
         lastStates[agentId].second = agentId;
@@ -339,7 +340,7 @@ double CBSSolver::getEstimate(const Label &label, const Label &parentLabel) {
         auto it2 = it->second.lower_bound(label.state);
         if (it2 != it->second.begin()) {
             --it2;
-            result = std::max(result, it2->second);
+            result = std::max(result, it2->second + 3);
         }
     }
     return result;
@@ -398,11 +399,11 @@ bool CBSSolver::step() {
     auto node = queue.top();
     queue.pop();
 
-    if (debug) {
+#ifndef NDEBUG
         std::cout << "estimate: " << node->key << ", depth: " << node->depth << " | "
                   << node->constraint.nodeId << " " << node->constraint.state << " " << node->constraint.agentId
                   << std::endl;
-    }
+#endif
 
     auto conflict = findConflicts(*node);
 
@@ -453,16 +454,16 @@ bool CBSSolver::step() {
                 }
             }
 
-            if (debug) {
+#ifndef NDEBUG
                 std::cout << "add constraint: " << newNode->key << ", depth: " << newNode->depth << " | "
                           << constraint.nodeId << " " << constraint.state << " " << constraint.agentId << std::endl;
-            }
+#endif
 
             queue.emplace(std::move(newNode));
         } else {
-            if (debug) {
+#ifndef NDEBUG
                 std::cout << "search failed" << std::endl;
-            }
+#endif
         }
     }
 
@@ -471,7 +472,7 @@ bool CBSSolver::step() {
     return true;
 }
 
-unsigned int CBSSolver::generateConstraintSet(CBSSolver::CBSNode &cbsNode) {
+unsigned int CBSSolver::generateConstraintSet(CBSNode &cbsNode) {
     constraintSet.clear();
     auto agentId = cbsNode.constraint.agentId;
     if (agentId >= agents.size()) return 0;
@@ -526,7 +527,7 @@ bool CBSSolver::simulate() {
         }*/
 /*        */
     }
-    if (debug) {
+#ifndef NDEBUG
         for (unsigned int i = 0; i < agents.size(); i++) {
 //        if (agents[i].current == agents[i].goal) continue;
             std::cout << "agent " << i << ": ";
@@ -536,7 +537,7 @@ bool CBSSolver::simulate() {
             std::cout << std::endl;
 //        nodeStates[agents[i].start] = 0;
         }
-    }
+#endif
 
 
 //    std::mt19937 generator(seed);
@@ -545,9 +546,9 @@ bool CBSSolver::simulate() {
     unsigned int maxTimeStep = currentTimestep + window;
 
     for (; currentTimestep < maxTimeStep; currentTimestep++) {
-        if (debug) {
+#ifndef NDEBUG
             std::cout << "begin timestep " << currentTimestep << std::endl;
-        }
+#endif
         int count = 0;
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
@@ -574,17 +575,17 @@ bool CBSSolver::simulate() {
                                 combineRandomSeed(label.nodeId, nextLabel.nodeId, currentTimestep, seed));
                         double rand = distribution(generator);
                         if (rand < edge.dp) {
-                            if (debug) {
-                                std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delay"
+#ifndef NDEBUG
+                            std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delay"
                                           << std::endl;
-                            }
+#endif
                             continue;
                         }
                     }
-                    if (debug) {
+#ifndef NDEBUG
                         std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ")->("
                                   << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
-                    }
+#endif
                     agents[i].current = nextLabel.nodeId;
                     ++state;
                     ++nodeStates[label.nodeId];

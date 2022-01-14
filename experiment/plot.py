@@ -48,6 +48,7 @@ def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5
     labels = map(lambda x: str(int(x)), locs)
     plt.yticks(locs, labels)
     plt.ylim(0, ymax + box_width * 5)
+    plt.xlim(xmin, xmax)
 
     with npy.printoptions(precision=3):
         text = '  Q1: %s\n  Q2: %s\n  Q3: %s\nMean: %s\n Std: %s\nOutliers: %s\n' % (q1, q2, q3, mean, std, outliers)
@@ -55,7 +56,7 @@ def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5
 
     plt.legend()
     plt.title(title)
-    plt.xlabel('MakeSpan')
+    plt.xlabel('Average Timestep')
     plt.ylabel('Frequency')
     plt.tight_layout()
     if preview:
@@ -72,16 +73,16 @@ def main():
             data = df.iloc[:, 0]
             output_file = os.path.join(plot_dir, basename + ".png")
             if 'random' in file:
-                xmin = 60
-                xmax = 110
+                xmin = 25
+                xmax = 50
             elif 'hardcoded' in file:
-                xmin = 10
+                xmin = 0
                 xmax = 60
             else:
                 xmin = min(data) // 10 * 10
                 xmax = max(data) // 10 * 10
             # print(xmin, xmax)
-            plot_distribution(data, title=basename, filename=output_file, ytick=20, xmin=xmin, xmax=xmax, bins=50)
+            plot_distribution(data, title=basename, filename=output_file, ytick=20, xmin=xmin, xmax=xmax, bins=60)
 
 
 if __name__ == '__main__':
