@@ -17,8 +17,10 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Display this Message.", "-h", "--help");
     optionParser.add("", false, 0, 0, "Debug Mode", "-d", "--debug");
     optionParser.add("", false, 0, 0, "All Constraints", "--all");
+    optionParser.add("", false, 0, 0, "Use delay probability", "--dp");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
+    optionParser.add("default", false, 1, 0, "Simulator type (default / online)", "--simulator");
     optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
@@ -33,10 +35,17 @@ int main(int argc, const char *argv[]) {
     auto validIteration = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("10", false, 1, 0, "Iteration Number", "-i", "--iteration", validIteration);
 
+    auto validPause = new ez::ezOptionValidator("u4", "ge", "0");
+    optionParser.add("0", false, 1, 0, "Iteration Number", "-p", "--pause", validPause);
+
     auto validMin = new ez::ezOptionValidator("d", "ge", "0");
     auto validMax = new ez::ezOptionValidator("d", "ge", "0");
+    auto validDelayRatio = new ez::ezOptionValidator("d", "ge", "0");
+    auto validDelayInterval = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Min Delay Probability", "--min", validMin);
     optionParser.add("0.5", false, 1, 0, "Min Delay Probability", "--max", validMax);
+    optionParser.add("0.2", false, 1, 0, "Delay Ratio", "--delay-ratio", validDelayRatio);
+    optionParser.add("1", false, 1, 0, "Delay Interval", "--delay-interval", validDelayInterval);
 
     optionParser.parse(argc, argv);
     if (optionParser.isSet("-h")) {
@@ -46,21 +55,26 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, outputFileName;
-    unsigned long window, seed, agentNum, iteration;
-    double minDP, maxDP;
-    bool debug, allConstraint;
+    std::string mapType, objective, simulatorType, outputFileName;
+    unsigned long window, seed, agentNum, iteration, pause, delayInterval;
+    double minDP, maxDP, delayRatio;
+    bool debug, allConstraint, useDP;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
+    optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--seed")->getULong(seed);
     optionParser.get("--agents")->getULong(agentNum);
     optionParser.get("--iteration")->getULong(iteration);
+    optionParser.get("--pause")->getULong(pause);
     optionParser.get("--min")->getDouble(minDP);
     optionParser.get("--max")->getDouble(maxDP);
+    optionParser.get("--delay-ratio")->getDouble(delayRatio);
+    optionParser.get("--delay-interval")->getULong(delayInterval);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
+    useDP = optionParser.isSet("--dp");
 
     if (window == 0) {
         window = std::numeric_limits<unsigned int>::max() / 2;
@@ -100,10 +114,13 @@ int main(int argc, const char *argv[]) {
     } else if (mapType == "hardcoded") {
         filename = "hardcoded";
         graph.generateHardCodedGraph(filename, seed);
-        agentNum = 2;
+        agentNum = 3;
         seed = 1;
     }
-    graph.calculateAllPairShortestPath(filename, true);
+    if (useDP) {
+        graph.generateDelayProbability(seed, minDP, maxDP);
+    }
+    graph.calculateAllPairShortestPath(filename, useDP);
 
 
     std::vector<Agent> agents;
@@ -112,11 +129,12 @@ int main(int argc, const char *argv[]) {
     } else if (mapType == "warehouse") {
         agents = graph.generateWarehouseAgents(agentNum, seed, true);
     } else if (mapType == "hardcoded") {
-        agents = graph.generateWarehouseAgents(agentNum, seed, false);
+        agents = graph.generateHardCodedAgents(agentNum);
     }
 
     CBSSolver solver(graph, agents);
     solver.debug = debug;
+    solver.useDP = useDP;
     solver.allConstraint = allConstraint;
 
     MakeSpanType makeSpanType = MakeSpanType::UNKNOWN;
@@ -133,15 +151,53 @@ int main(int argc, const char *argv[]) {
     double approx = solver.approxAverageMakeSpan(*solver.solution);
     std::unique_ptr<Simulator> simulator;
 
-    for (unsigned int i = 0; i < iteration; i++) {
-//        simulator = std::make_unique<OnlineSimulator>(graph, agents, i);
-        simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
-        simulator->setSolution(solver.solution);
-        unsigned int currentTimestep = 1;
-        bool unfinish = simulator->simulate(currentTimestep, currentTimestep + 1000);
-        if (!unfinish) {
-            out << simulator->averageMakeSpan(makeSpanType) << "," << approx << std::endl;
+    unsigned int finished = 0;
+
+    for (unsigned int i = 0; finished < iteration; i++) {
+        graph.generateDelayProbability(i, minDP, maxDP);
+
+        if (simulatorType == "default") {
+            simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
+        } else if (simulatorType == "online") {
+            simulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+        } else {
+            assert(0);
         }
+        simulator->delayRatio = delayRatio;
+        simulator->delayInterval = delayInterval;
+
+        if (mapType == "hardcoded") {
+            CBSNodePtr solution = std::make_shared<CBSNode>();
+            std::shared_ptr<AgentPlan> a0 = std::make_shared<AgentPlan>();
+            std::shared_ptr<AgentPlan> a1 = std::make_shared<AgentPlan>();
+            std::shared_ptr<AgentPlan> a2 = std::make_shared<AgentPlan>();
+            solution->plans.push_back(a0);
+            solution->plans.push_back(a1);
+            solution->plans.push_back(a2);
+            (*a0).add(6).add(7).add(8).add(9).add(10).add(11).add(12).add(13);
+            (*a1).add(0).add(2).add(4).add(4).add(4).add(10).add(9).add(14).add(15).add(16);
+            (*a2).add(1).add(3).add(5).add(5).add(5).add(5).add(5).add(12);
+            simulator->setSolution(solution);
+
+        } else {
+            simulator->setSolution(solver.solution);
+        }
+
+        unsigned int currentTimestep = 1;
+        int count = simulator->simulate(currentTimestep, currentTimestep + 1000);
+        if (count == agentNum) {
+            finished++;
+            if (pause == 0){
+                out << simulator->averageMakeSpan(makeSpanType) << "," << approx << std::endl;
+            } else {
+                simulator->setAgents(agents);
+                currentTimestep = 1;
+                count = simulator->simulate(currentTimestep, currentTimestep + 100, pause);
+                out << count << std::endl;
+            }
+        }
+
+
     }
 
 

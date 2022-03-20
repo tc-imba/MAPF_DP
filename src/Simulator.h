@@ -6,6 +6,8 @@
 #define MAPF_DP_SIMULATOR_H
 
 #include "Solver.h"
+#include <random>
+#include <iostream>
 
 class Simulator {
 protected:
@@ -17,8 +19,16 @@ protected:
     bool debug = false;
 
 public:
+    size_t delayInterval = 1;
+    std::set<unsigned int> delayedSet;
+    double delayRatio = 0.2;
+
     Simulator(Graph &graph, const std::vector<Agent> &agents, unsigned int seed)
             : graph(graph), agents(agents), seed(seed) {}
+
+    void setAgents(const std::vector<Agent> &_agents) {
+        agents = _agents;
+    }
 
     void setSolution(CBSNodePtr _solution) {
         solution = std::move(_solution);
@@ -44,7 +54,37 @@ public:
         return result;
     }
 
-    virtual bool simulate(unsigned int &currentTimestep, unsigned int maxTimeStep) = 0;
+    void updateDelayedSet(unsigned int timestep) {
+        if (delayInterval > 0 && timestep % delayInterval == 0) {
+            std::vector<unsigned int> delayed;
+            for (unsigned int i = 0; i < agents.size(); i++) {
+                delayed.emplace_back(i);
+//                auto &state = agents[i].state;
+//                if (state + 1 < solution->plans[i]->path.size()) {
+//                    delayed.emplace_back(i);
+//                }
+            }
+            std::mt19937 generator(combineRandomSeed(0, 0, timestep, seed));
+            std::shuffle(delayed.begin(), delayed.end(), generator);
+            delayedSet.clear();
+            for (unsigned int i = 0; i < ((double) delayed.size()) * delayRatio; i++) {
+                delayedSet.emplace(delayed[i]);
+//                std::cout << delayed[i] << " delay" << std::endl;
+            }
+        }
+    }
+
+    int countCompletedAgents() {
+        int count = 0;
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            if (agents[i].current == agents[i].goal) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    virtual int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) = 0;
 
 };
 

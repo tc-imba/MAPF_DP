@@ -30,7 +30,7 @@ std::shared_ptr <AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned in
             continue;
         }
         count++;
-//        if (count >= 1000000) break;
+//        if (count >= 100) break;
         current->visited = true;
 //        std::cout << current->label.nodeId << " " << current->label.state << " "
 //                  << current->label.estimatedTime << " " << current->label.heuristic << " "
@@ -70,8 +70,10 @@ std::shared_ptr <AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned in
             unsigned int neighborNodeId = edge.m_target;
             Label newLabel = {neighborNodeId, current->label.state + 1, 0, 0};
             if (constraintSet.find(newLabel) == constraintSet.end()) {
-                double dp = graph.g[edge].dp;
-                dp = 1.0 - dp;
+                double dp = 0;
+                if (useDP) {
+                    dp = graph.g[edge].dp;
+                }
                 newLabel.estimatedTime = getEstimate(newLabel, current->label)
                                          + graph.g[edge].length / (1.0 - dp);
                 newLabel.heuristic = graph.getHeuristic(newLabel.nodeId, agent.goal);
@@ -352,7 +354,7 @@ void CBSSolver::init(unsigned int _seed, MakeSpanType makeSpanType) {
     seed = _seed;
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].current = agents[i].start;
-        agents[i].timestep = 0;
+        agents[i].timestep = agents[i].waitingTimestep = 0;
     }
     currentTimestep = 1;
 }

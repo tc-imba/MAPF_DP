@@ -8,7 +8,7 @@
 
 #include "OnlineSimulator.h"
 
-bool OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep) {
+int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep) {
     initSimulation();
 
     std::uniform_real_distribution<double> distribution(0, 1);
@@ -18,12 +18,21 @@ bool OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
             std::cout << "begin timestep " << currentTimestep << std::endl;
         }
 
+        if (delayInterval > 0 && currentTimestep % delayInterval == 0) {
+            delayedSet.clear();
+        }
+
         initChecks();
         neighborCheck();
         deadEndCheck();
 
         unblocked.insert(ready.begin(), ready.end());
         ready.clear();
+
+//        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
+//            updateDelayedSet(currentTimestep);
+//        }
+        updateDelayedSet(currentTimestep);
 
         int count = 0;
         for (unsigned int i = 0; i < agents.size(); i++) {
@@ -34,6 +43,11 @@ bool OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
                 }
                 ++count;
+            } else if (delayedSet.find(i) != delayedSet.end()) {
+                if (debug) {
+                    std::cout << "agent " << i << ": delayed" << std::endl;
+                }
+                agents[i].timestep = currentTimestep;
             } else if (blocked.find(i) != blocked.end()) {
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") blocked" << std::endl;
@@ -43,12 +57,18 @@ bool OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                 agents[i].timestep = currentTimestep;
                 auto nextNodeId = paths[i][state + 1];
                 auto &edge = graph.getEdge(currentNodeId, nextNodeId);
-                std::mt19937 generator(combineRandomSeed(currentNodeId, nextNodeId, currentTimestep, seed));
-                double rand = distribution(generator);
-                if (rand < edge.dp) {
+                auto waitingTimestep = 1;
+//                auto waitingTimestep = (unsigned int) floor(10.0 * (edge.dp - 0.5) + 2);
+//                auto waitingTimestep = (unsigned int) floor(1 / (1.0 - edge.dp));
+//                auto waitingTimestep = (unsigned int) floor(exp(5.0 * (edge.dp - 0.5)) + 1);
+                if (++agents[i].waitingTimestep < waitingTimestep) {
+//                std::mt19937 generator(combineRandomSeed(currentNodeId, nextNodeId, currentTimestep, seed));
+//                double rand = distribution(generator);
+//                if (rand < edge.dp) {
                     if (debug) {
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delay" << std::endl;
                     }
+                    nodeAgentMap[nextNodeId] = i;
                 } else {
                     if (debug) {
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
@@ -59,6 +79,7 @@ bool OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                     nodeAgentMap.erase(currentNodeId);
                     nodeAgentMap[nextNodeId] = i;
                     agents[i].current = nextNodeId;
+                    agents[i].waitingTimestep = 0;
                     if (++state >= paths[i].size()) ++count;
                 }
             } else {
@@ -71,15 +92,15 @@ bool OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
 
     }
 
-    bool unfinish = false;
+/*    bool unfinish = false;
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (agents[i].current != agents[i].goal) {
             unfinish = true;
 //            std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << ", goal " << agents[i].goal << std::endl;
             break;
         }
-    }
-    return unfinish;
+    }*/
+    return countCompletedAgents();
 }
 
 
@@ -133,7 +154,7 @@ void OnlineSimulator::initSimulation() {
         nodeAgentMap[agents[i].current] = i;
         for (size_t j = 0; j < solution->plans[i]->path.size(); j++) {
             auto newNodeId = solution->plans[i]->path[j].nodeId;
-            if (paths[i].empty() || paths[i][j - 1] != newNodeId) {
+            if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
             }
         }
@@ -156,6 +177,12 @@ void OnlineSimulator::initChecks() {
     }
     blocked.clear();
     moved.clear();
+//    for (auto i: delayed_set) {
+//        if (ready.find(i) != ready.end()) {
+//            ready.erase(i);
+//            blocked.insert(i);
+//        }
+//    }
 }
 
 
@@ -163,7 +190,8 @@ void OnlineSimulator::neighborCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         auto &agent = agents[*it];
         auto nextNodeId = paths[*it][agent.state + 1];
-        if (nodeAgentMap.find(nextNodeId) != nodeAgentMap.end()) {
+        auto it2 = nodeAgentMap.find(nextNodeId);
+        if (it2 != nodeAgentMap.end() && *it != it2->second) {
             blocked.insert(*it);
             it = ready.erase(it);
         } else {
@@ -175,10 +203,12 @@ void OnlineSimulator::neighborCheck() {
 void OnlineSimulator::deadEndCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         bool remove = false;
-        for (auto &&[j, state]: deadEndStates[*it]) {
-            if (agents[j].state <= state) {
-                remove = true;
-                break;
+        if (agents[*it].state == paths[*it].size() - 2) {
+            for (auto &&[j, state]: deadEndStates[*it]) {
+                if (agents[j].state <= state) {
+                    remove = true;
+                    break;
+                }
             }
         }
         if (remove) {
@@ -188,6 +218,12 @@ void OnlineSimulator::deadEndCheck() {
             ++it;
         }
     }
+}
+
+void OnlineSimulator::cycleCheck() {
+
+
+
 }
 
 

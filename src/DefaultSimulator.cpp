@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-bool DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int maxTimeStep) {
+int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int maxTimeStep, unsigned int pauseTimestep) {
 //    if (!success) return true;
     std::unordered_map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> nodes;
 //    std::vector<unsigned int> agentStates(agents.size(), 0);
@@ -47,7 +47,7 @@ bool DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned in
     if (debug) {
         for (unsigned int i = 0; i < agents.size(); i++) {
 //        if (agents[i].current == agents[i].goal) continue;
-            std::cout << "agent " << i << ": ";
+            std::cout << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
             for (const auto &label: solution->plans[i]->path) {
                 std::cout << "(" << label.state << "," << label.nodeId << ")->";
             }
@@ -65,11 +65,25 @@ bool DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned in
             std::cout << "begin timestep " << currentTimestep << std::endl;
         }
         int count = 0;
+        std::vector<unsigned int> unblocked;
+
+//        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
+//            updateDelayedSet(currentTimestep);
+//        }
+        updateDelayedSet(currentTimestep);
+
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
             if (state + 1 >= solution->plans[i]->path.size()) {
-//                std::cout << "agent " << i << ": completed" << std::endl;
+                if (debug) {
+                    std::cout << "agent " << i << ": completed" << std::endl;
+                }
                 ++count;
+            } else if (delayedSet.find(i) != delayedSet.end()) {
+                if (debug) {
+                    std::cout << "agent " << i << ": delayed" << std::endl;
+                }
+                agents[i].timestep = currentTimestep;
             } else {
                 agents[i].timestep = currentTimestep;
                 const auto &label = solution->plans[i]->path[state];
@@ -84,29 +98,44 @@ bool DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned in
                 auto next = nextNode[nextNodeState];
                 if (next.first == nextLabel.state && next.second == i) {
                     // try to move
-                    if (label.nodeId != nextLabel.nodeId) {
-                        auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
-                        std::mt19937 generator(
-                                combineRandomSeed(label.nodeId, nextLabel.nodeId, currentTimestep, seed));
-                        double rand = distribution(generator);
-                        if (rand < edge.dp) {
-                            if (debug) {
-                                std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delay"
-                                          << std::endl;
-                            }
-                            continue;
-                        }
-                    }
-                    if (debug) {
-                        std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ")->("
-                                  << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
-                    }
-                    agents[i].current = nextLabel.nodeId;
-                    ++state;
-                    ++nodeStates[label.nodeId];
+                    unblocked.emplace_back(i);
                 }
             }
         }
+        for (auto i: unblocked) {
+            auto &state = agents[i].state;
+            const auto &label = solution->plans[i]->path[state];
+            const auto &nextLabel = solution->plans[i]->path[state + 1];
+            const auto &nextNode = nodes[nextLabel.nodeId];
+            if (label.nodeId != nextLabel.nodeId) {
+                auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
+                auto waitingTimestep = 1;
+//                auto waitingTimestep = (unsigned int) floor(10.0 * (edge.dp - 0.5) + 2);
+//                auto waitingTimestep = (unsigned int) floor(1 / (1.0 - edge.dp));
+//                auto waitingTimestep = (unsigned int) floor(exp(5.0 * (edge.dp - 0.5)) + 1);
+                if (++agents[i].waitingTimestep < waitingTimestep) {
+//                std::mt19937 generator(
+//                        combineRandomSeed(label.nodeId, nextLabel.nodeId, currentTimestep, seed));
+//                double rand = distribution(generator);
+//                if (rand < edge.dp) {
+                    if (debug) {
+                        std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delay"
+                                  << std::endl;
+                    }
+                    continue;
+                }
+            }
+            if (debug) {
+                std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ")->("
+                          << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
+            }
+            agents[i].current = nextLabel.nodeId;
+            agents[i].waitingTimestep = 0;
+            ++state;
+            ++nodeStates[label.nodeId];
+        }
+
+
 //        std::cout << count << std::endl;
         if (count >= agents.size()) {
             break;
@@ -115,13 +144,13 @@ bool DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned in
 
 //    std::cout << "window " << window << ": " << averageMakeSpan() << std::endl;
 
-    bool unfinish = false;
+/*    bool unfinish = false;
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (agents[i].current != agents[i].goal) {
             unfinish = true;
 //            std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << ", goal " << agents[i].goal << std::endl;
             break;
         }
-    }
-    return unfinish;
+    }*/
+    return countCompletedAgents();
 }

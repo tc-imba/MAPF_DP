@@ -11,7 +11,7 @@ class DefaultSimulator : public Simulator {
 public:
     DefaultSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
 
-    bool simulate(unsigned int &currentTimestep, unsigned int maxTimeStep) override;
+    int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) override;
 
 };
 

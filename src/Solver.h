@@ -35,6 +35,11 @@ struct Label {
 
 struct AgentPlan {
     std::deque<Label> path; // planned path is consisted of labels
+
+    AgentPlan &add(unsigned int nodeId) {
+        path.push_back(Label{nodeId, (unsigned int) path.size(), 0, 0});
+        return *this;
+    }
 };
 
 struct CBSNode {
@@ -119,13 +124,15 @@ protected:
 public:
     bool success = false;
     bool debug = false;
+    bool useDP = false;
     bool allConstraint = false;
 
     Solver() = delete;
 
     Solver(Graph &graph, std::vector<Agent> &agents);
 
-    static size_t combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int seed);
+    static size_t
+    combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int seed);
 
     void init(MakeSpanType makeSpanType = MakeSpanType::MAXIMUM);
 

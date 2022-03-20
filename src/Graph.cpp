@@ -16,6 +16,7 @@ Graph::Graph() {
 
 }
 
+
 void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
     std::ofstream distFileOut;
     if (!filename.empty()) distFileOut.open(filename + (dp ? ".dp.distance" : ".distance"));
@@ -60,6 +61,18 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
 
 }
 
+
+void Graph::generateDelayProbability(size_t seed, double minDP, double maxDP) {
+    std::mt19937 generator(seed);
+//    std::uniform_real_distribution<double> distribution(0, 0.5);
+    std::uniform_real_distribution<double> distribution(minDP, maxDP);
+    auto edges = boost::edges(g);
+    for (auto it = edges.first; it != edges.second; ++it) {
+        g[*it].dp = distribution(generator);
+    }
+}
+
+
 void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::string &filename, size_t seed) {
 
     std::ofstream gridFileOut;
@@ -72,11 +85,11 @@ void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::s
     auto height = gridGraph.size();
     auto width = gridGraph[0].size();
 
-    std::mt19937 generator(seed);
+//    std::mt19937 generator(seed);
 //    std::uniform_real_distribution<double> distribution(0, 0.5);
-    std::uniform_real_distribution<double> distribution(minDP, maxDP);
+//    std::uniform_real_distribution<double> distribution(minDP, maxDP);
 
-    std::vector<std::vector<unsigned int>> gridGraphIds(height, std::vector<unsigned int>(width, height * width));
+    gridGraphIds.resize(height, std::vector<unsigned int>(width, height * width));
 
     g.clear();
     unsigned int V = 0;
@@ -101,11 +114,12 @@ void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::s
             if (gridGraph[i][j] != '@') {
                 std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
                                                                                 {i,     j + 1}};
-                for (auto[x, y] : neighbors) {
+                for (auto[x, y]: neighbors) {
                     if (x < height && y < width && gridGraph[x][y] != '@') {
                         auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
                         g[p.first].length = 1;
-                        g[p.first].dp = distribution(generator);
+                        g[p.first].dp = 0;
+//                        g[p.first].dp = distribution(generator);
                         E++;
                     }
                 }
@@ -177,10 +191,10 @@ void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, uns
     std::vector<unsigned int> parkingY = {0, 1, 2, 3, 4, 5};
     std::vector<unsigned int> taskY = {maxY - 6, maxY - 5, maxY - 4, maxY - 5, maxY - 2, maxY - 1};
     for (unsigned int i = 0; i < maxX; i++) {
-        for (unsigned int j : parkingY) {
+        for (unsigned int j: parkingY) {
             gridGraph[i][j] = 'p';
         }
-        for (unsigned int j : taskY) {
+        for (unsigned int j: taskY) {
             gridGraph[i][j] = 't';
         }
     }
@@ -189,17 +203,21 @@ void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, uns
 }
 
 void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
-    unsigned int height = 5, width = 5;
+    unsigned int height = 7, width = 8;
 
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '@'));
-    for (unsigned int i = 1; i < height - 1; i++) {
-        gridGraph[i][0] = gridGraph[i][width - 1] = '.';
-    }
     for (unsigned int i = 0; i < width; i++) {
-        gridGraph[height / 2][i] = '.';
+        gridGraph[3][i] = '.';
     }
-    gridGraph[0][0] = gridGraph[0][width - 1] = 'p';
-    gridGraph[height - 1][0] = gridGraph[height - 1][width - 1] = 't';
+    for (unsigned int i = 0; i < height / 2 + 1; i++) {
+        gridGraph[i][4] = '.';
+        gridGraph[i][6] = '.';
+    }
+    for (unsigned int i = height / 2; i < height; i++) {
+        gridGraph[i][3] = '.';
+    }
+//    gridGraph[0][0] = gridGraph[0][width - 1] = 'p';
+//    gridGraph[height - 1][0] = gridGraph[height - 1][width - 1] = 't';
 
     generateGraph(gridGraph, filename, seed);
 }
@@ -212,7 +230,7 @@ double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
 const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
     auto neighborEdges = boost::out_edges(nodeId1, g);
-    for (auto edge : boost::make_iterator_range(neighborEdges)) {
+    for (auto edge: boost::make_iterator_range(neighborEdges)) {
         unsigned int neighborNodeId = edge.m_target;
         if (neighborNodeId == nodeId2) {
             return g[edge];
@@ -312,5 +330,20 @@ std::vector<Agent> Graph::generateWarehouseAgents(unsigned int agentNum, size_t 
     }
     return agents;
 
+}
+
+std::vector<Agent> Graph::generateHardCodedAgents(unsigned int agentNum) {
+    std::vector<Agent> agents(agentNum);
+
+    agents[0].start = gridGraphIds[3][1];
+    agents[0].goal = gridGraphIds[3][7];
+
+    agents[1].start = gridGraphIds[0][4];
+    agents[1].goal = gridGraphIds[6][3];
+
+    agents[2].start = gridGraphIds[0][6];
+    agents[2].goal = gridGraphIds[3][6];
+
+    return agents;
 }
 

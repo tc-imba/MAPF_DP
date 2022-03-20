@@ -11,11 +11,13 @@ struct Agent {
     unsigned int start, goal, current;
     unsigned int state;
     unsigned int timestep;
+    unsigned int waitingTimestep;
 };
 
 class Graph {
 private:
     std::vector<std::vector<double>> distances;
+    std::vector<std::vector<unsigned int>> gridGraphIds;
     unsigned int nodeNum;
     unsigned int edgeNum;
     double minDP = 0;
@@ -42,6 +44,8 @@ public:
 
     void initDelayProbability(double minDP, double maxDP);
 
+    void generateDelayProbability(size_t seed, double minDP, double maxDP);
+
     void generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
                              const std::string &filename = "", size_t seed = 0);
 
@@ -63,6 +67,8 @@ public:
     std::vector<Agent> generateRandomAgents(unsigned int agentNum, size_t seed = 0);
 
     std::vector<Agent> generateWarehouseAgents(unsigned int agentNum, size_t seed = 0, bool swap = false);
+
+    std::vector<Agent> generateHardCodedAgents(unsigned int agentNum);
 };
 
 
