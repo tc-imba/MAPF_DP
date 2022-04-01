@@ -18,7 +18,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             std::cout << "begin timestep " << currentTimestep << std::endl;
         }
 
-        if (delayInterval > 0 && currentTimestep % delayInterval == 0) {
+        if (pauseTimestep == 0 && delayInterval > 0 && currentTimestep % delayInterval == 0) {
             delayedSet.clear();
         }
 
@@ -29,10 +29,14 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         unblocked.insert(ready.begin(), ready.end());
         ready.clear();
 
+        if (pauseTimestep == 0 || currentTimestep == pauseTimestep) {
+            updateDelayedSet(currentTimestep, pauseTimestep == 0);
+        }
+
 //        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
 //            updateDelayedSet(currentTimestep);
 //        }
-        updateDelayedSet(currentTimestep);
+//        updateDelayedSet(currentTimestep);
 
         int count = 0;
         for (unsigned int i = 0; i < agents.size(); i++) {

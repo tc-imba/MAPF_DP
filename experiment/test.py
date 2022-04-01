@@ -64,19 +64,18 @@ async def run(map_type, objective="maximum", seed=0, agents=35, iteration=1000, 
 
 
 async def main():
-    # os.chdir(data_root)
-    # for agents in [10, 20, 30]:
-    #     for pause in [1, 5, 10]:
-    #         for delay_ratio in [0.2, 0.4]:
-    #             for simulator in ["default", "online"]:
-    #                 await run("random", min_dp=0.5, max_dp=0.9,
-    #                           agents=agents, simulator=simulator,
-    #                           pause=pause, delay_ratio=delay_ratio)
+    os.chdir(result_dir)
+    for agents in [10, 20, 30]:
+        for pause in [1, 5, 10]:
+            for delay_ratio in [0.2, 0.4]:
+                for simulator in ["default", "online"]:
+                    await run("random", min_dp=0.5, max_dp=0.9,
+                              agents=agents, simulator=simulator,
+                              pause=pause, delay_ratio=delay_ratio, delay_interval=0)
     for agents in [10, 20, 30]:
         for delay_ratio in [0.2, 0.4]:
             for delay_interval in [1, 3, 5, 10]:
-                # for simulator in ["default", "online"]:
-                for simulator in ["default"]:
+                for simulator in ["default", "online"]:
                     await run("random", min_dp=0.5, max_dp=0.9,
                               agents=agents, simulator=simulator,
                               pause=0, delay_ratio=delay_ratio,

@@ -71,7 +71,7 @@ def parse_data():
         for agent in [10, 20, 30]:
             for timestep in [1, 5, 10]:
                 for rate in [0.2, 0.4]:
-                    file = f"{simulator}-agents-{agent}-{timestep}-{rate}.csv"
+                    file = f"{simulator}-agents-{agent}-{timestep}-{rate}-0.csv"
                     df = pandas.read_csv(os.path.join(result_dir, file), header=None)
                     scores = df.iloc[:, 0]
                     mean = npy.around(npy.mean(scores), 3)
@@ -119,7 +119,7 @@ def plot_block(data, rate):
 def parse_data_2():
     main_df = pandas.DataFrame()
     for simulator in ["default", "online"]:
-        for agent in [10, 20, 30]:
+        for agent in [10]:
             for interval in [1, 3, 5, 10]:
                 for rate in [0.2, 0.4]:
                     timestep = 0
@@ -172,9 +172,9 @@ def plot_block_2(data, rate):
 
 
 def main():
-    # df = parse_data()
-    # plot_block(df, 0.2)
-    # plot_block(df, 0.4)
+    df = parse_data()
+    plot_block(df, 0.2)
+    plot_block(df, 0.4)
 
     df2 = parse_data_2()
     plot_block_2(df2, 0.2)

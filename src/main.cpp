@@ -92,7 +92,7 @@ int main(int argc, const char *argv[]) {
     Graph graph;
     unsigned int height = 30;
     unsigned int width = 30;
-    unsigned int obstacles = 90;
+    unsigned int obstacles = 270;
 
     unsigned int deliveryWidth = 10;
     unsigned int deliveryX = 7;

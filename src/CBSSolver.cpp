@@ -90,9 +90,9 @@ std::shared_ptr <AgentPlan> CBSSolver::focalSearch(CBSNode &cbsNode, unsigned in
         }
 //        }
         for (unsigned int i = 0; i < newLabels.size(); i++) {
-            if (i == newLabels.size() - 1 && !needWaiting) {
-                continue;
-            }
+//            if (i == newLabels.size() - 1 && !needWaiting) {
+//                continue;
+//            }
             auto &label = newLabels[i];
             auto goalIt = goalAgentMap.find(label.nodeId);
             if (goalIt != goalAgentMap.end() && goalIt->second != agentId) {

@@ -54,15 +54,19 @@ public:
         return result;
     }
 
-    void updateDelayedSet(unsigned int timestep) {
-        if (delayInterval > 0 && timestep % delayInterval == 0) {
+    void updateDelayedSet(unsigned int timestep, bool checkComplete) {
+        if (delayInterval == 0 || timestep % delayInterval == 0) {
             std::vector<unsigned int> delayed;
             for (unsigned int i = 0; i < agents.size(); i++) {
-                delayed.emplace_back(i);
-//                auto &state = agents[i].state;
-//                if (state + 1 < solution->plans[i]->path.size()) {
+//                if (checkComplete) {
+//                    auto &state = agents[i].state;
+//                    if (state + 1 < solution->plans[i]->path.size()) {
+//                        delayed.emplace_back(i);
+//                    }
+//                } else {
 //                    delayed.emplace_back(i);
 //                }
+                delayed.emplace_back(i);
             }
             std::mt19937 generator(combineRandomSeed(0, 0, timestep, seed));
             std::shuffle(delayed.begin(), delayed.end(), generator);

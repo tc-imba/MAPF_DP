@@ -67,10 +67,14 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int
         int count = 0;
         std::vector<unsigned int> unblocked;
 
+        if (pauseTimestep == 0 || currentTimestep == pauseTimestep) {
+            updateDelayedSet(currentTimestep, pauseTimestep == 0);
+        }
+
 //        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
 //            updateDelayedSet(currentTimestep);
 //        }
-        updateDelayedSet(currentTimestep);
+//        updateDelayedSet(currentTimestep);
 
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;

@@ -289,6 +289,8 @@ std::vector<Agent> Graph::generateRandomAgents(unsigned int agentNum, size_t see
 
     for (i = 0, j = 0; i < agents.size() && j < getNodeNum(); j++) {
         if (v1[j] == v2[j]) continue;
+        auto distance = getHeuristic(v1[j], v2[j]);
+        if (distance >= 1000000) continue;
         agents[i].start = v1[j];
         agents[i].goal = v2[j];
         std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
