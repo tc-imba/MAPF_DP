@@ -45,6 +45,10 @@ public:
 
     bool step();
 
+    bool solve();
+
+    bool solveWithCache(const std::string &directory, unsigned int agentSeed);
+
     bool simulate();
 
     double approxAverageMakeSpan(CBSNode &cbsNode);

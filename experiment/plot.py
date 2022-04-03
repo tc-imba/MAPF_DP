@@ -65,30 +65,32 @@ def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5
     plt.close()
 
 
-def parse_data():
+def parse_infinite_data():
     main_df = pandas.DataFrame()
-    for simulator in ["default", "online"]:
-        for agent in [10, 20, 30]:
-            for timestep in [1, 5, 10]:
-                for rate in [0.2, 0.4]:
-                    file = f"{simulator}-agents-{agent}-{timestep}-{rate}-0.csv"
-                    df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                    scores = df.iloc[:, 0]
-                    mean = npy.around(npy.mean(scores), 3)
-                    # print(file, mean)
-                    row = {
-                        "simulator": simulator,
-                        "agent": agent,
-                        "timestep": timestep,
-                        "rate": rate,
-                        "value": mean
-                    }
-                    main_df = main_df.append(row, ignore_index=True)
-    return main_df
+    for obstacles in [90, 180, 270]:
+        for simulator in ["default", "online"]:
+            for agents in [10, 20, 30]:
+                for timestep in [1, 5, 10]:
+                    for rate in [0.2, 0.4]:
+                        file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-0.csv"
+                        df = pandas.read_csv(os.path.join(result_dir, file), header=None)
+                        scores = df.iloc[:, 0]
+                        mean = npy.around(npy.mean(scores), 3)
+                        # print(file, mean)
+                        row = {
+                            "simulator": simulator,
+                            "obstacles": obstacles,
+                            "agents": agents,
+                            "timestep": timestep,
+                            "rate": rate,
+                            "value": mean
+                        }
+                        main_df = main_df.append(row, ignore_index=True)
+        return main_df
 
 
-def plot_block(data, rate):
-    df = data[data["rate"] == rate]
+def plot_infinite(data, obstacles, rate):
+    df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles)]
     fig = plt.figure(figsize=(16, 9), dpi=100)
     plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
     xticks = []
@@ -97,51 +99,53 @@ def plot_block(data, rate):
             for i, row in df2.iterrows():
                 xticks.append(f"{int(row['timestep'])}")
         x = npy.arange(len(df2))
-        y = npy.array(df2["value"] / df2["agent"] * 100)
-        agents = npy.array(df2["agent"])
+        y = npy.array(df2["value"] / df2["agents"] * 100)
+        agents = npy.array(df2["agents"])
         for i in range(0, len(x), 3):
             plt.plot(
-                x[i:i+3], y[i:i+3], "o-",
+                x[i:i + 3], y[i:i + 3], "o-",
                 label=f"{simulator} ({int(agents[i])} agents)",
             )
         plt.xticks(x, xticks)
     plt.legend()
-    # plt.title(f"{int(rate*100)}% of agents blocked initially")
+    plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked infinitely")
     plt.xlabel('Block Timestep')
     plt.ylabel('Success Rate (%)')
     plt.tight_layout()
     # plt.show()
-    output_file = os.path.join(plot_dir, f"block-{rate}.png")
+    output_file = os.path.join(plot_dir, f"infinite-{obstacles}-{rate}.png")
     fig.savefig(fname=output_file, dpi=300)
     plt.close()
 
 
-def parse_data_2():
+def parse_periodic_data():
     main_df = pandas.DataFrame()
-    for simulator in ["default", "online"]:
-        for agent in [10]:
-            for interval in [1, 3, 5, 10]:
-                for rate in [0.2, 0.4]:
-                    timestep = 0
-                    file = f"{simulator}-agents-{agent}-{timestep}-{rate}-{interval}.csv"
-                    df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                    scores = df.iloc[:, 0]
-                    mean = npy.around(npy.mean(scores), 3)
-                    # print(file, mean)
-                    row = {
-                        "simulator": simulator,
-                        "agent": agent,
-                        "timestep": timestep,
-                        "interval": interval,
-                        "rate": rate,
-                        "value": mean
-                    }
-                    main_df = main_df.append(row, ignore_index=True)
+    for obstacles in [90, 180, 270]:
+        for simulator in ["default", "online"]:
+            for agents in [10, 20, 30]:
+                for interval in [1, 3, 5, 10]:
+                    for rate in [0.2, 0.4]:
+                        timestep = 0
+                        file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}.csv"
+                        df = pandas.read_csv(os.path.join(result_dir, file), header=None)
+                        scores = df.iloc[:, 0]
+                        mean = npy.around(npy.mean(scores), 3)
+                        # print(file, mean)
+                        row = {
+                            "simulator": simulator,
+                            "obstacles": obstacles,
+                            "agents": agents,
+                            "timestep": timestep,
+                            "interval": interval,
+                            "rate": rate,
+                            "value": mean
+                        }
+                        main_df = main_df.append(row, ignore_index=True)
     return main_df
 
 
-def plot_block_2(data, rate):
-    df = data[data["rate"] == rate]
+def plot_periodic(data, obstacles, rate):
+    df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles)]
     fig = plt.figure(figsize=(16, 9), dpi=100)
     plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
     xticks = []
@@ -151,34 +155,31 @@ def plot_block_2(data, rate):
                 xticks.append(f"{int(row['interval'])}")
         x = npy.arange(len(df2))
         y = npy.array(df2["value"])
-        agents = npy.array(df2["agent"])
+        agents = npy.array(df2["agents"])
         for i in range(0, len(x), 4):
             plt.plot(
-                x[i:i+4], y[i:i+4], "o-",
+                x[i:i + 4], y[i:i + 4], "o-",
                 label=f"{simulator} ({int(agents[i])} agents)",
             )
         plt.xticks(x, xticks)
     plt.legend()
-    # plt.title(f"{int(rate*100)}% of agents blocked initially")
+    plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked every k timesteps")
     plt.xlabel('Block Interval')
     plt.ylabel('Sum of Cost (Average)')
     plt.tight_layout()
     # plt.show()
-    output_file = os.path.join(plot_dir, f"block-{rate}-2.png")
+    output_file = os.path.join(plot_dir, f"periodic-{obstacles}-{rate}.png")
     fig.savefig(fname=output_file, dpi=300)
     plt.close()
 
 
-
-
 def main():
-    df = parse_data()
-    plot_block(df, 0.2)
-    plot_block(df, 0.4)
-
-    df2 = parse_data_2()
-    plot_block_2(df2, 0.2)
-    plot_block_2(df2, 0.4)
+    df_infinite = parse_infinite_data()
+    df_periodic = parse_periodic_data()
+    for obstacles in [90, 180, 270]:
+        for rate in [0.2, 0.4]:
+            plot_infinite(df_infinite, obstacles, rate)
+            plot_periodic(df_periodic, obstacles, rate)
 
     # for file in os.listdir(result_dir):
     #     if file.endswith('.csv'):
