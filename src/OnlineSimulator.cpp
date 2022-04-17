@@ -13,6 +13,19 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
     std::uniform_real_distribution<double> distribution(0, 1);
 
+    if (debug) {
+        for (unsigned int i = 0; i < agents.size(); i++) {
+//        if (agents[i].current == agents[i].goal) continue;
+            std::cout << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+            for (const auto &label: solution->plans[i]->path) {
+                std::cout << "(" << label.state << "," << label.nodeId << ")->";
+            }
+            std::cout << std::endl;
+//        nodeStates[agents[i].start] = 0;
+        }
+    }
+
+
     for (; currentTimestep < maxTimeStep; currentTimestep++) {
         if (debug) {
             std::cout << "begin timestep " << currentTimestep << std::endl;
@@ -29,7 +42,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         unblocked.insert(ready.begin(), ready.end());
         ready.clear();
 
-        if (pauseTimestep == 0 || currentTimestep == pauseTimestep) {
+        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
             updateDelayedSet(currentTimestep, pauseTimestep == 0);
         }
 
@@ -49,7 +62,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                 ++count;
             } else if (delayedSet.find(i) != delayedSet.end()) {
                 if (debug) {
-                    std::cout << "agent " << i << ": delayed" << std::endl;
+                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed" << std::endl;
                 }
                 agents[i].timestep = currentTimestep;
             } else if (blocked.find(i) != blocked.end()) {
@@ -153,6 +166,7 @@ void OnlineSimulator::initSimulation() {
     deadEndStates.clear();
     deadEndStates.resize(agents.size());
     nodeAgentMap.clear();
+    delayedSet.clear();
     for (size_t i = 0; i < agents.size(); i++) {
         blocked.insert(i);
         nodeAgentMap[agents[i].current] = i;

@@ -201,8 +201,8 @@ int main(int argc, const char *argv[]) {
             } else {
                 simulator->setAgents(agents);
                 currentTimestep = 1;
-                count = simulator->simulate(currentTimestep, currentTimestep + 100, pause);
-                out << count << std::endl;
+                count = simulator->simulate(currentTimestep, currentTimestep + 1000, pause);
+                out << count << "," << i << std::endl;
             }
         }
 

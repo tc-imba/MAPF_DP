@@ -68,7 +68,13 @@ public:
 //                }
                 delayed.emplace_back(i);
             }
-            std::mt19937 generator(combineRandomSeed(0, 0, timestep, seed));
+            unsigned int newSeed;
+            if (delayInterval == 0) {
+                newSeed = combineRandomSeed(0, 0, 0, seed);
+            } else {
+                newSeed = combineRandomSeed(0, 0, timestep, seed);
+            }
+            std::mt19937 generator(newSeed);
             std::shuffle(delayed.begin(), delayed.end(), generator);
             delayedSet.clear();
             for (unsigned int i = 0; i < ((double) delayed.size()) * delayRatio; i++) {

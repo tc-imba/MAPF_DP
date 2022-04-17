@@ -10,6 +10,8 @@ result_dir = os.path.join(project_root, "result")
 plot_dir = os.path.join(project_root, "plot")
 os.makedirs(plot_dir, exist_ok=True)
 
+obstacles_list = [90, 180, 270, 360, 450]
+
 
 def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5, filename='fig.pdf', preview=False,
                       dpi=300):
@@ -67,15 +69,18 @@ def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5
 
 def parse_infinite_data():
     main_df = pandas.DataFrame()
-    for obstacles in [90, 180, 270]:
+    for obstacles in obstacles_list:
         for simulator in ["default", "online"]:
             for agents in [10, 20, 30]:
                 for timestep in [1, 5, 10]:
                     for rate in [0.2, 0.4]:
                         file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-0.csv"
-                        df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                        scores = df.iloc[:, 0]
-                        mean = npy.around(npy.mean(scores), 3)
+                        try:
+                            df = pandas.read_csv(os.path.join(result_dir, file), header=None)
+                            scores = df.iloc[:, 0]
+                            mean = npy.around(npy.mean(scores), 3)
+                        except:
+                            mean = 0
                         # print(file, mean)
                         row = {
                             "simulator": simulator,
@@ -86,7 +91,7 @@ def parse_infinite_data():
                             "value": mean
                         }
                         main_df = main_df.append(row, ignore_index=True)
-        return main_df
+    return main_df
 
 
 def plot_infinite(data, obstacles, rate):
@@ -114,22 +119,26 @@ def plot_infinite(data, obstacles, rate):
     plt.tight_layout()
     # plt.show()
     output_file = os.path.join(plot_dir, f"infinite-{obstacles}-{rate}.png")
+    print(output_file)
     fig.savefig(fname=output_file, dpi=300)
     plt.close()
 
 
 def parse_periodic_data():
     main_df = pandas.DataFrame()
-    for obstacles in [90, 180, 270]:
+    for obstacles in obstacles_list:
         for simulator in ["default", "online"]:
             for agents in [10, 20, 30]:
                 for interval in [1, 3, 5, 10]:
                     for rate in [0.2, 0.4]:
                         timestep = 0
                         file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}.csv"
-                        df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                        scores = df.iloc[:, 0]
-                        mean = npy.around(npy.mean(scores), 3)
+                        try:
+                            df = pandas.read_csv(os.path.join(result_dir, file), header=None)
+                            scores = df.iloc[:, 0]
+                            mean = npy.around(npy.mean(scores), 3)
+                        except:
+                            mean = 0
                         # print(file, mean)
                         row = {
                             "simulator": simulator,
@@ -169,6 +178,7 @@ def plot_periodic(data, obstacles, rate):
     plt.tight_layout()
     # plt.show()
     output_file = os.path.join(plot_dir, f"periodic-{obstacles}-{rate}.png")
+    print(output_file)
     fig.savefig(fname=output_file, dpi=300)
     plt.close()
 
@@ -176,7 +186,8 @@ def plot_periodic(data, obstacles, rate):
 def main():
     df_infinite = parse_infinite_data()
     df_periodic = parse_periodic_data()
-    for obstacles in [90, 180, 270]:
+    # print(df_periodic)
+    for obstacles in obstacles_list:
         for rate in [0.2, 0.4]:
             plot_infinite(df_infinite, obstacles, rate)
             plot_periodic(df_periodic, obstacles, rate)

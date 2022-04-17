@@ -67,7 +67,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int
         int count = 0;
         std::vector<unsigned int> unblocked;
 
-        if (pauseTimestep == 0 || currentTimestep == pauseTimestep) {
+        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
             updateDelayedSet(currentTimestep, pauseTimestep == 0);
         }
 
@@ -103,6 +103,8 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int
                 if (next.first == nextLabel.state && next.second == i) {
                     // try to move
                     unblocked.emplace_back(i);
+                } else if (debug) {
+                    std::cout << "agent " << i << ": blocked" << std::endl;
                 }
             }
         }

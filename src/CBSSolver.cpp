@@ -621,7 +621,7 @@ bool CBSSolver::solve() {
 
 bool CBSSolver::solveWithCache(const std::string &filename, unsigned int agentSeed) {
     std::string cacheFilename = filename + "-" + std::to_string(agents.size()) + "-" + std::to_string(agentSeed) + ".cbs";
-    std::cerr << cacheFilename << std::endl;
+//    std::cerr << cacheFilename << std::endl;
     std::ifstream fin(cacheFilename);
     if (fin.is_open()) {
         solution = std::make_shared<CBSNode>();

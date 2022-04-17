@@ -23,7 +23,15 @@ private:
     double minDP = 0;
     double maxDP = 0.5;
 
-    void generateGraph(std::vector<std::vector<char>> gridGraph, const std::string &filename, size_t seed);
+    void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed);
+
+    void generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph);
+
+    bool isConnected();
+
+    void saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
+
+    bool loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
 
 public:
     struct Node {
@@ -55,6 +63,8 @@ public:
     void generateHardCodedGraph(const std::string &filename = "", size_t seed = 0);
 
     void calculateAllPairShortestPath(const std::string &filename = "", bool dp = false);
+
+    void calculateUnweightedAllPairShortestPath();
 
     double getHeuristic(unsigned int nodeId1, unsigned int nodeId2);
 

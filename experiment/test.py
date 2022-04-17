@@ -11,11 +11,11 @@ result_dir = os.path.join(project_root, "result")
 os.makedirs(data_root, exist_ok=True)
 os.makedirs(result_dir, exist_ok=True)
 
-workers = 100
+workers = 20
 count = 0
 
-TIMEOUT = 60
-EXPERIMENT_JOBS = 100 * (36 + 48) * 2
+TIMEOUT = 300
+EXPERIMENT_JOBS = 100 * (36 + 48) * 3
 
 result_files = set()
 failed_settings = set()
@@ -48,6 +48,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         "--iteration", str(iteration),
         "--min", str(min_dp),
         "--max", str(max_dp),
+        "--obstacles", str(obstacles),
         "--simulator", simulator,
         "--pause", str(pause),
         "--delay-ratio", str(delay_ratio),
@@ -103,13 +104,15 @@ async def run_test_2(map_seed, agent_seed, agents, obstacles):
 
 async def main():
     os.chdir(result_dir)
-    for file in Path(result_dir).iterdir():
-        print(file)
+    # for file in Path(result_dir).iterdir():
+    #     print(file)
 
     tasks = []
     for map_seed in range(10):
         for agent_seed in range(10):
-            for obstacles in [90, 180, 270]:
+            # for obstacles in [90, 180, 270]:
+            for obstacles in [360, 450]:
+                # for agents in [10, 20, 30]:
                 for agents in [10]:
                     tasks.append(
                         run_test_1(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)

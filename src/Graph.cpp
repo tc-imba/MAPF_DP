@@ -61,6 +61,65 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
 
 }
 
+void Graph::calculateUnweightedAllPairShortestPath() {
+    unsigned int V = nodeNum, E = edgeNum;
+    distances.resize(V, std::vector<double>(V, 0));
+    auto edges = boost::edges(g);
+    for (auto it = edges.first; it != edges.second; ++it) {
+        g[*it]._distance = g[*it].length;
+    }
+    double density = (double) E * 2 / (V) / (V - 1);
+    if (density < 0.1) {
+        boost::johnson_all_pairs_shortest_paths(g, distances,
+                                                boost::weight_map(boost::get(&Edge::_distance, g)));
+    } else {
+        boost::floyd_warshall_all_pairs_shortest_paths(g, distances,
+                                                       boost::weight_map(boost::get(&Edge::_distance, g)));
+    }
+}
+
+bool Graph::isConnected() {
+    for (const auto &row: distances) {
+        for (const auto &item: row) {
+            if (item > (double) distances.size()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void Graph::saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename) {
+    std::ofstream gridFileOut;
+    if (!filename.empty()) gridFileOut.open(filename + ".grid");
+    std::ostream &gridOut = !gridFileOut.is_open() ? std::cout : gridFileOut;
+    auto height = gridGraph.size();
+    auto width = gridGraph[0].size();
+    for (unsigned int i = 0; i < height; i++) {
+        for (unsigned int j = 0; j < width; j++) {
+            gridOut << gridGraph[i][j];
+        }
+        gridOut << std::endl;
+    }
+}
+
+bool Graph::loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename) {
+    std::ifstream gridFileIn(filename + ".grid");
+    if (!gridFileIn.is_open()) {
+        return false;
+    }
+    auto height = gridGraph.size();
+    auto width = gridGraph[0].size();
+    for (unsigned int i = 0; i < height; i++) {
+        for (unsigned int j = 0; j < width; j++) {
+            if (!(gridFileIn >> gridGraph[i][j])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 
 void Graph::generateDelayProbability(size_t seed, double minDP, double maxDP) {
     std::mt19937 generator(seed);
@@ -73,11 +132,11 @@ void Graph::generateDelayProbability(size_t seed, double minDP, double maxDP) {
 }
 
 
-void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::string &filename, size_t seed) {
+void Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed) {
 
-    std::ofstream gridFileOut;
-    if (!filename.empty()) gridFileOut.open(filename + ".grid");
-    std::ostream &gridOut = !gridFileOut.is_open() ? std::cout : gridFileOut;
+//    std::ofstream gridFileOut;
+//    if (!filename.empty()) gridFileOut.open(filename + ".grid");
+//    std::ostream &gridOut = !gridFileOut.is_open() ? std::cout : gridFileOut;
     std::ofstream graphFileOut;
     if (!filename.empty()) graphFileOut.open(filename + ".graph");
     std::ostream &graphOut = !graphFileOut.is_open() ? std::cout : graphFileOut;
@@ -100,12 +159,12 @@ void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::s
                 gridGraphIds[i][j] = boost::add_vertex(g);
                 g[gridGraphIds[i][j]].type = gridGraph[i][j];
                 V++;
-                gridOut << " " << std::setw(3) << gridGraphIds[i][j] << " ";
+//                gridOut << " " << std::setw(3) << gridGraphIds[i][j] << " ";
             } else {
-                gridOut << "  @  ";
+//                gridOut << "  @  ";
             }
         }
-        gridOut << std::endl << std::endl;
+//        gridOut << std::endl << std::endl;
     }
 
     unsigned int E = 0;
@@ -139,6 +198,47 @@ void Graph::generateGraph(std::vector<std::vector<char>> gridGraph, const std::s
     boost::write_graphviz_dp(graphOut, g, dp);
 }
 
+void Graph::generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph) {
+    auto height = gridGraph.size();
+    auto width = gridGraph[0].size();
+    gridGraphIds.resize(height, std::vector<unsigned int>(width, height * width));
+
+    g.clear();
+    unsigned int V = 0;
+
+    for (unsigned int i = 0; i < height; i++) {
+        for (unsigned int j = 0; j < width; j++) {
+            if (gridGraph[i][j] != '@') {
+                gridGraphIds[i][j] = boost::add_vertex(g);
+                g[gridGraphIds[i][j]].type = gridGraph[i][j];
+                V++;
+            } else {
+            }
+        }
+    }
+
+    unsigned int E = 0;
+    for (unsigned int i = 0; i < height; i++) {
+        for (unsigned int j = 0; j < width; j++) {
+            if (gridGraph[i][j] != '@') {
+                std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
+                                                                                {i,     j + 1}};
+                for (auto[x, y]: neighbors) {
+                    if (x < height && y < width && gridGraph[x][y] != '@') {
+                        auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
+                        g[p.first].length = 1;
+                        g[p.first].dp = 0;
+                        E++;
+                    }
+                }
+            }
+        }
+    }
+    nodeNum = V;
+    edgeNum = E;
+}
+
+
 void Graph::initDelayProbability(double minDP, double maxDP) {
     this->minDP = minDP;
     this->maxDP = maxDP;
@@ -147,23 +247,34 @@ void Graph::initDelayProbability(double minDP, double maxDP) {
 
 void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
                                 const std::string &filename, size_t seed) {
-
     assert(obstacles <= height * width);
-
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
 
-    std::vector<unsigned int> v(height * width);
-    std::iota(v.begin(), v.end(), 0);
-    std::mt19937 generator(seed);
-    std::shuffle(v.begin(), v.end(), generator);
-    std::uniform_real_distribution<double> distribution(minDP, maxDP);
-
-    for (unsigned int i = 0; i < obstacles; i++) {
-        auto x = v[i] / height, y = v[i] % height;
-        gridGraph[x][y] = '@';
+    if (loadGridGraph(gridGraph, filename)) {
+        std::cerr << "load grid graph from " << filename << ".grid" << std::endl;
+    } else {
+        std::vector<unsigned int> v(height * width);
+        std::iota(v.begin(), v.end(), 0);
+        std::mt19937 generator(seed);
+        std::shuffle(v.begin(), v.end(), generator);
+        unsigned int currentObstacles = 0;
+        for (unsigned int i = 0; i < height * width && currentObstacles < obstacles; i++) {
+            auto x = v[i] / height, y = v[i] % height;
+            gridGraph[x][y] = '@';
+            generateUnweightedGraph(gridGraph);
+            calculateUnweightedAllPairShortestPath();
+            if (isConnected()) {
+                currentObstacles++;
+            } else {
+                gridGraph[x][y] = '.';
+                std::cerr << x << " " << y << " can't be obstacle" << std::endl;
+            }
+        }
+        assert(currentObstacles == obstacles);
+        std::cerr << "save grid graph to " << filename << ".grid" << std::endl;
+        saveGridGraph(gridGraph, filename);
     }
-
-    generateGraph(gridGraph, filename, generator());
+    generateGraph(gridGraph, filename, seed);
 }
 
 
