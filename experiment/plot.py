@@ -72,7 +72,7 @@ def parse_infinite_data():
     for obstacles in obstacles_list:
         for simulator in ["default", "online"]:
             for agents in [10, 20, 30]:
-                for timestep in [1, 5, 10]:
+                for timestep in range(1, 10):
                     for rate in [0.2, 0.4]:
                         file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-0.csv"
                         try:
@@ -106,9 +106,10 @@ def plot_infinite(data, obstacles, rate):
         x = npy.arange(len(df2))
         y = npy.array(df2["value"] / df2["agents"] * 100)
         agents = npy.array(df2["agents"])
-        for i in range(0, len(x), 3):
+        group_size = 9
+        for i in range(0, len(x), group_size):
             plt.plot(
-                x[i:i + 3], y[i:i + 3], "o-",
+                x[i:i + group_size], y[i:i + group_size], "o-",
                 label=f"{simulator} ({int(agents[i])} agents)",
             )
         plt.xticks(x, xticks)
@@ -129,7 +130,7 @@ def parse_periodic_data():
     for obstacles in obstacles_list:
         for simulator in ["default", "online"]:
             for agents in [10, 20, 30]:
-                for interval in [1, 3, 5, 10]:
+                for interval in range(1, 10):
                     for rate in [0.2, 0.4]:
                         timestep = 0
                         file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}.csv"
@@ -190,7 +191,7 @@ def main():
     for obstacles in obstacles_list:
         for rate in [0.2, 0.4]:
             plot_infinite(df_infinite, obstacles, rate)
-            plot_periodic(df_periodic, obstacles, rate)
+            # plot_periodic(df_periodic, obstacles, rate)
 
     # for file in os.listdir(result_dir):
     #     if file.endswith('.csv'):

@@ -23,7 +23,6 @@ private:
     unsigned int window;
     unsigned int seed;
 
-    std::shared_ptr<AgentPlan> focalSearch(CBSNode &cbsNode, unsigned int agentId, double key);
 
     std::vector<Constraint> findConflict(const Label &label, unsigned int agentId, bool find, bool edit);
 
@@ -52,6 +51,11 @@ public:
     bool simulate();
 
     double approxAverageMakeSpan(CBSNode &cbsNode);
+
+    std::shared_ptr<AgentPlan> focalSearch(CBSNode &cbsNode, unsigned int agentId, double key);
+
+    void addPathIntoConstraints(std::shared_ptr<AgentPlan> plan);
+
 };
 
 

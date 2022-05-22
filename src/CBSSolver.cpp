@@ -656,4 +656,10 @@ bool CBSSolver::solveWithCache(const std::string &filename, unsigned int agentSe
     return success;
 }
 
+void CBSSolver::addPathIntoConstraints(std::shared_ptr<AgentPlan> plan) {
+    for (const auto &label: plan->path) {
+        constraintSet.emplace(label);
+    }
+}
+
 

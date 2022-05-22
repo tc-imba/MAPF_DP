@@ -3,6 +3,7 @@
 //
 
 #include "Graph.h"
+#include "CBSSolver.h"
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
@@ -398,15 +399,41 @@ std::vector<Agent> Graph::generateRandomAgents(unsigned int agentNum, size_t see
 
     unsigned int i, j;
 
+/*    CBSSolver solver(*this, agents);
+    solver.init(0, MakeSpanType::AVERAGE);
+    auto node = std::make_shared<CBSNode>();
+    node->constraint = {INVALID, INVALID, INVALID};
+    node->plans.resize(agents.size());
+    node->parent = nullptr;
+    node->depth = 0;*/
+
     for (i = 0, j = 0; i < agents.size() && j < getNodeNum(); j++) {
         if (v1[j] == v2[j]) continue;
         auto distance = getHeuristic(v1[j], v2[j]);
         if (distance >= 1000000) continue;
         agents[i].start = v1[j];
         agents[i].goal = v2[j];
+/*        agents[i].current = agents[i].start;
+        agents[i].timestep = agents[i].waitingTimestep = 0;
+        auto plan = solver.focalSearch(*node, i, 0);
+        if (!plan->path.empty()) {
+            solver.addPathIntoConstraints(plan);
+            node->plans[i] = plan;
+            i++;
+            std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
+                      << " (" << getHeuristic(v1[j], v2[j]) << ")" << std::endl;
+        } else {
+            std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
+                      << " (" << getHeuristic(v1[j], v2[j]) << ") failed" << std::endl;
+        }*/
+        i++;
         std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
                   << " (" << getHeuristic(v1[j], v2[j]) << ")" << std::endl;
-        i++;
+    }
+
+    if (agents.size() != i) {
+        std::cout << agents.size() << " " << i << std::endl;
+        exit(-1);
     }
 
     assert(agents.size() == i);

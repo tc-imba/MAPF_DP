@@ -11,11 +11,16 @@ result_dir = os.path.join(project_root, "result")
 os.makedirs(data_root, exist_ok=True)
 os.makedirs(result_dir, exist_ok=True)
 
-workers = 20
+workers = 48
 count = 0
 
 TIMEOUT = 300
-EXPERIMENT_JOBS = 100 * (36 + 48) * 3
+OBSTACLES = [90, 180, 270, 360, 450]
+AGENTS = [10, 20, 30]
+DELAY_RATIOS = [0.2, 0.4]
+DELAY_INTERVALS = range(1, 10)
+PAUSES = range(1, 10)
+EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * (len(DELAY_INTERVALS) + len(PAUSES))
 
 result_files = set()
 failed_settings = set()
@@ -83,8 +88,8 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
 
 
 async def run_test_1(map_seed, agent_seed, agents, obstacles):
-    for pause in [1, 5, 10]:
-        for delay_ratio in [0.2, 0.4]:
+    for pause in PAUSES:
+        for delay_ratio in DELAY_RATIOS:
             for simulator in ["default", "online"]:
                 await run("random", min_dp=0.5, max_dp=0.9,
                           map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
@@ -93,8 +98,9 @@ async def run_test_1(map_seed, agent_seed, agents, obstacles):
 
 
 async def run_test_2(map_seed, agent_seed, agents, obstacles):
-    for delay_ratio in [0.2, 0.4]:
-        for delay_interval in [1, 3, 5, 10]:
+    for delay_ratio in DELAY_RATIOS:
+        # for delay_interval in [1, 3, 5, 10]:
+        for delay_interval in DELAY_INTERVALS:
             for simulator in ["default", "online"]:
                 await run("random", min_dp=0.5, max_dp=0.9,
                           map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
@@ -110,10 +116,10 @@ async def main():
     tasks = []
     for map_seed in range(10):
         for agent_seed in range(10):
-            # for obstacles in [90, 180, 270]:
-            for obstacles in [360, 450]:
-                # for agents in [10, 20, 30]:
-                for agents in [10]:
+            for obstacles in OBSTACLES:
+                for agents in AGENTS:
+                    if obstacles > 270 and agents > 10:
+                        continue
                     tasks.append(
                         run_test_1(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)
                     )
