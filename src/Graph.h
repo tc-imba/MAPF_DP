@@ -6,6 +6,7 @@
 #define MAPF_DP_GRAPH_H
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/properties.hpp>
 
 struct Agent {
     unsigned int start, goal, current;
@@ -45,6 +46,9 @@ public:
     };
 
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, Node, Edge> graph_t;
+
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS > topo_graph_t;
+    typedef boost::graph_traits<topo_graph_t>::vertex_descriptor topo_vertex_t;
 
     graph_t g;
 
