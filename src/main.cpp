@@ -19,6 +19,8 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Debug Mode", "-d", "--debug");
     optionParser.add("", false, 0, 0, "All Constraints", "--all");
     optionParser.add("", false, 0, 0, "Use delay probability", "--dp");
+    optionParser.add("", false, 0, 0, "Use naive feasibility check", "--naive-feasibility");
+    optionParser.add("", false, 0, 0, "Use naive cycle check", "--naive-cycle");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online)", "--simulator");
@@ -65,7 +67,7 @@ int main(int argc, const char *argv[]) {
     std::string mapType, objective, simulatorType, outputFileName;
     unsigned long window, mapSeed, agentSeed, agentNum, iteration, pause, delayInterval, obstacles;
     double minDP, maxDP, delayRatio;
-    bool debug, allConstraint, useDP;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
@@ -84,6 +86,8 @@ int main(int argc, const char *argv[]) {
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
+    naiveFeasibilityCheck = optionParser.isSet("--naive-feasibility");
+    naiveCycleCheck = optionParser.isSet("--naive-cycle");
 
     if (window == 0) {
         window = std::numeric_limits<unsigned int>::max() / 2;
@@ -170,7 +174,10 @@ int main(int argc, const char *argv[]) {
         if (simulatorType == "default") {
             simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
         } else if (simulatorType == "online") {
-            simulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+            auto onlineSimulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+            onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
+            onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
+            simulator = std::move(onlineSimulator);
         } else {
             assert(0);
         }
