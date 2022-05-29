@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <chrono>
 #include "Graph.h"
 #include "CBSSolver.h"
 #include "DefaultSimulator.h"
@@ -36,7 +37,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("0", false, 1, 0, "Simulation Seed", "--agent-seed", validAgentSeed);
 
     auto validAgents = new ez::ezOptionValidator("u4", "ge", "1");
-    optionParser.add("35", false, 1, 0, "Agents Number", "-a", "--agents", validAgents);
+    optionParser.add("10", false, 1, 0, "Agents Number", "-a", "--agents", validAgents);
 
     auto validIteration = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("10", false, 1, 0, "Iteration Number", "-i", "--iteration", validIteration);
@@ -114,7 +115,8 @@ int main(int argc, const char *argv[]) {
 
     std::string filename;
     if (mapType == "random") {
-        filename = "random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) + "-" + std::to_string(mapSeed);
+        filename = "random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) +
+                   "-" + std::to_string(mapSeed);
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed);
     } else if (mapType == "warehouse") {
         filename = "warehouse-" + std::to_string(maxX) + "-" + std::to_string(maxY);
@@ -193,16 +195,23 @@ int main(int argc, const char *argv[]) {
         }
 
         unsigned int currentTimestep = 1;
+        auto start = std::chrono::steady_clock::now();
         int count = simulator->simulate(currentTimestep, currentTimestep + 1000);
+        auto end = std::chrono::steady_clock::now();
         if (count == agentNum) {
             finished++;
-            if (pause == 0){
-                out << simulator->averageMakeSpan(makeSpanType) << "," << approx << std::endl;
+            if (pause == 0) {
+                std::chrono::duration<double> elapsed_seconds = end - start;
+                out << simulator->averageMakeSpan(makeSpanType) << "," << approx << ","
+                    << elapsed_seconds.count() << std::endl;
             } else {
                 simulator->setAgents(agents);
                 currentTimestep = 1;
+                start = std::chrono::steady_clock::now();
                 count = simulator->simulate(currentTimestep, currentTimestep + 1000, pause);
-                out << count << "," << i << std::endl;
+                end = std::chrono::steady_clock::now();
+                std::chrono::duration<double> elapsed_seconds = end - start;
+                out << count << "," << i << "," << elapsed_seconds.count() << std::endl;
             }
         }
 

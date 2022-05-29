@@ -13,6 +13,9 @@ public:
 
     int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) override;
 
+    bool isHeuristicFeasibilityCheck = true;
+    bool isHeuristicCycleCheck = true;
+
 private:
     struct SharedNodePair {
         size_t agentId1;
@@ -29,21 +32,37 @@ private:
     Graph::topo_graph_t topoGraph;
 
     std::unordered_map<size_t, size_t> nodeAgentMap;
-    std::set<size_t> blocked, unblocked, moved, ready;
+    std::set<size_t> blocked, unblocked, moved, ready, unshared;
 
     void initSharedNodes(size_t i, size_t j);
+
+    void updateSharedNode(unsigned int nodeId, size_t agentId, unsigned int state);
 
     void initSimulation();
 
     void initChecks();
 
+    void unsharedCheck();
+
     void neighborCheck();
 
     void deadEndCheck();
 
+    void naiveCycleCheckHelper(std::vector<size_t> &readyList, size_t length, size_t start, size_t current,
+                               std::vector<bool> &check, std::vector<size_t> &maxReadyList);
+
+    void naiveCycleCheck();
+
+    void heuristicCycleCheck();
+
     void cycleCheck();
 
-    void feasibilityCheck();
+    std::pair<size_t, size_t> feasibilityCheckHelper(
+            std::list<SharedNodePair> &sharedNodesList
+//            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
+    );
+
+    std::pair<size_t, size_t> feasibilityCheck();
 
 };
 
