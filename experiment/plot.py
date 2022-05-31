@@ -10,8 +10,10 @@ result_dir = os.path.join(project_root, "result")
 plot_dir = os.path.join(project_root, "plot")
 os.makedirs(plot_dir, exist_ok=True)
 
-obstacles_list = [90, 180, 270, 360, 450]
-
+# obstacles_list = [90, 180, 270, 360, 450]
+obstacles_list = [90, 180, 270]
+agents_list = [10, 20]
+simulators_list = ["online"]
 
 def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5, filename='fig.pdf', preview=False,
                       dpi=300):
@@ -67,30 +69,49 @@ def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5
     plt.close()
 
 
-def parse_infinite_data():
+def parse_data(data_type):
+    if data_type == "infinite":
+        timesteps_list = [1, 5, 10]
+        intervals_list = [0]
+    elif data_type == "periodic":
+        timesteps_list = [0]
+        intervals_list = [1, 5, 10]
+    else:
+        assert False
+
     main_df = pandas.DataFrame()
     for obstacles in obstacles_list:
-        for simulator in ["default", "online"]:
-            for agents in [10, 20, 30]:
-                for timestep in range(1, 10):
-                    for rate in [0.2, 0.4]:
-                        file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-0.csv"
-                        try:
-                            df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                            scores = df.iloc[:, 0]
-                            mean = npy.around(npy.mean(scores), 3)
-                        except:
-                            mean = 0
-                        # print(file, mean)
-                        row = {
-                            "simulator": simulator,
-                            "obstacles": obstacles,
-                            "agents": agents,
-                            "timestep": timestep,
-                            "rate": rate,
-                            "value": mean
-                        }
-                        main_df = main_df.append(row, ignore_index=True)
+        for simulator in simulators_list:
+            for agents in agents_list:
+                for timestep in timesteps_list:
+                    for interval in intervals_list:
+                        for rate in [0.2, 0.4]:
+                            for feasibility, cycle in [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n")]:
+                            # for feasibility, cycle in [("h", "h"), ("n", "h")]:
+                                file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}-{feasibility}-{cycle}.csv"
+                                try:
+                                    df = pandas.read_csv(os.path.join(result_dir, file), header=None)
+                                    scores = df.iloc[:, 0]
+                                    value = npy.around(npy.mean(scores), 3)
+                                    seconds = df.iloc[:, 2]
+                                    time = npy.mean(seconds)
+                                except:
+                                    value = 0
+                                    time = 0
+                                # print(file, mean)
+                                row = {
+                                    "simulator": simulator,
+                                    "obstacles": obstacles,
+                                    "agents": agents,
+                                    "timestep": timestep,
+                                    "interval": interval,
+                                    "rate": rate,
+                                    "value": value,
+                                    "time": time,
+                                    "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
+                                    "cycle": cycle == "n" and "naive" or "proposed",
+                                }
+                                main_df = main_df.append(row, ignore_index=True)
     return main_df
 
 
@@ -125,35 +146,6 @@ def plot_infinite(data, obstacles, rate):
     plt.close()
 
 
-def parse_periodic_data():
-    main_df = pandas.DataFrame()
-    for obstacles in obstacles_list:
-        for simulator in ["default", "online"]:
-            for agents in [10, 20, 30]:
-                for interval in range(1, 10):
-                    for rate in [0.2, 0.4]:
-                        timestep = 0
-                        file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}.csv"
-                        try:
-                            df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                            scores = df.iloc[:, 0]
-                            mean = npy.around(npy.mean(scores), 3)
-                        except:
-                            mean = 0
-                        # print(file, mean)
-                        row = {
-                            "simulator": simulator,
-                            "obstacles": obstacles,
-                            "agents": agents,
-                            "timestep": timestep,
-                            "interval": interval,
-                            "rate": rate,
-                            "value": mean
-                        }
-                        main_df = main_df.append(row, ignore_index=True)
-    return main_df
-
-
 def plot_periodic(data, obstacles, rate):
     df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles)]
     fig = plt.figure(figsize=(16, 9), dpi=100)
@@ -184,13 +176,78 @@ def plot_periodic(data, obstacles, rate):
     plt.close()
 
 
+def plot_infinite_time(data, obstacles, rate, agents):
+    df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles) & (data["agents"] == agents)]
+    fig = plt.figure(figsize=(16, 9), dpi=100)
+    plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
+    xticks = []
+    for simulator, df2 in df.groupby(["feasibility", "cycle"]):
+        if not xticks:
+            for i, row in df2.iterrows():
+                xticks.append(f"{int(row['timestep'])}")
+        x = npy.arange(len(df2))
+        y = npy.array(df2["time"])
+        # agents = npy.array(df2["agents"])
+        group_size = 3
+        for i in range(0, len(x), group_size):
+            plt.plot(
+                x[i:i + group_size], y[i:i + group_size], "o-",
+                label=f"{simulator} ({agents} agents)",
+            )
+        plt.xticks(x, xticks)
+    plt.legend()
+    plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked infinitely")
+    plt.xlabel('Block Timestep')
+    plt.ylabel('Computation Time (seconds)')
+    plt.tight_layout()
+    # plt.show()
+    output_file = os.path.join(plot_dir, f"time-infinite-{obstacles}-{rate}-{agents}.png")
+    print(output_file)
+    fig.savefig(fname=output_file, dpi=300)
+    plt.close()
+
+
+def plot_periodic_time(data, obstacles, rate, agents):
+    df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles) & (data["agents"] == agents)]
+    fig = plt.figure(figsize=(16, 9), dpi=100)
+    plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
+    xticks = []
+    for simulator, df2 in df.groupby(["feasibility", "cycle"]):
+        if not xticks:
+            for i, row in df2.iterrows():
+                xticks.append(f"{int(row['interval'])}")
+        x = npy.arange(len(df2))
+        y = npy.array(df2["time"])
+        # agents = npy.array(df2["agents"])
+        group_size = 3
+        for i in range(0, len(x), group_size):
+            plt.plot(
+                x[i:i + group_size], y[i:i + group_size], "o-",
+                label=f"{simulator} ({agents} agents)",
+            )
+        plt.xticks(x, xticks)
+    plt.legend()
+    plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked every k timesteps")
+    plt.xlabel('Block Interval')
+    plt.ylabel('Computation Time (seconds)')
+    plt.tight_layout()
+    # plt.show()
+    output_file = os.path.join(plot_dir, f"time-periodic-{obstacles}-{rate}-{agents}.png")
+    print(output_file)
+    fig.savefig(fname=output_file, dpi=300)
+    plt.close()
+
+
+
 def main():
-    df_infinite = parse_infinite_data()
-    df_periodic = parse_periodic_data()
+    df_infinite = parse_data("infinite")
+    df_periodic = parse_data("periodic")
     # print(df_periodic)
     for obstacles in obstacles_list:
         for rate in [0.2, 0.4]:
-            plot_infinite(df_infinite, obstacles, rate)
+            for agents in agents_list:
+                plot_infinite_time(df_infinite, obstacles, rate, agents)
+                plot_periodic_time(df_periodic, obstacles, rate, agents)
             # plot_periodic(df_periodic, obstacles, rate)
 
     # for file in os.listdir(result_dir):

@@ -15,12 +15,25 @@ workers = 48
 count = 0
 
 TIMEOUT = 300
-OBSTACLES = [90, 180, 270, 360, 450]
-AGENTS = [10, 20, 30]
+# OBSTACLES = [90, 180, 270, 360, 450]
+OBSTACLES = [90, 180, 270]
+# AGENTS = [10, 20, 30]
+AGENTS = [30]
 DELAY_RATIOS = [0.2, 0.4]
-DELAY_INTERVALS = range(1, 10)
-PAUSES = range(1, 10)
-EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * (len(DELAY_INTERVALS) + len(PAUSES))
+# DELAY_INTERVALS = range(1, 10)
+DELAY_INTERVALS = [1, 5, 10]
+# PAUSES = range(1, 10)
+PAUSES = [1, 5, 10]
+# SIMULATORS = ["default", "online"]
+SIMULATORS = ["online"]
+NAIVE_SETTINGS = [
+    (False, False),
+    # (False, True),
+    (True, False),
+    # (True, True),
+]
+EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
+                  (len(DELAY_INTERVALS) + len(PAUSES)) * len(SIMULATORS) * 4
 
 result_files = set()
 failed_settings = set()
@@ -28,11 +41,16 @@ failed_settings = set()
 
 async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=10, min_dp=0.25,
               max_dp=0.75, obstacles=90,
-              simulator="online", pause=10, delay_ratio=0.2, delay_interval=1):
+              simulator="online", pause=10, delay_ratio=0.2, delay_interval=1,
+              naive_feasibility=False, naive_cycle=False):
     # base_filename = "%d-%d-%d-%d-%d" % (size[0], size[1], agent, task_per_agent, seed)
     # task_filename = "task/well-formed-%s.task" % base_filename
     # phi_output = phi >= 0 and str(phi) or 'n' + str(-phi)
-    output_filename = "%s-%d-%d-%d-%s-%s.csv" % (simulator, obstacles, agents, pause, delay_ratio, delay_interval)
+    output_filename = "%s-%d-%d-%d-%s-%s-%s-%s.csv" % (
+        simulator, obstacles, agents, pause, delay_ratio, delay_interval,
+        naive_feasibility and "n" or "h",
+        naive_cycle and "n" or "h",
+    )
     settings_name = "%d-%d-%d" % (map_seed, agent_seed, agents)
 
     if settings_name in failed_settings:
@@ -62,6 +80,10 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     ]
     if map_type == "hardcoded":
         args.append("--all")
+    if naive_feasibility:
+        args.append("--naive-feasibility")
+    if naive_cycle:
+        args.append("--naive-cycle")
     # print(' '.join(args))
     global workers, count
     while workers <= 0:
@@ -90,22 +112,26 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
 async def run_test_1(map_seed, agent_seed, agents, obstacles):
     for pause in PAUSES:
         for delay_ratio in DELAY_RATIOS:
-            for simulator in ["default", "online"]:
-                await run("random", min_dp=0.5, max_dp=0.9,
-                          map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
-                          agents=agents, simulator=simulator,
-                          pause=pause, delay_ratio=delay_ratio, delay_interval=0)
+            for simulator in SIMULATORS:
+                for (naive_feasibility, naive_cycle) in NAIVE_SETTINGS:
+                    await run("random", min_dp=0.5, max_dp=0.9,
+                              map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
+                              agents=agents, simulator=simulator,
+                              pause=pause, delay_ratio=delay_ratio, delay_interval=0,
+                              naive_feasibility=naive_feasibility, naive_cycle=naive_cycle)
 
 
 async def run_test_2(map_seed, agent_seed, agents, obstacles):
     for delay_ratio in DELAY_RATIOS:
         # for delay_interval in [1, 3, 5, 10]:
         for delay_interval in DELAY_INTERVALS:
-            for simulator in ["default", "online"]:
-                await run("random", min_dp=0.5, max_dp=0.9,
-                          map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
-                          agents=agents, simulator=simulator,
-                          pause=0, delay_ratio=delay_ratio, delay_interval=delay_interval)
+            for simulator in SIMULATORS:
+                for (naive_feasibility, naive_cycle) in NAIVE_SETTINGS:
+                    await run("random", min_dp=0.5, max_dp=0.9,
+                              map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
+                              agents=agents, simulator=simulator,
+                              pause=0, delay_ratio=delay_ratio, delay_interval=delay_interval,
+                              naive_feasibility=naive_feasibility, naive_cycle=naive_cycle)
 
 
 async def main():
