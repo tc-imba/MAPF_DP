@@ -15,6 +15,7 @@ public:
 
     bool isHeuristicFeasibilityCheck = true;
     bool isHeuristicCycleCheck = true;
+    bool isOnlyCycleCheck = false;
 
 private:
     struct SharedNodePair {

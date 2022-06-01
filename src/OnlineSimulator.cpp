@@ -37,9 +37,11 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         }
 
         initChecks();
-        unsharedCheck();
-        neighborCheck();
-        deadEndCheck();
+        if (!isOnlyCycleCheck) {
+            unsharedCheck();
+            neighborCheck();
+            deadEndCheck();
+        }
         cycleCheck();
 
         unblocked.insert(ready.begin(), ready.end());
@@ -498,30 +500,29 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             auto it = sharedNodesList.begin();
             auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
             auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-            auto nodeId3 = pathTopoNodeIds[it->agentId1][it->state1];
-            auto nodeId4 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
 
             // TODO: add randomness here
+            addedEdges.emplace_back(nodeId1, nodeId2);
+            boost::add_edge(nodeId1, nodeId2, topoGraph);
 
             sharedNodesList.erase(it);
             if (!isHeuristicFeasibilityCheck) {
-//                addedEdges.emplace_back(nodeId4, nodeId3);
-                boost::add_edge(nodeId4, nodeId3, topoGraph);
                 auto sharedNodesListBackup = sharedNodesList;
                 auto result = feasibilityCheckHelper(sharedNodesListBackup);
-                boost::remove_edge(nodeId4, nodeId3, topoGraph);
-//                addedEdges.pop_back();
+                boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                addedEdges.pop_back();
 
                 if (result.first == agents.size() && result.second == agents.size()) {
-                    for (auto [nodeId1, nodeId2]: addedEdges) {
-                        boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                    for (auto [_nodeId1, _nodeId2]: addedEdges) {
+                        boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
                     }
                     return result;
                 }
+                auto nodeId3 = pathTopoNodeIds[it->agentId1][it->state1];
+                auto nodeId4 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
+                addedEdges.emplace_back(nodeId4, nodeId3);
+                boost::add_edge(nodeId4, nodeId3, topoGraph);
             }
-
-            addedEdges.emplace_back(nodeId1, nodeId2);
-            boost::add_edge(nodeId1, nodeId2, topoGraph);
 
 //            std::cerr << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
         }
