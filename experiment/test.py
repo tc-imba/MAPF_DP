@@ -3,6 +3,8 @@ import os
 import subprocess
 import platform
 from pathlib import Path
+import multiprocessing
+
 
 project_root = os.path.dirname(os.path.dirname(__file__))
 program = os.path.join(project_root, "cmake-build-relwithdebinfo", "MAPF_DP")
@@ -13,7 +15,7 @@ result_dir = os.path.join(project_root, "result")
 os.makedirs(data_root, exist_ok=True)
 os.makedirs(result_dir, exist_ok=True)
 
-workers = 48
+workers = multiprocessing.cpu_count()
 count = 0
 
 TIMEOUT = 300
