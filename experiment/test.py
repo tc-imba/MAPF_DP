@@ -1,11 +1,13 @@
 import asyncio
 import os
 import subprocess
-import functools
+import platform
 from pathlib import Path
 
 project_root = os.path.dirname(os.path.dirname(__file__))
-program = os.path.join(project_root, "cmake-build-relwithdebinfo", "MAPF_DP.exe")
+program = os.path.join(project_root, "cmake-build-relwithdebinfo", "MAPF_DP")
+if platform.system() == "Windows":
+    program += ".exe"
 data_root = os.path.join(project_root, "maps")
 result_dir = os.path.join(project_root, "result")
 os.makedirs(data_root, exist_ok=True)
@@ -117,12 +119,12 @@ async def run_test_1(map_seed, agent_seed, agents, obstacles):
     for pause in PAUSES:
         for delay_ratio in DELAY_RATIOS:
             for simulator in SIMULATORS:
-                for (naive_feasibility, naive_cycle) in NAIVE_SETTINGS:
+                for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
                     await run("random", min_dp=0.5, max_dp=0.9,
                               map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
                               agents=agents, simulator=simulator,
                               pause=pause, delay_ratio=delay_ratio, delay_interval=0,
-                              naive_feasibility=naive_feasibility, naive_cycle=naive_cycle)
+                              naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
 async def run_test_2(map_seed, agent_seed, agents, obstacles):
