@@ -38,13 +38,15 @@ def parse_data(data_type) -> pandas.DataFrame:
                                 file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}-{feasibility}-{cycle}.csv"
                                 try:
                                     df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                                    scores = df.iloc[:, 0]
-                                    value = npy.around(npy.mean(scores), 3)
-                                    seconds = df.iloc[:, 2]
-                                    time = npy.mean(seconds)
+                                    value = npy.around(npy.mean(df.iloc[:, 0]), 3)
+                                    time = npy.mean(df.iloc[:, 2])
+                                    feasibility_count = npy.mean(df.iloc[:, 3])
+                                    cycle_avg = npy.mean(df.iloc[:, 4])
                                 except:
                                     value = 0
                                     time = 0
+                                    feasibility_count = 0
+                                    cycle_avg = 0
                                 # print(file, mean)
                                 row = {
                                     "simulator": simulator,
@@ -57,7 +59,9 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     "time": time,
                                     "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
                                     "cycle": cycle == "n" and "naive (only cycle)" or (
-                                            cycle == "o" and "naive" or "proposed")
+                                            cycle == "o" and "naive" or "proposed"),
+                                    "feasibility_count": feasibility_count,
+                                    "cycle_avg": cycle_avg,
                                 }
                                 main_df = main_df.append(row, ignore_index=True)
     return main_df
