@@ -64,8 +64,8 @@ def parse_data(data_type) -> pandas.DataFrame:
 def main():
     df_infinite = parse_data("infinite")
     df_periodic = parse_data("periodic")
-    df_infinite.to_csv(os.path.join(project_root, "df_infinite.csv"))
-    df_periodic.to_csv(os.path.join(project_root, "df_periodic.csv"))
+    df_infinite.to_csv(os.path.join(project_root, "data", "df_infinite.csv"))
+    df_periodic.to_csv(os.path.join(project_root, "data", "df_periodic.csv"))
 
 
 if __name__ == '__main__':
