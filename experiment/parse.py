@@ -58,8 +58,8 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     "value": value,
                                     "time": time,
                                     "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
-                                    "cycle": cycle == "n" and "naive (only cycle)" or (
-                                            cycle == "o" and "naive" or "proposed"),
+                                    "cycle": cycle == "o" and "naive (only cycle)" or (
+                                            cycle == "n" and "naive" or "proposed"),
                                     "feasibility_count": feasibility_count,
                                     "cycle_avg": cycle_avg,
                                 }
