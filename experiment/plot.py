@@ -8,6 +8,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(__file__))
 result_dir = os.path.join(project_root, "result")
 plot_dir = os.path.join(project_root, "plot")
+data_dir = os.path.join(project_root, "data")
 os.makedirs(plot_dir, exist_ok=True)
 
 # obstacles_list = [90, 180, 270, 360, 450]

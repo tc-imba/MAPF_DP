@@ -5,7 +5,9 @@ import os
 project_root = os.path.dirname(os.path.dirname(__file__))
 result_dir = os.path.join(project_root, "result")
 plot_dir = os.path.join(project_root, "plot")
+data_dir = os.path.join(project_root, "data")
 os.makedirs(plot_dir, exist_ok=True)
+os.makedirs(data_dir, exist_ok=True)
 
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
@@ -64,8 +66,8 @@ def parse_data(data_type) -> pandas.DataFrame:
 def main():
     df_infinite = parse_data("infinite")
     df_periodic = parse_data("periodic")
-    df_infinite.to_csv(os.path.join(project_root, "data", "df_infinite.csv"))
-    df_periodic.to_csv(os.path.join(project_root, "data", "df_periodic.csv"))
+    df_infinite.to_csv(os.path.join(data_dir, "df_infinite.csv"))
+    df_periodic.to_csv(os.path.join(data_dir, "df_periodic.csv"))
 
 
 if __name__ == '__main__':
