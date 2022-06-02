@@ -21,6 +21,7 @@ public:
 
     size_t feasibilityCheckCount = 0;
     size_t cycleCheckAgents = 0;
+    size_t unblockedAgents = 0;
     size_t firstAgentArrivingTimestep = 0;
 
 private:

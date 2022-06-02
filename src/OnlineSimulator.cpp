@@ -49,6 +49,10 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         ready.clear();
         unshared.clear();
 
+        if (firstAgentArrivingTimestep == 0) {
+            unblockedAgents += unblocked.size();
+        }
+
         if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
             updateDelayedSet(currentTimestep, pauseTimestep == 0);
         }
@@ -136,6 +140,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
 void OnlineSimulator::print(std::ostream &out) const {
     out << feasibilityCheckCount << "," << ((double) cycleCheckAgents) / ((double) firstAgentArrivingTimestep);
+    out << "," << ((double) unblockedAgents) / ((double) firstAgentArrivingTimestep);
 }
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
@@ -233,6 +238,7 @@ void OnlineSimulator::initSimulation() {
 
     feasibilityCheckCount = 0;
     cycleCheckAgents = 0;
+    unblockedAgents = 0;
     firstAgentArrivingTimestep = 0;
 }
 
