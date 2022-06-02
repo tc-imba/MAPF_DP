@@ -96,6 +96,8 @@ public:
 
     virtual int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) = 0;
 
+    virtual void print(std::ostream &out) const = 0;
+
 };
 
 #endif //MAPF_DP_SIMULATOR_H

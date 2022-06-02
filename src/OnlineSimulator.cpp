@@ -105,7 +105,13 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                     updateSharedNode(currentNodeId, i, state);
                     agents[i].current = nextNodeId;
                     agents[i].waitingTimestep = 0;
-                    if (++state >= paths[i].size()) ++count;
+                    state++;
+                    if (state + 1 >= paths[i].size()) {
+                        if (firstAgentArrivingTimestep == 0) {
+                            firstAgentArrivingTimestep = currentTimestep;
+                        }
+                        ++count;
+                    }
                 }
             } else {
                 assert(0);
@@ -128,6 +134,9 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
     return countCompletedAgents();
 }
 
+void OnlineSimulator::print(std::ostream &out) const {
+    out << feasibilityCheckCount << "," << ((double) cycleCheckAgents) / ((double) firstAgentArrivingTimestep);
+}
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
     std::unordered_map<unsigned int, std::vector<std::pair<size_t, unsigned int> > > m;
@@ -221,6 +230,10 @@ void OnlineSimulator::initSimulation() {
             initSharedNodes(i, j);
         }
     }
+
+    feasibilityCheckCount = 0;
+    cycleCheckAgents = 0;
+    firstAgentArrivingTimestep = 0;
 }
 
 
@@ -419,7 +432,9 @@ void OnlineSimulator::heuristicCycleCheck() {
 
 void OnlineSimulator::cycleCheck() {
     if (ready.empty()) return;
-
+    if (firstAgentArrivingTimestep == 0) {
+        cycleCheckAgents += ready.size();
+    }
     // suppose all unblocked agents are at their next state
     for (auto i: unblocked) {
         agents[i].state++;
@@ -537,6 +552,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
 //    std::cerr << "start feasibility check" << std::endl;
 
+    feasibilityCheckCount++;
     std::list<SharedNodePair> sharedNodesList;
 
     for (const auto &[nodeId, sharedNode]: sharedNodes) {

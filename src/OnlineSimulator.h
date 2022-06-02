@@ -13,9 +13,15 @@ public:
 
     int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) override;
 
+    void print(std::ostream &out) const override;
+
     bool isHeuristicFeasibilityCheck = true;
     bool isHeuristicCycleCheck = true;
     bool isOnlyCycleCheck = false;
+
+    size_t feasibilityCheckCount = 0;
+    size_t cycleCheckAgents = 0;
+    size_t firstAgentArrivingTimestep = 0;
 
 private:
     struct SharedNodePair {

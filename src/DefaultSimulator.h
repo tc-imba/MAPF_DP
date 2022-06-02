@@ -13,6 +13,7 @@ public:
 
     int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) override;
 
+    void print(std::ostream &out) const override;
 };
 
 #endif //MAPF_DP_DEFAULTSIMULATOR_H

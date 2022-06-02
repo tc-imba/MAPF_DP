@@ -160,3 +160,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int
     }*/
     return countCompletedAgents();
 }
+
+void DefaultSimulator::print(std::ostream &out) const {
+
+}

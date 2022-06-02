@@ -16,6 +16,7 @@ obstacles_list = [90, 180, 270]
 agents_list = [10]
 simulators_list = ["online"]
 
+
 def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5, filename='fig.pdf', preview=False,
                       dpi=300):
     x_grid = npy.linspace(xmin, xmax, 2000)
@@ -68,8 +69,6 @@ def plot_distribution(scores, title='Grades', xmin=0, xmax=100, bins=20, ytick=5
         plt.show()
     fig.savefig(fname=filename, dpi=dpi)
     plt.close()
-
-
 
 
 def plot_infinite(data, obstacles, rate):
@@ -152,6 +151,7 @@ def plot_infinite_time(data, obstacles, rate, agents):
                 label=f"{simulator} ({agents} agents)",
             )
         plt.xticks(x, xticks)
+    plt.yscale("log")
     plt.legend()
     plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked infinitely")
     plt.xlabel('Block Timestep')
@@ -183,6 +183,7 @@ def plot_periodic_time(data, obstacles, rate, agents):
                 label=f"{simulator} ({agents} agents)",
             )
         plt.xticks(x, xticks)
+    plt.yscale("log")
     plt.legend()
     plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked every k timesteps")
     plt.xlabel('Block Interval')
@@ -195,12 +196,9 @@ def plot_periodic_time(data, obstacles, rate, agents):
     plt.close()
 
 
-
 def main():
-    df_infinite = pandas.read_csv("df_infinite.csv")
-    df_periodic = pandas.read_csv("df_periodic.csv")
-
-    df_infinite.to_csv()
+    df_infinite = pandas.read_csv(os.path.join(data_dir, "df_infinite.csv"))
+    df_periodic = pandas.read_csv(os.path.join(data_dir, "df_periodic.csv"))
 
     # print(df_periodic)
     for obstacles in obstacles_list:

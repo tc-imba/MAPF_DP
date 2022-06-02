@@ -213,7 +213,9 @@ int main(int argc, const char *argv[]) {
             if (pause == 0) {
                 std::chrono::duration<double> elapsed_seconds = end - start;
                 out << simulator->averageMakeSpan(makeSpanType) << "," << approx << ","
-                    << elapsed_seconds.count() << std::endl;
+                    << elapsed_seconds.count() << ",";
+                simulator->print(out);
+                out << std::endl;
             } else {
                 simulator->setAgents(agents);
                 currentTimestep = 1;
@@ -221,7 +223,9 @@ int main(int argc, const char *argv[]) {
                 count = simulator->simulate(currentTimestep, currentTimestep + 1000, pause);
                 end = std::chrono::steady_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                out << count << "," << i << "," << elapsed_seconds.count() << std::endl;
+                out << count << "," << i << "," << elapsed_seconds.count() << ",";
+                simulator->print(out);
+                out << std::endl;
             }
         }
 
