@@ -66,3 +66,7 @@ def main():
     df_periodic = parse_data("periodic")
     df_infinite.to_csv(os.path.join(project_root, "df_infinite.csv"))
     df_periodic.to_csv(os.path.join(project_root, "df_periodic.csv"))
+
+
+if __name__ == '__main__':
+    main()
