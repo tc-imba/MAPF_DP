@@ -22,7 +22,7 @@ TIMEOUT = 300
 # OBSTACLES = [90, 180, 270, 360, 450]
 OBSTACLES = [90, 180, 270]
 # AGENTS = [10, 20, 30]
-AGENTS = [10]
+AGENTS = [20, 30]
 DELAY_RATIOS = [0.2, 0.4]
 # DELAY_INTERVALS = range(1, 10)
 DELAY_INTERVALS = [1, 5, 10]
@@ -35,11 +35,11 @@ NAIVE_SETTINGS = [
     (False, True, False),
     (False, True, True),
     (True, False, False),
-    (True, True, False),
-    (True, True, True),
+    # (True, True, False),
+    # (True, True, True),
 ]
 EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
-                  (len(DELAY_INTERVALS) + len(PAUSES)) * len(SIMULATORS) * 4
+                  (len(DELAY_INTERVALS) + len(PAUSES)) * len(SIMULATORS) * len(NAIVE_SETTINGS)
 
 result_files = set()
 failed_settings = set()
