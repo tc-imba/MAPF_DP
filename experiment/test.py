@@ -5,7 +5,6 @@ import platform
 from pathlib import Path
 import multiprocessing
 
-
 project_root = os.path.dirname(os.path.dirname(__file__))
 program = os.path.join(project_root, "cmake-build-relwithdebinfo", "MAPF_DP")
 if platform.system() == "Windows":
@@ -18,23 +17,23 @@ os.makedirs(result_dir, exist_ok=True)
 workers = multiprocessing.cpu_count()
 count = 0
 
-TIMEOUT = 300
+TIMEOUT = 1800
 # OBSTACLES = [90, 180, 270, 360, 450]
 OBSTACLES = [90, 180, 270]
 # AGENTS = [10, 20, 30]
-AGENTS = [20, 30]
-DELAY_RATIOS = [0.2, 0.4]
+AGENTS = [10]
+DELAY_RATIOS = [0.2]
 # DELAY_INTERVALS = range(1, 10)
-DELAY_INTERVALS = [1, 5, 10]
+DELAY_INTERVALS = [1]
 # PAUSES = range(1, 10)
-PAUSES = [1, 5, 10]
+PAUSES = [1]
 # SIMULATORS = ["default", "online"]
 SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    (False, True, False),
-    (False, True, True),
-    (True, False, False),
+    # (False, True, False),
+    # (False, True, True),
+    # (True, False, False),
     # (True, True, False),
     # (True, True, True),
 ]
@@ -49,6 +48,8 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
               max_dp=0.75, obstacles=90,
               simulator="online", pause=10, delay_ratio=0.2, delay_interval=1,
               naive_feasibility=False, naive_cycle=False, only_cycle=False):
+    global workers, count
+
     # base_filename = "%d-%d-%d-%d-%d" % (size[0], size[1], agent, task_per_agent, seed)
     # task_filename = "task/well-formed-%s.task" % base_filename
     # phi_output = phi >= 0 and str(phi) or 'n' + str(-phi)
@@ -57,10 +58,18 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         naive_feasibility and "n" or "h",
         only_cycle and "o" or (naive_cycle and "n" or "h"),
     )
+    cbs_prefix = "random-30-30-%d-%d-%d-%d" % (obstacles, map_seed, agents, agent_seed)
+    cbs_file = Path(result_dir) / (cbs_prefix + ".cbs")
+    cbs_failed_file = Path(result_dir) / (cbs_prefix + ".failed")
     settings_name = "%d-%d-%d" % (map_seed, agent_seed, agents)
 
-    if settings_name in failed_settings:
+    if cbs_failed_file.exists():
+        count += 1
+        print('%s skipped (%d/%d)' % (output_filename, count, EXPERIMENT_JOBS))
         return
+
+        # if settings_name in failed_settings:
+    #     return
 
     if output_filename not in result_files:
         result_files.add(output_filename)
@@ -93,7 +102,6 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     if only_cycle:
         args.append("--only-cycle")
     # print(' '.join(args))
-    global workers, count
     while workers <= 0:
         await asyncio.sleep(1)
 
@@ -103,7 +111,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         p = await asyncio.create_subprocess_exec(program, *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         await asyncio.wait_for(p.communicate(), timeout=TIMEOUT)
     except asyncio.TimeoutError:
-        failed_settings.add(settings_name)
+        # failed_settings.add(settings_name)
         print('timeout!')
     except Exception as e:
         print(e)
@@ -111,10 +119,15 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         p.kill()
     except:
         pass
+
+    if not cbs_file.exists():
+        cbs_failed_file.touch(exist_ok=True)
+
     workers += 1
     count += 1
+    # print(program)
     # print(' '.join(args))
-    print('%s (%d/%d)' % (output_filename, count, EXPERIMENT_JOBS))
+    print('%s completed (%d/%d)' % (output_filename, count, EXPERIMENT_JOBS))
 
 
 async def run_test_1(map_seed, agent_seed, agents, obstacles):
