@@ -32,9 +32,9 @@ SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
     (False, False, False),
     (False, True, False),
-    (False, True, True),
+    # (False, True, True),
     (True, False, False),
-    # (True, True, False),
+    (True, True, False),
     # (True, True, True),
 ]
 EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
