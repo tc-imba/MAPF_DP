@@ -206,7 +206,7 @@ int main(int argc, const char *argv[]) {
 
         unsigned int currentTimestep = 1;
         auto start = std::chrono::steady_clock::now();
-        int count = simulator->simulate(currentTimestep, currentTimestep + 1000);
+        int count = simulator->simulate(currentTimestep, currentTimestep + 200);
         auto end = std::chrono::steady_clock::now();
         if (count == agentNum) {
             finished++;
@@ -220,7 +220,7 @@ int main(int argc, const char *argv[]) {
                 simulator->setAgents(agents);
                 currentTimestep = 1;
                 start = std::chrono::steady_clock::now();
-                count = simulator->simulate(currentTimestep, currentTimestep + 1000, pause);
+                count = simulator->simulate(currentTimestep, currentTimestep + 200, pause);
                 end = std::chrono::steady_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
                 out << count << "," << i << "," << elapsed_seconds.count() << ",";
