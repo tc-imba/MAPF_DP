@@ -17,23 +17,23 @@ os.makedirs(result_dir, exist_ok=True)
 workers = multiprocessing.cpu_count()
 count = 0
 
-TIMEOUT = 1800
+TIMEOUT = 600
 # OBSTACLES = [90, 180, 270, 360, 450]
 OBSTACLES = [90, 180, 270]
 # AGENTS = [10, 20, 30]
-AGENTS = [10]
-DELAY_RATIOS = [0.2]
+AGENTS = [10, 20, 30]
+DELAY_RATIOS = [0.2, 0.4]
 # DELAY_INTERVALS = range(1, 10)
-DELAY_INTERVALS = [1]
+DELAY_INTERVALS = [1, 5, 10]
 # PAUSES = range(1, 10)
-PAUSES = [1]
+PAUSES = [1, 5, 10]
 # SIMULATORS = ["default", "online"]
 SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    # (False, True, False),
-    # (False, True, True),
-    # (True, False, False),
+    (False, True, False),
+    (False, True, True),
+    (True, False, False),
     # (True, True, False),
     # (True, True, True),
 ]
