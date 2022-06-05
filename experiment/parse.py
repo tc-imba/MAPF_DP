@@ -56,6 +56,8 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     feasibility_type_b = 0
                                     feasibility_type_c = 0
                                 # print(file, mean)
+                                if time == 0:
+                                    continue
                                 row = {
                                     "simulator": simulator,
                                     "obstacles": obstacles,
