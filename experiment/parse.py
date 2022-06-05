@@ -45,7 +45,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     agent_first_arrival = npy.mean(df.iloc[:, 5])
                                     feasibility_type_a = npy.mean(df.iloc[:, 6] / df.iloc[:, 3])
                                     feasibility_type_b = npy.mean(df.iloc[:, 9] / df.iloc[:, 3])
-                                    feasibility_type_c = npy.mean(df.iloc[:, 8] / df.iloc[:, 3])
+                                    feasibility_type_c = npy.mean((df.iloc[:, 7] + df.iloc[:, 8]) / df.iloc[:, 3])
                                 except:
                                     value = 0
                                     time = 0
