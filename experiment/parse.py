@@ -42,11 +42,19 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     time = npy.mean(df.iloc[:, 2])
                                     feasibility_count = npy.mean(df.iloc[:, 3])
                                     cycle_avg = npy.mean(df.iloc[:, 4])
+                                    agent_first_arrival = npy.mean(df.iloc[:, 5])
+                                    feasibility_type_a = npy.mean(df.iloc[:, 6] / df.iloc[:, 3])
+                                    feasibility_type_b = npy.mean(df.iloc[:, 9] / df.iloc[:, 3])
+                                    feasibility_type_c = npy.mean(df.iloc[:, 8] / df.iloc[:, 3])
                                 except:
                                     value = 0
                                     time = 0
                                     feasibility_count = 0
                                     cycle_avg = 0
+                                    agent_first_arrival = 0
+                                    feasibility_type_a = 0
+                                    feasibility_type_b = 0
+                                    feasibility_type_c = 0
                                 # print(file, mean)
                                 row = {
                                     "simulator": simulator,
@@ -62,6 +70,10 @@ def parse_data(data_type) -> pandas.DataFrame:
                                             cycle == "n" and "naive" or "proposed"),
                                     "feasibility_count": feasibility_count,
                                     "cycle_avg": cycle_avg,
+                                    "agent_first_arrival": agent_first_arrival,
+                                    "feasibility_type_a": feasibility_type_a,
+                                    "feasibility_type_b": feasibility_type_b,
+                                    "feasibility_type_c": feasibility_type_c,
                                 }
                                 main_df = main_df.append(row, ignore_index=True)
     return main_df
