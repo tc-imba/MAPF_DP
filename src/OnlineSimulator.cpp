@@ -141,6 +141,9 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 void OnlineSimulator::print(std::ostream &out) const {
     out << feasibilityCheckCount << "," << ((double) cycleCheckAgents) / ((double) firstAgentArrivingTimestep);
     out << "," << ((double) unblockedAgents) / ((double) firstAgentArrivingTimestep);
+    for (int i = 0; i < 4; i++) {
+        out << "," << feasibilityCheckTypes[i];
+    }
 }
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
@@ -240,6 +243,9 @@ void OnlineSimulator::initSimulation() {
     cycleCheckAgents = 0;
     unblockedAgents = 0;
     firstAgentArrivingTimestep = 0;
+    for (int i = 0; i < 4; i++) {
+        feasibilityCheckTypes[i] = 0;
+    }
 }
 
 
@@ -460,7 +466,8 @@ void OnlineSimulator::cycleCheck() {
 }
 
 std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
-        std::list<SharedNodePair> &sharedNodesList
+        std::list<SharedNodePair> &sharedNodesList,
+        bool recursive
 //        std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
 ) {
     std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
@@ -527,9 +534,9 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             boost::add_edge(nodeId1, nodeId2, topoGraph);
 
             sharedNodesList.erase(it);
-            if (!isHeuristicFeasibilityCheck) {
+            if (recursive) {
                 auto sharedNodesListBackup = sharedNodesList;
-                auto result = feasibilityCheckHelper(sharedNodesListBackup);
+                auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
                 boost::remove_edge(nodeId1, nodeId2, topoGraph);
                 addedEdges.pop_back();
 
@@ -555,10 +562,9 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 }
 
 
-std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
+std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckTest(bool recursive) {
 //    std::cerr << "start feasibility check" << std::endl;
 
-    feasibilityCheckCount++;
     std::list<SharedNodePair> sharedNodesList;
 
     for (const auto &[nodeId, sharedNode]: sharedNodes) {
@@ -567,7 +573,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
         }
     }
 
-    return feasibilityCheckHelper(sharedNodesList);
+    return feasibilityCheckHelper(sharedNodesList, recursive);
 
 /*
     while (!sharedNodesList.empty()) {
@@ -643,6 +649,31 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
 //    return std::make_pair(agents.size(), agents.size());
 }
 
+std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
+    feasibilityCheckCount++;
+    auto heuristicResult = feasibilityCheckTest(true);
+    auto exhaustiveResult = feasibilityCheckTest(false);
+    bool heuristicSuccess = heuristicResult.first == agents.size() && heuristicResult.second == agents.size();
+    bool exhaustiveSuccess = exhaustiveResult.first == agents.size() && exhaustiveResult.second == agents.size();
+    if (heuristicSuccess) {
+        if (exhaustiveSuccess) {
+            feasibilityCheckTypes[0]++;
+        } else {
+            feasibilityCheckTypes[1]++;
+        }
+    } else {
+        if (exhaustiveSuccess) {
+            feasibilityCheckTypes[2]++;
+        } else {
+            feasibilityCheckTypes[3]++;
+        }
+    }
+    if (isHeuristicFeasibilityCheck) {
+        return heuristicResult;
+    } else {
+        return exhaustiveResult;
+    }
+}
 
 
 

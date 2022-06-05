@@ -20,6 +20,7 @@ public:
     bool isOnlyCycleCheck = false;
 
     size_t feasibilityCheckCount = 0;
+    size_t feasibilityCheckTypes[4] = {0, 0, 0, 0};
     size_t cycleCheckAgents = 0;
     size_t unblockedAgents = 0;
     size_t firstAgentArrivingTimestep = 0;
@@ -66,9 +67,12 @@ private:
     void cycleCheck();
 
     std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<SharedNodePair> &sharedNodesList
+            std::list<SharedNodePair> &sharedNodesList,
+            bool recursive
 //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
     );
+
+    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
 
     std::pair<size_t, size_t> feasibilityCheck();
 
