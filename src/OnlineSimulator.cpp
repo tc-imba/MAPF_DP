@@ -67,6 +67,9 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             auto &state = agents[i].state;
             auto currentNodeId = paths[i][state];
             if (state + 1 >= paths[i].size()) {
+                if (firstAgentArrivingTimestep == 0) {
+                    firstAgentArrivingTimestep = currentTimestep;
+                }
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
                 }
