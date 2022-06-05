@@ -12,8 +12,8 @@ data_dir = os.path.join(project_root, "data")
 os.makedirs(plot_dir, exist_ok=True)
 
 # obstacles_list = [90, 180, 270, 360, 450]
-obstacles_list = [90, 180, 270]
-agents_list = [10]
+obstacles_list = [90, 180]
+agents_list = [10, 20]
 simulators_list = ["online"]
 
 
@@ -132,17 +132,46 @@ def plot_periodic(data, obstacles, rate):
     plt.close()
 
 
-def plot_infinite_time(data, obstacles, rate, agents):
+def plot_cycle_feasibility(data, data_type, obstacles, rate, agents, yfield):
     df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles) & (data["agents"] == agents)]
     fig = plt.figure(figsize=(16, 9), dpi=100)
     plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
     xticks = []
+
+    if yfield == "time":
+        ylabel = 'Computation Time (seconds)'
+        ylog = True
+    elif yfield == "value":
+        if data_type == "infinite":
+            ylabel = 'Success Rate (%)'
+        elif data_type == "periodic":
+            ylabel = 'Sum of Cost (average)'
+        else:
+            assert False
+        ylog = False
+    else:
+        assert False
+
+    if data_type == "infinite":
+        plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked infinitely")
+        plt.xlabel('Block Timestep')
+        xticks_field = 'timestep'
+    elif data_type == "periodic":
+        plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked every k timesteps")
+        plt.xlabel('Block Interval')
+        xticks_field = 'interval'
+    else:
+        assert False
+
     for simulator, df2 in df.groupby(["feasibility", "cycle"]):
         if not xticks:
             for i, row in df2.iterrows():
-                xticks.append(f"{int(row['timestep'])}")
+                xticks.append(f"{int(row[xticks_field])}")
         x = npy.arange(len(df2))
-        y = npy.array(df2["time"])
+        if yfield == "value" and data_type == "infinite":
+            y = npy.array(df2["value"] / df2["agents"] * 100)
+        else:
+            y = npy.array(df2[yfield])
         # agents = npy.array(df2["agents"])
         group_size = 3
         for i in range(0, len(x), group_size):
@@ -150,47 +179,15 @@ def plot_infinite_time(data, obstacles, rate, agents):
                 x[i:i + group_size], y[i:i + group_size], "o-",
                 label=f"{simulator} ({agents} agents)",
             )
-        plt.xticks(x, xticks)
-    plt.yscale("log")
+        plt.xticks(npy.arange(len(xticks)), xticks)
+    if ylog:
+        plt.yscale("log")
     plt.legend()
-    plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked infinitely")
-    plt.xlabel('Block Timestep')
-    plt.ylabel('Computation Time (seconds)')
+
+    plt.ylabel(ylabel)
     plt.tight_layout()
     # plt.show()
-    output_file = os.path.join(plot_dir, f"time-infinite-{obstacles}-{rate}-{agents}.png")
-    print(output_file)
-    fig.savefig(fname=output_file, dpi=300)
-    plt.close()
-
-
-def plot_periodic_time(data, obstacles, rate, agents):
-    df = data[(data["rate"] == rate) & (data["obstacles"] == obstacles) & (data["agents"] == agents)]
-    fig = plt.figure(figsize=(16, 9), dpi=100)
-    plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
-    xticks = []
-    for simulator, df2 in df.groupby(["feasibility", "cycle"]):
-        if not xticks:
-            for i, row in df2.iterrows():
-                xticks.append(f"{int(row['interval'])}")
-        x = npy.arange(len(df2))
-        y = npy.array(df2["time"])
-        # agents = npy.array(df2["agents"])
-        group_size = 3
-        for i in range(0, len(x), group_size):
-            plt.plot(
-                x[i:i + group_size], y[i:i + group_size], "o-",
-                label=f"{simulator} ({agents} agents)",
-            )
-        plt.xticks(x, xticks)
-    plt.yscale("log")
-    plt.legend()
-    plt.title(f"{obstacles} obstacles, {int(rate * 100)}% of agents blocked every k timesteps")
-    plt.xlabel('Block Interval')
-    plt.ylabel('Computation Time (seconds)')
-    plt.tight_layout()
-    # plt.show()
-    output_file = os.path.join(plot_dir, f"time-periodic-{obstacles}-{rate}-{agents}.png")
+    output_file = os.path.join(plot_dir, f"{yfield}-{data_type}-{obstacles}-{rate}-{agents}.png")
     print(output_file)
     fig.savefig(fname=output_file, dpi=300)
     plt.close()
@@ -204,8 +201,10 @@ def main():
     for obstacles in obstacles_list:
         for rate in [0.2, 0.4]:
             for agents in agents_list:
-                plot_infinite_time(df_infinite, obstacles, rate, agents)
-                plot_periodic_time(df_periodic, obstacles, rate, agents)
+                plot_cycle_feasibility(df_infinite, "infinite", obstacles, rate, agents, "time")
+                plot_cycle_feasibility(df_periodic, "periodic", obstacles, rate, agents, "time")
+                plot_cycle_feasibility(df_infinite, "infinite", obstacles, rate, agents, "value")
+                plot_cycle_feasibility(df_periodic, "periodic", obstacles, rate, agents, "value")
             # plot_periodic(df_periodic, obstacles, rate)
 
     # for file in os.listdir(result_dir):
