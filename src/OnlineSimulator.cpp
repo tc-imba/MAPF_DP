@@ -6,6 +6,7 @@
 #include <boost/graph/topological_sort.hpp>
 #include <iostream>
 #include <random>
+#include <chrono>
 
 #include "OnlineSimulator.h"
 
@@ -36,6 +37,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             delayedSet.clear();
         }
 
+        auto start = std::chrono::steady_clock::now();
         initChecks();
         if (!isOnlyCycleCheck) {
             unsharedCheck();
@@ -43,6 +45,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             deadEndCheck();
         }
         cycleCheck();
+        auto end = std::chrono::steady_clock::now();
 
         unblocked.insert(ready.begin(), ready.end());
         unblocked.insert(unshared.begin(), unshared.end());
@@ -51,6 +54,8 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
         if (firstAgentArrivingTimestep == 0) {
             unblockedAgents += unblocked.size();
+            std::chrono::duration<double> elapsed_seconds = end - start;
+            executionTime += elapsed_seconds.count();
         }
 
         if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
@@ -142,8 +147,12 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 }
 
 void OnlineSimulator::print(std::ostream &out) const {
-    out << feasibilityCheckCount << "," << ((double) cycleCheckAgents) / ((double) firstAgentArrivingTimestep);
-    out << "," << ((double) unblockedAgents) / ((double) firstAgentArrivingTimestep);
+    out << executionTime << ","
+        << firstAgentArrivingTimestep << ","
+        << cycleCheckCount << ","
+        << cycleCheckAgents << ","
+        << unblockedAgents << ","
+        << feasibilityCheckCount;
     for (int i = 0; i < 4; i++) {
         out << "," << feasibilityCheckTypes[i];
     }
@@ -242,7 +251,9 @@ void OnlineSimulator::initSimulation() {
         }
     }
 
+    executionTime = 0;
     feasibilityCheckCount = 0;
+    cycleCheckCount = 0;
     cycleCheckAgents = 0;
     unblockedAgents = 0;
     firstAgentArrivingTimestep = 0;
@@ -448,6 +459,7 @@ void OnlineSimulator::heuristicCycleCheck() {
 void OnlineSimulator::cycleCheck() {
     if (ready.empty()) return;
     if (firstAgentArrivingTimestep == 0) {
+        cycleCheckCount++;
         cycleCheckAgents += ready.size();
     }
     // suppose all unblocked agents are at their next state
@@ -653,9 +665,14 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckTest(bool recursive) 
 }
 
 std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
-    feasibilityCheckCount++;
-    auto heuristicResult = feasibilityCheckTest(true);
-    auto exhaustiveResult = feasibilityCheckTest(false);
+    if (firstAgentArrivingTimestep == 0) {
+        feasibilityCheckCount++;
+    }
+    if (!isFeasibilityType) {
+        return feasibilityCheckTest(!isHeuristicCycleCheck);
+    }
+    auto heuristicResult = feasibilityCheckTest(false);
+    auto exhaustiveResult = feasibilityCheckTest(true);
     bool heuristicSuccess = heuristicResult.first == agents.size() && heuristicResult.second == agents.size();
     bool exhaustiveSuccess = exhaustiveResult.first == agents.size() && exhaustiveResult.second == agents.size();
     if (heuristicSuccess) {

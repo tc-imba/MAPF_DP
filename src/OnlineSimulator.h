@@ -18,9 +18,12 @@ public:
     bool isHeuristicFeasibilityCheck = true;
     bool isHeuristicCycleCheck = true;
     bool isOnlyCycleCheck = false;
+    bool isFeasibilityType = false;
 
+    double executionTime = 0;
     size_t feasibilityCheckCount = 0;
     size_t feasibilityCheckTypes[4] = {0, 0, 0, 0};
+    size_t cycleCheckCount = 0;
     size_t cycleCheckAgents = 0;
     size_t unblockedAgents = 0;
     size_t firstAgentArrivingTimestep = 0;
