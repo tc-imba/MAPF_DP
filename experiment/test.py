@@ -19,7 +19,7 @@ count = 0
 
 TIMEOUT = 600
 # OBSTACLES = [90, 180, 270, 360, 450]
-OBSTACLES = [90, 180]
+OBSTACLES = [270]
 # AGENTS = [10, 20, 30]
 AGENTS = [10, 20]
 DELAY_RATIOS = [0.2, 0.4]
@@ -32,10 +32,10 @@ SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
     (False, False, False),
     (False, True, False),
-    (False, True, True),
+#    (False, True, True),
     (True, False, False),
     (True, True, False),
-    (True, True, True),
+#    (True, True, True),
 ]
 EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
                   (len(DELAY_INTERVALS) + len(PAUSES)) * len(SIMULATORS) * len(NAIVE_SETTINGS)
