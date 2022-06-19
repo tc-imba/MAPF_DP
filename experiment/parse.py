@@ -40,20 +40,26 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     df = pandas.read_csv(os.path.join(result_dir, file), header=None)
                                     value = npy.around(npy.mean(df.iloc[:, 0]), 3)
                                     time = npy.mean(df.iloc[:, 2])
+                                    execution_time = 0
+                                    first_agent_arriving = 0
+                                    cycle_count = 0
+                                    cycle_agents = 0
+                                    unblocked_agents = 0
                                     feasibility_count = 0
-                                    cycle_avg = 0
-                                    unblocked_avg = 0
                                     feasibility_type_a = 0
                                     feasibility_type_b = 0
                                     feasibility_type_c = 0
-                                    if len(df.columns) > 5:
-                                        feasibility_count = npy.mean(df.iloc[:, 3])
-                                        cycle_avg = npy.mean(df.iloc[:, 4])
-                                        unblocked_avg = npy.mean(df.iloc[:, 5])
-                                    if len(df.columns) > 9:
-                                        feasibility_type_a = npy.mean(df.iloc[:, 6] / df.iloc[:, 3])
-                                        feasibility_type_b = npy.mean(df.iloc[:, 9] / df.iloc[:, 3])
-                                        feasibility_type_c = npy.mean((df.iloc[:, 7] + df.iloc[:, 8]) / df.iloc[:, 3])
+                                    if len(df.columns) > 8:
+                                        execution_time = npy.mean(df.iloc[:, 3])
+                                        first_agent_arriving = npy.mean(df.iloc[:, 4])
+                                        cycle_count = npy.mean(df.iloc[:, 5])
+                                        cycle_agents = npy.mean(df.iloc[:, 6])
+                                        unblocked_agents = npy.mean(df.iloc[:, 7])
+                                        feasibility_count = npy.mean(df.iloc[:, 8])
+                                    if len(df.columns) > 12:
+                                        feasibility_type_a = npy.mean(df.iloc[:, 9] / df.iloc[:, 8])
+                                        feasibility_type_b = npy.mean(df.iloc[:, 12] / df.iloc[:, 8])
+                                        feasibility_type_c = npy.mean((df.iloc[:, 10] + df.iloc[:, 11]) / df.iloc[:, 8])
                                 except:
                                     value = 0
                                     time = 0
@@ -72,9 +78,12 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
                                     "cycle": cycle == "o" and "naive (only cycle)" or (
                                             cycle == "n" and "naive" or "proposed"),
+                                    "execution_time": execution_time,
+                                    "first_agent_arriving": first_agent_arriving,
+                                    "cycle_count": cycle_count,
+                                    "cycle_agents": cycle_agents,
+                                    "unblocked_agents": unblocked_agents,
                                     "feasibility_count": feasibility_count,
-                                    "cycle_avg": cycle_avg,
-                                    "unblocked_avg": unblocked_avg,
                                     "feasibility_type_a": feasibility_type_a,
                                     "feasibility_type_b": feasibility_type_b,
                                     "feasibility_type_c": feasibility_type_c,
