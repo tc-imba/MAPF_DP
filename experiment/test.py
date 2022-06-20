@@ -18,23 +18,23 @@ workers = multiprocessing.cpu_count()
 count = 0
 
 TIMEOUT = 600
-# OBSTACLES = [90, 180, 270, 360, 450]
-OBSTACLES = [270]
-# AGENTS = [10, 20, 30]
-AGENTS = [10, 20]
+OBSTACLES = [90, 180, 270]
+# OBSTACLES = [270]
+AGENTS = [10, 20, 30]
+# AGENTS = [10, 20]
 DELAY_RATIOS = [0.2, 0.4]
 # DELAY_INTERVALS = range(1, 10)
 DELAY_INTERVALS = [1, 5, 10]
 # PAUSES = range(1, 10)
 PAUSES = [1, 5, 10]
 # SIMULATORS = ["default", "online"]
-SIMULATORS = ["online"]
+SIMULATORS = ["default"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    (False, True, False),
+    # (False, True, False),
 #    (False, True, True),
-    (True, False, False),
-    (True, True, False),
+#     (True, False, False),
+#     (True, True, False),
 #    (True, True, True),
 ]
 EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
