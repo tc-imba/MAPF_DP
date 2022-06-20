@@ -12,7 +12,7 @@ os.makedirs(data_dir, exist_ok=True)
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
 agents_list = [10, 20, 30]
-simulators_list = ["online"]
+simulators_list = ["online", "default"]
 
 
 def parse_data(data_type) -> pandas.DataFrame:
