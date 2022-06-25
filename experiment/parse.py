@@ -76,7 +76,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     "value": value,
                                     "time": time,
                                     "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
-                                    "cycle": cycle == "o" and "naive (only cycle)" or (
+                                    "cycle": cycle == "o" and "semi-naive" or (
                                             cycle == "n" and "naive" or "proposed"),
                                     "execution_time": execution_time,
                                     "first_agent_arriving": first_agent_arriving,
