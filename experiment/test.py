@@ -20,7 +20,7 @@ count = 0
 TIMEOUT = 600
 OBSTACLES = [90, 180, 270]
 # OBSTACLES = [270]
-AGENTS = [30]
+AGENTS = [10, 20]
 # AGENTS = [10, 20]
 DELAY_RATIOS = [0.2, 0.4]
 # DELAY_INTERVALS = range(1, 10)
@@ -31,10 +31,10 @@ PAUSES = [1, 5, 10]
 SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    (False, True, False),
+    # (False, True, False),
 #    (False, True, True),
 #     (True, False, False),
-    (True, True, False),
+#     (True, True, False),
 #    (True, True, True),
 ]
 EXPERIMENT_JOBS = 100 * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
@@ -101,6 +101,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         args.append("--naive-cycle")
     if only_cycle:
         args.append("--only-cycle")
+    args.append("--feasibility-type")
     # print(' '.join(args))
     while workers <= 0:
         await asyncio.sleep(1)
