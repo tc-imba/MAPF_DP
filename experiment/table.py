@@ -124,7 +124,7 @@ def plot_online_offline(data, agents, data_type):
 
 
 def plot_feasibility(data, agents, data_type):
-    df = data[(data["simulator"] == "online") & (data["cycle"] == "naive (only cycle)") & (data["agents"] == agents)]
+    df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents)]
     groupby = ["feasibility", "obstacles"]
     plot_type = "feasibility"
     plot(df, agents, "value", groupby, data_type, plot_type)
