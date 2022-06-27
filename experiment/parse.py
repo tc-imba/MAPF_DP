@@ -57,7 +57,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                                         unblocked_agents = npy.mean(df.iloc[:, 7])
                                         feasibility_count = npy.mean(df.iloc[:, 8])
                                     if len(df.columns) > 12:
-                                        feasibility_count_all = npy.sum(df.iloc[:, 9:13], axis=0)
+                                        feasibility_count_all = npy.sum(df.iloc[:, 9:13], axis=1)
                                         feasibility_type_a = npy.nanmean(df.iloc[:, 9] / feasibility_count_all)
                                         feasibility_type_b = npy.nanmean(df.iloc[:, 12] / feasibility_count_all)
                                         feasibility_type_c = npy.nanmean((df.iloc[:, 10] + df.iloc[:, 11]) / feasibility_count_all)
