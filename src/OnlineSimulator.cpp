@@ -37,20 +37,84 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             delayedSet.clear();
         }
 
+//        if (pauseTimestep > 0 && currentTimestep == 2) {
+//            std::cout << "breakpoint" << std::endl;
+//        }
+
         auto start = std::chrono::steady_clock::now();
+        auto lastMoved = moved;
+        auto lastBlocked = blocked;
         initChecks();
         if (!isOnlyCycleCheck) {
             unsharedCheck();
             neighborCheck();
             deadEndCheck();
         }
-        cycleCheck();
         auto end = std::chrono::steady_clock::now();
+        auto savedBlocked = blocked;
+        auto savedUnshared = unshared;
+        auto lastReady = ready;
+        cycleCheck();
+        auto savedReady = ready;
+
+        moved = lastMoved;
+        blocked = lastBlocked;
+        initChecks();
+        cycleCheck();
+
+        if (ready.size() != savedReady.size() + savedUnshared.size()) {
+            std::cout << currentTimestep << std::endl;
+            for (unsigned int i = 0; i < agents.size(); i++) {
+//        if (agents[i].current == agents[i].goal) continue;
+                std::cout << "agent " << i  << " " << agents[i].state << " (" << agents[i].start << "->" << agents[i].goal << "): ";
+                for (const auto &label: solution->plans[i]->path) {
+                    std::cout << "(" << label.state << "," << label.nodeId << ")->";
+                }
+                std::cout << std::endl;
+//        nodeStates[agents[i].start] = 0;
+            }
+            for (const auto &pair : sharedNodes) {
+                std::cout << pair.first << " ";
+                for (const auto &item : pair.second) {
+                    std::cout << "{"<< item.agentId1 << "," << item.state1 << "," << item.agentId2 << "," << item.state2 << "} ";
+                }
+                std::cout << std::endl;
+            }
+
+            std::cout << "    blocked ";
+            for (auto i : savedBlocked) {
+                std::cout << i << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "     naive ";
+            for (auto i : ready) {
+                std::cout << i << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "semi-naive ";
+            for (auto i : savedReady) {
+                std::cout << i << " ";
+            }
+            std::cout << "| ";
+            for (auto i : savedUnshared) {
+                std::cout << i << " ";
+            }
+            std::cout << std::endl;
+            exit(0);
+        }
 
         unblocked.insert(ready.begin(), ready.end());
         unblocked.insert(unshared.begin(), unshared.end());
         ready.clear();
         unshared.clear();
+
+//        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
+
+//        for (auto i: savedBlocked) {
+//            if (ready.find(i) != ready.end()) {
+//                exit(0);
+//            }
+//        }
 
         if (firstAgentArrivingTimestep == 0) {
             unblockedAgents += unblocked.size();
@@ -160,9 +224,9 @@ void OnlineSimulator::print(std::ostream &out) const {
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
     std::unordered_map<unsigned int, std::vector<std::pair<size_t, unsigned int> > > m;
-    for (auto _i: {i, j}) {
-        for (size_t k = 0; k < paths[_i].size(); k++) {
-            m[paths[_i][k]].emplace_back(_i, k);
+    for (auto x: {i, j}) {
+        for (size_t k = 0; k < paths[x].size(); k++) {
+            m[paths[x][k]].emplace_back(x, k);
         }
     }
     // remove unshared nodes and init shared nodes
@@ -211,6 +275,9 @@ void OnlineSimulator::updateSharedNode(unsigned int nodeId, size_t agentId, unsi
         } else {
             ++it2;
         }
+    }
+    if (it->second.empty()) {
+        sharedNodes.erase(it);
     }
 }
 
@@ -287,7 +354,7 @@ void OnlineSimulator::unsharedCheck() {
         auto &agent = agents[*it];
         auto nextNodeId = paths[*it][agent.state + 1];
         auto it2 = sharedNodes.find(nextNodeId);
-        if (it2 == sharedNodes.end() || it2->second.size() <= 1) {
+        if (it2 == sharedNodes.end() || it2->second.empty()) {
             unshared.insert(*it);
             it = ready.erase(it);
         } else {
@@ -346,7 +413,22 @@ void OnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &readyList, size
         for (auto i: checkedReady) {
             agents[i].state++;
         }
-        auto [agentId1, agentId2] = feasibilityCheck();
+        // perform a neighbor check here
+        auto agentId1 = agents.size(), agentId2 = agents.size();
+        for (size_t i = 0; i< agents.size(); i++) {
+            auto nodeId = paths[i][agents[i].state];
+            auto it = nodeAgentMap.find(nodeId);
+            if (it != nodeAgentMap.end() && it->second != i) {
+                agentId1 = i;
+                agentId2 = it->second;
+                break;
+            }
+        }
+        if (agentId1 == agents.size() && agentId2 == agents.size()) {
+            auto pair = feasibilityCheck();
+            agentId1 = pair.first;
+            agentId2 = pair.second;
+        }
         for (auto i: checkedReady) {
             agents[i].state--;
         }
