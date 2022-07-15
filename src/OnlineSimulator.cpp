@@ -10,7 +10,8 @@
 
 #include "OnlineSimulator.h"
 
-int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep) {
+int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
+                              unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
 
     std::uniform_real_distribution<double> distribution(0, 1);
@@ -32,9 +33,13 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         if (debug) {
             std::cout << "begin timestep " << currentTimestep << std::endl;
         }
-
-        if (pauseTimestep == 0 && delayInterval > 0 && currentTimestep % delayInterval == 0) {
-            delayedSet.clear();
+//        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
+        if (currentTimestep >= delayStart && (currentTimestep - delayStart) % delayInterval == 0) {
+            if (debug) {
+                std::cout << "update delayed set" << std::endl;
+            }
+            updateDelayedSet(currentTimestep);
+//            delayedSet.clear();
         }
 
 //        if (pauseTimestep > 0 && currentTimestep == 2) {
@@ -42,8 +47,8 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 //        }
 
         auto start = std::chrono::steady_clock::now();
-        auto lastMoved = moved;
-        auto lastBlocked = blocked;
+//        auto lastMoved = moved;
+//        auto lastBlocked = blocked;
         initChecks();
         if (!isOnlyCycleCheck) {
             unsharedCheck();
@@ -51,7 +56,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             deadEndCheck();
         }
         auto end = std::chrono::steady_clock::now();
-        auto savedBlocked = blocked;
+/*        auto savedBlocked = blocked;
         auto savedUnshared = unshared;
         auto lastReady = ready;
         cycleCheck();
@@ -59,9 +64,10 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
         moved = lastMoved;
         blocked = lastBlocked;
-        initChecks();
+        initChecks();*/
         cycleCheck();
 
+/*
         if (ready.size() != savedReady.size() + savedUnshared.size()) {
             std::cout << currentTimestep << std::endl;
             for (unsigned int i = 0; i < agents.size(); i++) {
@@ -102,6 +108,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             std::cout << std::endl;
             exit(0);
         }
+*/
 
         unblocked.insert(ready.begin(), ready.end());
         unblocked.insert(unshared.begin(), unshared.end());
@@ -122,9 +129,9 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             executionTime += elapsed_seconds.count();
         }
 
-        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
-            updateDelayedSet(currentTimestep, pauseTimestep == 0);
-        }
+//        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
+//            updateDelayedSet(currentTimestep, pauseTimestep == 0);
+//        }
 
 //        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
 //            updateDelayedSet(currentTimestep);
@@ -143,20 +150,34 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
                 }
                 ++count;
-            } else if (delayedSet.find(i) != delayedSet.end()) {
-                if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed" << std::endl;
-                }
-                agents[i].timestep = currentTimestep;
-            } else if (blocked.find(i) != blocked.end()) {
+                continue;
+            }
+            if (blocked.find(i) != blocked.end()) {
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") blocked" << std::endl;
                 }
                 agents[i].timestep = currentTimestep;
-            } else if (unblocked.find(i) != unblocked.end()) {
+                continue;
+            }
+            if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
+                if (debug) {
+                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by agent" << std::endl;
+                }
                 agents[i].timestep = currentTimestep;
-                auto nextNodeId = paths[i][state + 1];
-                auto &edge = graph.getEdge(currentNodeId, nextNodeId);
+                continue;
+            }
+            auto nextNodeId = paths[i][state + 1];
+            auto &edge = graph.getEdge(currentNodeId, nextNodeId);
+            if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
+                if (debug) {
+                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by edge" << std::endl;
+                }
+                agents[i].timestep = currentTimestep;
+                continue;
+            }
+            if (unblocked.find(i) != unblocked.end()) {
+//                auto &edge = graph.g[edgeId];
+                agents[i].timestep = currentTimestep;
                 auto waitingTimestep = 1;
 //                auto waitingTimestep = (unsigned int) floor(10.0 * (edge.dp - 0.5) + 2);
 //                auto waitingTimestep = (unsigned int) floor(1 / (1.0 - edge.dp));

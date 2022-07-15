@@ -6,7 +6,8 @@
 #include <iostream>
 #include <random>
 
-int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int maxTimeStep, unsigned int pauseTimestep) {
+int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
+                               unsigned int delayStart, unsigned int delayInterval) {
 //    if (!success) return true;
     std::unordered_map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> nodes;
 //    std::vector<unsigned int> agentStates(agents.size(), 0);
@@ -67,9 +68,14 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, const unsigned int
         int count = 0;
         std::vector<unsigned int> unblocked;
 
-        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
-            updateDelayedSet(currentTimestep, pauseTimestep == 0);
+        if (currentTimestep >= delayStart && (currentTimestep - delayStart) % delayInterval == 0) {
+            updateDelayedSet(currentTimestep);
+//            delayedSet.clear();
         }
+
+//        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
+//            updateDelayedSet(currentTimestep, pauseTimestep == 0);
+//        }
 
 //        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
 //            updateDelayedSet(currentTimestep);

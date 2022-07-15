@@ -27,6 +27,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online)", "--simulator");
     optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
+    optionParser.add("agent", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit)", "-w", "--window", validWindowSize);
@@ -46,17 +47,20 @@ int main(int argc, const char *argv[]) {
     auto validIteration = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("10", false, 1, 0, "Iteration Number", "-i", "--iteration", validIteration);
 
-    auto validPause = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Iteration Number", "-p", "--pause", validPause);
-
     auto validMin = new ez::ezOptionValidator("d", "ge", "0");
-    auto validMax = new ez::ezOptionValidator("d", "ge", "0");
-    auto validDelayRatio = new ez::ezOptionValidator("d", "ge", "0");
-    auto validDelayInterval = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Min Delay Probability", "--min", validMin);
+    auto validMax = new ez::ezOptionValidator("d", "ge", "0");
     optionParser.add("0.5", false, 1, 0, "Min Delay Probability", "--max", validMax);
+
+    auto validDelayRatio = new ez::ezOptionValidator("d", "ge", "0");
     optionParser.add("0.2", false, 1, 0, "Delay Ratio", "--delay-ratio", validDelayRatio);
+
+    auto validDelayInterval = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("1", false, 1, 0, "Delay Interval", "--delay-interval", validDelayInterval);
+
+    auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
+    optionParser.add("0", false, 1, 0, "Iteration Number", "-p", "--delay-start", validDelayStart);
+
 
     optionParser.parse(argc, argv);
     if (optionParser.isSet("-h")) {
@@ -66,8 +70,8 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, outputFileName;
-    unsigned long window, mapSeed, agentSeed, agentNum, iteration, pause, delayInterval, obstacles;
+    std::string mapType, objective, simulatorType, outputFileName, delayType;
+    unsigned long window, mapSeed, agentSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType;
     optionParser.get("--map")->getString(mapType);
@@ -80,11 +84,12 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--agent-seed")->getULong(agentSeed);
     optionParser.get("--agents")->getULong(agentNum);
     optionParser.get("--iteration")->getULong(iteration);
-    optionParser.get("--pause")->getULong(pause);
     optionParser.get("--min")->getDouble(minDP);
     optionParser.get("--max")->getDouble(maxDP);
+    optionParser.get("--delay")->getString(delayType);
     optionParser.get("--delay-ratio")->getDouble(delayRatio);
     optionParser.get("--delay-interval")->getULong(delayInterval);
+    optionParser.get("--delay-start")->getULong(delayStart);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
@@ -94,8 +99,16 @@ int main(int argc, const char *argv[]) {
     feasibilityType = optionParser.isSet("--feasibility-type");
 
     if (window == 0) {
-        window = std::numeric_limits<unsigned int>::max() / 2;
+        window = INT_MAX;
     }
+    if (delayInterval == 0) {
+        delayInterval = INT_MAX;
+    }
+    if (delayStart == 0) {
+        delayStart = INT_MAX;
+    }
+
+
 //    std::cout << "window: " << window << std::endl;
 
     std::ofstream fout;
@@ -188,7 +201,7 @@ int main(int argc, const char *argv[]) {
             assert(0);
         }
         simulator->delayRatio = delayRatio;
-        simulator->delayInterval = delayInterval;
+        simulator->delayType = delayType;
 
         if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
@@ -208,31 +221,26 @@ int main(int argc, const char *argv[]) {
         }
 
         unsigned int currentTimestep = 1;
-        auto start = std::chrono::steady_clock::now();
         int count = simulator->simulate(currentTimestep, currentTimestep + 200);
-        auto end = std::chrono::steady_clock::now();
         if (count == agentNum) {
             finished++;
-            if (pause == 0) {
-                std::chrono::duration<double> elapsed_seconds = end - start;
-                out << simulator->averageMakeSpan(makeSpanType) << "," << approx << ","
-                    << elapsed_seconds.count() << ",";
-                simulator->print(out);
-                out << std::endl;
+            simulator->setAgents(agents);
+            currentTimestep = 1;
+            auto start = std::chrono::steady_clock::now();
+            count = simulator->simulate(currentTimestep, currentTimestep + 200, delayStart, delayInterval);
+            auto end = std::chrono::steady_clock::now();
+            std::chrono::duration<double> elapsed_seconds = end - start;
+            if (delayInterval == INT_MAX) {
+                out << count << "," << i;
             } else {
-                simulator->setAgents(agents);
-                currentTimestep = 1;
-                start = std::chrono::steady_clock::now();
-                count = simulator->simulate(currentTimestep, currentTimestep + 200, pause);
-                end = std::chrono::steady_clock::now();
-                std::chrono::duration<double> elapsed_seconds = end - start;
-                out << count << "," << i << "," << elapsed_seconds.count() << ",";
-                simulator->print(out);
-                out << std::endl;
+                out << simulator->averageMakeSpan(makeSpanType) << "," << approx;
             }
+            out << "," << elapsed_seconds.count() << ",";
+            simulator->print(out);
+            out << std::endl;
+        } else {
+            std::cerr << count << " " << agentNum << std::endl;
         }
-
-
     }
 
 

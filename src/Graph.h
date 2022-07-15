@@ -40,6 +40,7 @@ public:
     };
 
     struct Edge {
+        unsigned int index;
         unsigned int length;
         double dp;
         double _distance;

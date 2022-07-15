@@ -177,10 +177,12 @@ void Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::
                 for (auto[x, y]: neighbors) {
                     if (x < height && y < width && gridGraph[x][y] != '@') {
                         auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
-                        g[p.first].length = 1;
-                        g[p.first].dp = 0;
+                        auto &edge = g[p.first];
+                        edge.length = 1;
+                        edge.dp = 0;
+                        edge.index = E++;
 //                        g[p.first].dp = distribution(generator);
-                        E++;
+//                        E++;
                     }
                 }
             }
@@ -338,6 +340,7 @@ double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
     return distances[nodeId1][nodeId2];
 }
+
 
 const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);

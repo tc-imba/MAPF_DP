@@ -11,7 +11,8 @@ class OnlineSimulator : public Simulator {
 public:
     OnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
 
-    int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) override;
+    int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
+                 unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
     void print(std::ostream &out) const override;
 

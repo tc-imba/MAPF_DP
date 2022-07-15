@@ -8,6 +8,7 @@
 #include "Solver.h"
 #include <random>
 #include <iostream>
+#include <algorithm>
 
 class Simulator {
 protected:
@@ -17,10 +18,11 @@ protected:
 
     CBSNodePtr solution = nullptr;
     bool debug = false;
+    std::set<unsigned int> delayedSet;
 
 public:
-    size_t delayInterval = 1;
-    std::set<unsigned int> delayedSet;
+    std::string delayType;
+//    size_t delayInterval = 1;
     double delayRatio = 0.2;
 
     Simulator(Graph &graph, const std::vector<Agent> &agents, unsigned int seed)
@@ -54,34 +56,35 @@ public:
         return result;
     }
 
-    void updateDelayedSet(unsigned int timestep, bool checkComplete) {
-        if (delayInterval == 0 || timestep % delayInterval == 0) {
-            std::vector<unsigned int> delayed;
-            for (unsigned int i = 0; i < agents.size(); i++) {
-//                if (checkComplete) {
-//                    auto &state = agents[i].state;
-//                    if (state + 1 < solution->plans[i]->path.size()) {
-//                        delayed.emplace_back(i);
-//                    }
-//                } else {
-//                    delayed.emplace_back(i);
-//                }
+    void updateDelayedSet(unsigned int timestep) {
+//        if (delayInterval == 0 || timestep % delayInterval == 0) {
+        std::vector<unsigned int> delayed;
+        if (delayType == "agent") {
+            delayed.resize(agents.size());
+            /*for (unsigned int i = 0; i < agents.size(); i++) {
+                if (checkComplete) {
+                    auto &state = agents[i].state;
+                    if (state + 1 < solution->plans[i]->path.size()) {
+                        delayed.emplace_back(i);
+                    }
+                } else {
+                    delayed.emplace_back(i);
+                }
                 delayed.emplace_back(i);
-            }
-            unsigned int newSeed;
-            if (delayInterval == 0) {
-                newSeed = combineRandomSeed(0, 0, 0, seed);
-            } else {
-                newSeed = combineRandomSeed(0, 0, timestep, seed);
-            }
-            std::mt19937 generator(newSeed);
-            std::shuffle(delayed.begin(), delayed.end(), generator);
-            delayedSet.clear();
-            for (unsigned int i = 0; i < ((double) delayed.size()) * delayRatio; i++) {
-                delayedSet.emplace(delayed[i]);
-//                std::cout << delayed[i] << " delay" << std::endl;
-            }
+            }*/
+        } else if (delayType == "edge") {
+            delayed.resize(graph.getEdgeNum());
         }
+        std::iota(delayed.begin(), delayed.end(), 0);
+        unsigned int newSeed = combineRandomSeed(0, 0, timestep, seed);;
+        std::mt19937 generator(newSeed);
+        std::shuffle(delayed.begin(), delayed.end(), generator);
+        delayedSet.clear();
+        for (unsigned int i = 0; i < ((double) delayed.size()) * delayRatio; i++) {
+            delayedSet.emplace(delayed[i]);
+//            std::cout << delayed[i] << " delay" << std::endl;
+        }
+//        }
     }
 
     int countCompletedAgents() {
@@ -94,7 +97,8 @@ public:
         return count;
     }
 
-    virtual int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep, unsigned int pauseTimestep = 0) = 0;
+    virtual int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
+                         unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) = 0;
 
     virtual void print(std::ostream &out) const = 0;
 
