@@ -35,7 +35,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                             for feasibility, cycle in [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"),
                                                        ("h", "o")]:
                                 # for feasibility, cycle in [("h", "h"), ("n", "h")]:
-                                file = f"{simulator}-{obstacles}-{agents}-{timestep}-{rate}-{interval}-{feasibility}-{cycle}.csv"
+                                file = f"{simulator}-{obstacles}-{agents}-edge-{rate}-{interval}-{timestep}-{feasibility}-{cycle}.csv"
                                 try:
                                     df = pandas.read_csv(os.path.join(result_dir, file), header=None)
                                     value = npy.around(npy.mean(df.iloc[:, 0]), 3)
