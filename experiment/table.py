@@ -204,13 +204,13 @@ def main():
     df_periodic = pandas.read_csv(os.path.join(data_dir, "df_periodic.csv"))
     df_infinite_feasibility_category = pandas.read_csv(os.path.join(data_dir, "df_infinite_feasibility_category.csv"))
     for agents in [10, 20]:
-        # plot_online_offline(df_infinite, agents, "infinite")
-        # plot_online_offline(df_periodic, agents, "periodic")
-        # plot_feasibility(df_infinite, agents, "infinite")
-        # plot_feasibility(df_periodic, agents, "periodic")
-        # plot_cycle(df_infinite, agents, "infinite")
-        # plot_cycle(df_periodic, agents, "periodic")
-        plot_category(df_infinite_feasibility_category, agents, "infinite")
+        plot_online_offline(df_infinite, agents, "infinite")
+        plot_online_offline(df_periodic, agents, "periodic")
+        plot_feasibility(df_infinite, agents, "infinite")
+        plot_feasibility(df_periodic, agents, "periodic")
+        plot_cycle(df_infinite, agents, "infinite")
+        plot_cycle(df_periodic, agents, "periodic")
+        # plot_category(df_infinite_feasibility_category, agents, "infinite")
 
 
 if __name__ == '__main__':

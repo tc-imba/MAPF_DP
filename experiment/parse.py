@@ -38,7 +38,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                                 file = f"{simulator}-{obstacles}-{agents}-edge-{rate}-{interval}-{timestep}-{feasibility}-{cycle}.csv"
                                 try:
                                     df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                                    value = npy.around(npy.mean(df.iloc[:, 0]), 3)
+                                    value = npy.mean(df.iloc[:, 0])
                                     time = npy.mean(df.iloc[:, 2])
                                     execution_time = 0
                                     first_agent_arriving = 0
