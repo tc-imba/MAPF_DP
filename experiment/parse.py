@@ -17,10 +17,10 @@ simulators_list = ["online", "default"]
 
 def parse_data(data_type) -> pandas.DataFrame:
     if data_type == "infinite":
-        timesteps_list = [1, 5, 10]
+        starts_list = [1, 5, 10]
         intervals_list = [0]
     elif data_type == "periodic":
-        timesteps_list = [0]
+        starts_list = [0]
         intervals_list = [1, 5, 10]
     else:
         assert False
@@ -29,13 +29,13 @@ def parse_data(data_type) -> pandas.DataFrame:
     for obstacles in obstacles_list:
         for simulator in simulators_list:
             for agents in agents_list:
-                for timestep in timesteps_list:
+                for start in starts_list:
                     for interval in intervals_list:
                         for rate in [0.2, 0.4]:
                             for feasibility, cycle in [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"),
                                                        ("h", "o")]:
                                 # for feasibility, cycle in [("h", "h"), ("n", "h")]:
-                                file = f"{simulator}-{obstacles}-{agents}-edge-{rate}-{interval}-{timestep}-{feasibility}-{cycle}.csv"
+                                file = f"{simulator}-{obstacles}-{agents}-edge-{rate}-{start}-{interval}-{feasibility}-{cycle}.csv"
                                 try:
                                     df = pandas.read_csv(os.path.join(result_dir, file), header=None)
                                     value = npy.mean(df.iloc[:, 0])
