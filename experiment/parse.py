@@ -71,7 +71,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     "simulator": simulator,
                                     "obstacles": obstacles,
                                     "agents": agents,
-                                    "timestep": timestep,
+                                    "timestep": start,
                                     "interval": interval,
                                     "rate": rate,
                                     "value": value,
