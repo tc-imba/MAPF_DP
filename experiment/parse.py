@@ -4,10 +4,12 @@ import os
 
 project_root = os.path.dirname(os.path.dirname(__file__))
 result_dir = os.path.join(project_root, "result")
+parsed_result_dir = os.path.join(result_dir, "parsed")
 plot_dir = os.path.join(project_root, "plot")
 data_dir = os.path.join(project_root, "data")
 os.makedirs(plot_dir, exist_ok=True)
 os.makedirs(data_dir, exist_ok=True)
+os.makedirs(parsed_result_dir, exist_ok=True)
 
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
@@ -26,7 +28,20 @@ def parse_data(data_type) -> pandas.DataFrame:
     else:
         assert False
 
-    main_df = pandas.DataFrame()
+    header_names = [
+        'map', 'agent', 'iteration',
+        'value', 'noop', 'time', 'execution_time', 'first_agent_arriving',
+        'cycle_count', 'cycle_agents', 'unblocked_agents', 'feasibility_count',
+        'feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4',
+    ]
+    column_names = [
+        "simulator", "agents", "timestep", "interval", "rate",
+        "value", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
+        "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
+        "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
+    ]
+
+    main_df = pandas.DataFrame(columns=column_names)
     for obstacles in obstacles_list:
         for simulator in simulators_list:
             for agents in agents_list:
@@ -38,9 +53,13 @@ def parse_data(data_type) -> pandas.DataFrame:
                                 # for feasibility, cycle in [("h", "h"), ("n", "h")]:
                                 file = f"{simulator}-{obstacles}-{agents}-edge-{rate}-{start}-{interval}-{feasibility}-{cycle}.csv"
                                 try:
-                                    df = pandas.read_csv(os.path.join(result_dir, file), header=None)
-                                    value = npy.mean(df.iloc[:, 0])
-                                    time = npy.mean(df.iloc[:, 2])
+                                    df = pandas.read_csv(os.path.join(result_dir, file), header=None,
+                                                         names=header_names)
+                                    df.sort_values(by=['map', 'agent', 'iteration'], inplace=True)
+                                    df.to_csv(os.path.join(parsed_result_dir, file), index=False)
+
+                                    value = npy.mean(df['value'])
+                                    time = npy.mean(df['time'])
                                     execution_time = 0
                                     first_agent_arriving = 0
                                     cycle_count = 0
@@ -51,17 +70,21 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     feasibility_type_b = 0
                                     feasibility_type_c = 0
                                     if len(df.columns) > 8:
-                                        execution_time = npy.mean(df.iloc[:, 3])
-                                        first_agent_arriving = npy.mean(df.iloc[:, 4])
-                                        cycle_count = npy.mean(df.iloc[:, 5])
-                                        cycle_agents = npy.mean(df.iloc[:, 6])
-                                        unblocked_agents = npy.mean(df.iloc[:, 7])
-                                        feasibility_count = npy.mean(df.iloc[:, 8])
+                                        execution_time = npy.mean(df['execution_time'])
+                                        first_agent_arriving = npy.mean(df['first_agent_arriving'])
+                                        cycle_count = npy.mean(df['cycle_count'])
+                                        cycle_agents = npy.mean(df['cycle_agents'])
+                                        unblocked_agents = npy.mean(df['unblocked_agents'])
+                                        feasibility_count = npy.mean(df['feasibility_count'])
                                     if len(df.columns) > 12:
-                                        feasibility_count_all = npy.sum(df.iloc[:, 9:13], axis=1)
-                                        feasibility_type_a = npy.nanmean(df.iloc[:, 9] / feasibility_count_all)
-                                        feasibility_type_b = npy.nanmean(df.iloc[:, 12] / feasibility_count_all)
-                                        feasibility_type_c = npy.nanmean((df.iloc[:, 10] + df.iloc[:, 11]) / feasibility_count_all)
+                                        feasibility_count_all = npy.sum(
+                                            df[['feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4']],
+                                            axis=1
+                                        )
+                                        feasibility_type_a = npy.nanmean(df['feasibility_1'] / feasibility_count_all)
+                                        feasibility_type_b = npy.nanmean(df['feasibility_4'] / feasibility_count_all)
+                                        feasibility_type_c = npy.nanmean(
+                                            (df['feasibility_2'] + df['feasibility_3']) / feasibility_count_all)
                                 except:
                                     value = 0
                                     time = 0
@@ -97,8 +120,8 @@ def parse_data(data_type) -> pandas.DataFrame:
 def main():
     df_infinite = parse_data("infinite")
     df_periodic = parse_data("periodic")
-    df_infinite.to_csv(os.path.join(data_dir, "df_infinite.csv"))
-    df_periodic.to_csv(os.path.join(data_dir, "df_periodic.csv"))
+    df_infinite.to_csv(os.path.join(data_dir, "df_infinite.csv"), index=False)
+    df_periodic.to_csv(os.path.join(data_dir, "df_periodic.csv"), index=False)
 
 
 if __name__ == '__main__':

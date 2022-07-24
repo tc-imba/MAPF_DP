@@ -1,6 +1,6 @@
 #include <iostream>
-#include <fstream>
 #include <chrono>
+//#include <boost/interprocess/sync/named_mutex.hpp>
 #include "Graph.h"
 #include "CBSSolver.h"
 #include "DefaultSimulator.h"
@@ -36,10 +36,13 @@ int main(int argc, const char *argv[]) {
     optionParser.add("90", false, 1, 0, "Obstacles", "--obstacles", validObstacles);
 
     auto validMapSeed = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Simulation Seed", "--map-seed", validMapSeed);
+    optionParser.add("0", false, 1, 0, "Map Seed", "--map-seed", validMapSeed);
 
     auto validAgentSeed = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Simulation Seed", "--agent-seed", validAgentSeed);
+    optionParser.add("0", false, 1, 0, "Agent Seed", "--agent-seed", validAgentSeed);
+
+    auto validSimulationSeed = new ez::ezOptionValidator("u4", "ge", "0");
+    optionParser.add("0", false, 1, 0, "Simulation Seed", "--simulation-seed", validSimulationSeed);
 
     auto validAgents = new ez::ezOptionValidator("u4", "ge", "1");
     optionParser.add("10", false, 1, 0, "Agents Number", "-a", "--agents", validAgents);
@@ -71,7 +74,7 @@ int main(int argc, const char *argv[]) {
     }
 
     std::string mapType, objective, simulatorType, outputFileName, delayType;
-    unsigned long window, mapSeed, agentSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
+    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType;
     optionParser.get("--map")->getString(mapType);
@@ -82,6 +85,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
     optionParser.get("--agent-seed")->getULong(agentSeed);
+    optionParser.get("--simulation-seed")->getULong(simulationSeed);
     optionParser.get("--agents")->getULong(agentNum);
     optionParser.get("--iteration")->getULong(iteration);
     optionParser.get("--min")->getDouble(minDP);
@@ -112,8 +116,10 @@ int main(int argc, const char *argv[]) {
 //    std::cout << "window: " << window << std::endl;
 
     std::ofstream fout;
+    auto buf = std::make_unique<char[]>(4096);
     if (!outputFileName.empty()) {
         fout.open(outputFileName, std::ios_base::app);
+        fout.rdbuf()->pubsetbuf(buf.get(), 4096);
         std::cerr << outputFileName << std::endl;
     }
     std::ostream &out = fout.is_open() ? fout : std::cout;
@@ -185,7 +191,7 @@ int main(int argc, const char *argv[]) {
 
     unsigned int finished = 0;
 
-    for (unsigned int i = 0; finished < iteration; i++) {
+    for (unsigned int i = simulationSeed; finished < iteration; i++) {
         graph.generateDelayProbability(i, minDP, maxDP);
 
         if (simulatorType == "default") {
@@ -218,7 +224,9 @@ int main(int argc, const char *argv[]) {
         unsigned int currentTimestep = 1;
         int count = simulator->simulate(currentTimestep, currentTimestep + 200);
         if (count == agentNum) {
-//            simulator->debug = true;
+#ifdef DEBUG_CYCLE
+            simulator->debug = true;
+#endif
             if (simulatorType == "online") {
                 auto onlineSimulator = dynamic_cast<OnlineSimulator *>(simulator.get());
                 onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
@@ -232,6 +240,11 @@ int main(int argc, const char *argv[]) {
             count = simulator->simulate(currentTimestep, currentTimestep + 200, delayStart, delayInterval);
             auto end = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsed_seconds = end - start;
+//            boost::interprocess::named_mutex namedMutex{boost::interprocess::open_or_create, outputFileName.c_str()};
+//            bool needLock = fout.is_open();
+//            if (needLock) {
+//                namedMutex.lock();
+//            }
             out << mapSeed << "," << agentSeed << "," << i << ",";
             if (delayInterval == INT_MAX) {
                 out << count << "," << finished;
@@ -242,6 +255,9 @@ int main(int argc, const char *argv[]) {
             simulator->print(out);
             out << std::endl;
             finished++;
+//            if (needLock) {
+//                namedMutex.unlock();
+//            }
         } else {
             std::cerr << count << " " << agentNum << std::endl;
         }

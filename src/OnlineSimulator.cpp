@@ -73,27 +73,26 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 //        if (pauseTimestep > 0 && currentTimestep == 2) {
 //            std::cout << "breakpoint" << std::endl;
 //        }
+//
+        auto start = std::chrono::steady_clock::now();
 
-
+#ifdef DEBUG_CYCLE
         auto lastMoved = moved;
         auto lastBlocked = blocked;
 
-        auto start = std::chrono::steady_clock::now();
-//        printSets("before init |");
+        printSets("before init |");
         initChecks();
-//        printSets("after init  |");
+        printSets("after init  |");
         if (!isOnlyCycleCheck) {
             unsharedCheck();
-//            printSets("unshared    |");
+            printSets("unshared    |");
             neighborCheck();
-//            printSets("neighbor    |");
+            printSets("neighbor    |");
             deadEndCheck();
-//            printSets("deadend     |");
+            printSets("deadend     |");
         }
-        cycleCheck();
-        auto end = std::chrono::steady_clock::now();
 
-/*        auto savedBlocked = blocked;
+        auto savedBlocked = blocked;
         auto savedUnshared = unshared;
         auto lastReady = ready;
         cycleCheck();
@@ -109,9 +108,21 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         initChecks();
         printSets("after init  |");
         cycleCheck();
-        printSets("cycle       |");*/
+        printSets("cycle       |");
+#else
+        initChecks();
+        if (!isOnlyCycleCheck) {
+            unsharedCheck();
+            neighborCheck();
+            deadEndCheck();
+        }
+        cycleCheck();
+#endif
 
-/*
+        auto end = std::chrono::steady_clock::now();
+
+
+#ifdef DEBUG_CYCLE
         if (ready.size() != savedReady.size() + savedUnshared.size()) {
             std::cout << currentTimestep << std::endl;
             for (unsigned int i = 0; i < agents.size(); i++) {
@@ -154,7 +165,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             std::cout << std::endl;
             exit(0);
         }
-*/
+#endif
 
         unblocked.insert(ready.begin(), ready.end());
         unblocked.insert(unshared.begin(), unshared.end());
@@ -671,30 +682,39 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
         for (auto it = sharedNodesList.begin(); it != sharedNodesList.end();) {
             std::vector<std::pair<unsigned int, unsigned int>> selectedEdges;
             unsigned int maxSelectedEdges = 0;
-            if (it->state1 + 1 < paths[it->agentId1].size() && it->state2 > agents[it->agentId2].state) {
-                auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
-                auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-                boost::add_edge(nodeId1, nodeId2, topoGraph);
-                std::vector<Graph::topo_vertex_t> container;
-                try {
-                    boost::topological_sort(topoGraph, std::back_inserter(container));
-                    selectedEdges.emplace_back(nodeId1, nodeId2);
-                } catch (std::exception) {}
-                boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                ++maxSelectedEdges;
-            }
-            if (it->state2 + 1 < paths[it->agentId2].size() && it->state1 > agents[it->agentId1].state) {
-                auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1];
-                auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
-                boost::add_edge(nodeId2, nodeId1, topoGraph);
-                try {
+            if (it->state2 > agents[it->agentId2].state) {
+                if (it->state1 + 1 == paths[it->agentId1].size()) {
+                    ++maxSelectedEdges;
+                } else if (it->state1 + 1 < paths[it->agentId1].size()) {
+                    auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
+                    auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
+                    boost::add_edge(nodeId1, nodeId2, topoGraph);
                     std::vector<Graph::topo_vertex_t> container;
-                    boost::topological_sort(topoGraph, std::back_inserter(container));
-                    selectedEdges.emplace_back(nodeId2, nodeId1);
-                } catch (std::exception) {}
-                boost::remove_edge(nodeId2, nodeId1, topoGraph);
-                ++maxSelectedEdges;
+                    try {
+                        boost::topological_sort(topoGraph, std::back_inserter(container));
+                        selectedEdges.emplace_back(nodeId1, nodeId2);
+                    } catch (std::exception) {}
+                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                    ++maxSelectedEdges;
+                }
             }
+            if (it->state1 > agents[it->agentId1].state) {
+                if (it->state2 + 1 == paths[it->agentId2].size()) {
+                    ++maxSelectedEdges;
+                } else if (it->state2 + 1 < paths[it->agentId2].size() && it->state1 > agents[it->agentId1].state) {
+                    auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1];
+                    auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
+                    boost::add_edge(nodeId2, nodeId1, topoGraph);
+                    try {
+                        std::vector<Graph::topo_vertex_t> container;
+                        boost::topological_sort(topoGraph, std::back_inserter(container));
+                        selectedEdges.emplace_back(nodeId2, nodeId1);
+                    } catch (std::exception) {}
+                    boost::remove_edge(nodeId2, nodeId1, topoGraph);
+                    ++maxSelectedEdges;
+                }
+            }
+
             if (selectedEdges.empty()) {
                 if (maxSelectedEdges > 0) {
                     // failed
