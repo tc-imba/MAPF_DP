@@ -47,6 +47,8 @@ private:
     std::unordered_map<size_t, size_t> nodeAgentMap;
     std::set<size_t> blocked, unblocked, moved, ready, unshared;
 
+    void printSets(const std::string &title);
+
     void initSharedNodes(size_t i, size_t j);
 
     void updateSharedNode(unsigned int nodeId, size_t agentId, unsigned int state);
@@ -79,6 +81,7 @@ private:
     std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
 
     std::pair<size_t, size_t> feasibilityCheck();
+
 
 };
 

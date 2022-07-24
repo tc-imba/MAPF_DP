@@ -17,10 +17,10 @@ protected:
     unsigned int seed;
 
     CBSNodePtr solution = nullptr;
-    bool debug = false;
     std::set<unsigned int> delayedSet;
 
 public:
+    bool debug = false;
     std::string delayType;
 //    size_t delayInterval = 1;
     double delayRatio = 0.2;

@@ -191,12 +191,7 @@ int main(int argc, const char *argv[]) {
         if (simulatorType == "default") {
             simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
         } else if (simulatorType == "online") {
-            auto onlineSimulator = std::make_unique<OnlineSimulator>(graph, agents, i);
-            onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
-            onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
-            onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
-            onlineSimulator->isFeasibilityType = feasibilityType;
-            simulator = std::move(onlineSimulator);
+            simulator = std::make_unique<OnlineSimulator>(graph, agents, i);
         } else {
             assert(0);
         }
@@ -223,21 +218,30 @@ int main(int argc, const char *argv[]) {
         unsigned int currentTimestep = 1;
         int count = simulator->simulate(currentTimestep, currentTimestep + 200);
         if (count == agentNum) {
-            finished++;
+//            simulator->debug = true;
+            if (simulatorType == "online") {
+                auto onlineSimulator = dynamic_cast<OnlineSimulator *>(simulator.get());
+                onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
+                onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
+                onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
+                onlineSimulator->isFeasibilityType = feasibilityType;
+            }
             simulator->setAgents(agents);
             currentTimestep = 1;
             auto start = std::chrono::steady_clock::now();
             count = simulator->simulate(currentTimestep, currentTimestep + 200, delayStart, delayInterval);
             auto end = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsed_seconds = end - start;
+            out << mapSeed << "," << agentSeed << "," << i << ",";
             if (delayInterval == INT_MAX) {
-                out << count << "," << i;
+                out << count << "," << finished;
             } else {
                 out << simulator->averageMakeSpan(makeSpanType) << "," << approx;
             }
             out << "," << elapsed_seconds.count() << ",";
             simulator->print(out);
             out << std::endl;
+            finished++;
         } else {
             std::cerr << count << " " << agentNum << std::endl;
         }

@@ -10,6 +10,34 @@
 
 #include "OnlineSimulator.h"
 
+void OnlineSimulator::printSets(const std::string &title) {
+    if (debug) {
+        auto size = ready.size() + moved.size() + blocked.size() + unblocked.size() + unshared.size();
+        std::cout << title << " " << size << " ";
+        std::cout << "ready: ";
+        for (auto j: ready) {
+            std::cout << j << " ";
+        }
+        std::cout << "moved: ";
+        for (auto j: moved) {
+            std::cout << j << " ";
+        }
+        std::cout << "blocked: ";
+        for (auto j: blocked) {
+            std::cout << j << " ";
+        }
+        std::cout << "unblocked: ";
+        for (auto j: unblocked) {
+            std::cout << j << " ";
+        }
+        std::cout << "unshared: ";
+        for (auto j: unshared) {
+            std::cout << j << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
                               unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
@@ -46,63 +74,81 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 //            std::cout << "breakpoint" << std::endl;
 //        }
 
+
+        auto lastMoved = moved;
+        auto lastBlocked = blocked;
+
         auto start = std::chrono::steady_clock::now();
-//        auto lastMoved = moved;
-//        auto lastBlocked = blocked;
+//        printSets("before init |");
         initChecks();
+//        printSets("after init  |");
         if (!isOnlyCycleCheck) {
             unsharedCheck();
+//            printSets("unshared    |");
             neighborCheck();
+//            printSets("neighbor    |");
             deadEndCheck();
+//            printSets("deadend     |");
         }
+        cycleCheck();
         auto end = std::chrono::steady_clock::now();
+
 /*        auto savedBlocked = blocked;
         auto savedUnshared = unshared;
         auto lastReady = ready;
         cycleCheck();
-        auto savedReady = ready;
+        printSets("cycle       |");
 
+        auto savedReady = ready;
         moved = lastMoved;
         blocked = lastBlocked;
-        initChecks();*/
+
+        ready.clear();
+        unshared.clear();
+        printSets("before init |");
+        initChecks();
+        printSets("after init  |");
         cycleCheck();
+        printSets("cycle       |");*/
 
 /*
         if (ready.size() != savedReady.size() + savedUnshared.size()) {
             std::cout << currentTimestep << std::endl;
             for (unsigned int i = 0; i < agents.size(); i++) {
 //        if (agents[i].current == agents[i].goal) continue;
-                std::cout << "agent " << i  << " " << agents[i].state << " (" << agents[i].start << "->" << agents[i].goal << "): ";
+                std::cout << "agent " << i << " " << agents[i].state << " (" << agents[i].start << "->"
+                          << agents[i].goal << "): ";
                 for (const auto &label: solution->plans[i]->path) {
                     std::cout << "(" << label.state << "," << label.nodeId << ")->";
                 }
                 std::cout << std::endl;
 //        nodeStates[agents[i].start] = 0;
             }
-            for (const auto &pair : sharedNodes) {
+            for (const auto &pair: sharedNodes) {
                 std::cout << pair.first << " ";
-                for (const auto &item : pair.second) {
-                    std::cout << "{"<< item.agentId1 << "," << item.state1 << "," << item.agentId2 << "," << item.state2 << "} ";
+                for (const auto &item: pair.second) {
+                    std::cout << "{" << item.agentId1 << "," << item.state1 << "," << item.agentId2 << ","
+                              << item.state2 << "} ";
                 }
                 std::cout << std::endl;
             }
 
             std::cout << "    blocked ";
-            for (auto i : savedBlocked) {
+            for (auto i: savedBlocked) {
                 std::cout << i << " ";
             }
             std::cout << std::endl;
             std::cout << "     naive ";
-            for (auto i : ready) {
+            for (auto i: ready) {
                 std::cout << i << " ";
             }
             std::cout << std::endl;
             std::cout << "semi-naive ";
-            for (auto i : savedReady) {
+            for (auto i: savedReady) {
                 std::cout << i << " ";
             }
             std::cout << "| ";
-            for (auto i : savedUnshared) {
+            for (auto i: savedUnshared) {
                 std::cout << i << " ";
             }
             std::cout << std::endl;
@@ -114,6 +160,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         unblocked.insert(unshared.begin(), unshared.end());
         ready.clear();
         unshared.clear();
+//        printSets("final       |");
 
 //        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
 
@@ -159,25 +206,35 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                 agents[i].timestep = currentTimestep;
                 continue;
             }
-            if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
-                if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by agent" << std::endl;
-                }
-                agents[i].timestep = currentTimestep;
-                continue;
-            }
-            auto nextNodeId = paths[i][state + 1];
-            auto &edge = graph.getEdge(currentNodeId, nextNodeId);
-            if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
-                if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by edge" << std::endl;
-                }
-                agents[i].timestep = currentTimestep;
-                continue;
-            }
             if (unblocked.find(i) != unblocked.end()) {
 //                auto &edge = graph.g[edgeId];
                 agents[i].timestep = currentTimestep;
+                auto nextNodeId = paths[i][state + 1];
+                auto &edge = graph.getEdge(currentNodeId, nextNodeId);
+
+                auto it = nodeAgentMap.find(nextNodeId);
+                if (it != nodeAgentMap.end() && it->second != i) {
+                    std::cout << i << " " << it->second << " " << nextNodeId << std::endl;
+                    exit(0);
+                }
+
+                if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
+                    if (debug) {
+                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by agent"
+                                  << std::endl;
+                    }
+                    nodeAgentMap[nextNodeId] = i;
+                    continue;
+                }
+                if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
+                    if (debug) {
+                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by edge"
+                                  << std::endl;
+                    }
+                    nodeAgentMap[nextNodeId] = i;
+                    continue;
+                }
+
                 auto waitingTimestep = 1;
 //                auto waitingTimestep = (unsigned int) floor(10.0 * (edge.dp - 0.5) + 2);
 //                auto waitingTimestep = (unsigned int) floor(1 / (1.0 - edge.dp));
@@ -211,13 +268,16 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                     }
                 }
             } else {
+                if (debug) {
+                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") error" << std::endl;
+                }
                 assert(0);
             }
         }
+
         if (count >= agents.size()) {
             break;
         }
-
     }
 
 /*    bool unfinish = false;
@@ -430,16 +490,22 @@ void OnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &readyList, size
                 checkedReady.emplace_back(readyList[i]);
             }
         }
+//        std::cout << "naive cycle check: ";
+//        for (auto i: checkedReady) {
+//            std::cout << i << " ";
+//        }
+//        std::cout << std::endl;
         if (checkedReady.size() <= maxReadyList.size()) return;
         for (auto i: checkedReady) {
             agents[i].state++;
         }
         // perform a neighbor check here
         auto agentId1 = agents.size(), agentId2 = agents.size();
-        for (size_t i = 0; i< agents.size(); i++) {
+        for (size_t i = 0; i < agents.size(); i++) {
             auto nodeId = paths[i][agents[i].state];
             auto it = nodeAgentMap.find(nodeId);
             if (it != nodeAgentMap.end() && it->second != i) {
+//                std::cout << "neighbor in cycle: " << i << " " << nodeId << " " << it->second << std::endl;
                 agentId1 = i;
                 agentId2 = it->second;
                 break;
@@ -474,13 +540,15 @@ void OnlineSimulator::naiveCycleCheck() {
     for (size_t i = 1; i <= readyList.size(); i++) {
         naiveCycleCheckHelper(readyList, i, 0, 0, check, maxReadyList);
     }
-    for (auto i: maxReadyList) {
-        if (ready.find(i) == ready.end()) {
+    std::set<size_t> newReady(maxReadyList.begin(), maxReadyList.end());
+    for (auto i: ready) {
+        if (newReady.find(i) == newReady.end()) {
             blocked.insert(i);
         }
     }
-    ready.clear();
-    ready.insert(maxReadyList.begin(), maxReadyList.end());
+    ready.swap(newReady);
+//    ready.clear();
+//    ready.insert(maxReadyList.begin(), maxReadyList.end());
 }
 
 void OnlineSimulator::heuristicCycleCheck() {
@@ -550,12 +618,12 @@ void OnlineSimulator::heuristicCycleCheck() {
     }
 //    std::cerr << std::endl;
 
-    for (auto i: newReady) {
-        if (ready.find(i) == ready.end()) {
+    for (auto i: ready) {
+        if (newReady.find(i) == newReady.end()) {
             blocked.insert(i);
         }
     }
-    ready = newReady;
+    ready.swap(newReady);
 }
 
 
@@ -569,6 +637,9 @@ void OnlineSimulator::cycleCheck() {
     for (auto i: unblocked) {
         agents[i].state++;
     }
+    for (auto i: unshared) {
+        agents[i].state++;
+    }
 
     if (isHeuristicCycleCheck) {
         heuristicCycleCheck();
@@ -580,6 +651,9 @@ void OnlineSimulator::cycleCheck() {
     for (auto i: unblocked) {
         agents[i].state--;
     }
+    for (auto i: unshared) {
+        agents[i].state--;
+    }
 //    std::cerr << "end cycle check: ";
 }
 
@@ -589,6 +663,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 //        std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
 ) {
     std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
+//    std::cout << "feasibility check" << std::endl;
 
     while (!sharedNodesList.empty()) {
         unsigned int erasedEdges = 0;
@@ -623,7 +698,8 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             if (selectedEdges.empty()) {
                 if (maxSelectedEdges > 0) {
                     // failed
-                    // std::cerr << "failed!" << std::endl;
+//                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
+//                              << it->state2 << std::endl;
                     for (auto [nodeId1, nodeId2]: addedEdges) {
                         boost::remove_edge(nodeId1, nodeId2, topoGraph);
                     }
@@ -636,7 +712,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                 boost::add_edge(selectedEdges[0].first, selectedEdges[0].second, topoGraph);
                 it = sharedNodesList.erase(it);
                 ++erasedEdges;
-//                std::cerr << "choose: " << selectedEdges[0].first << " " << selectedEdges[0].second << std::endl;
+//                std::cout << "choose: " << selectedEdges[0].first << " " << selectedEdges[0].second << std::endl;
             } else {
                 ++it;
             }
@@ -669,8 +745,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                 addedEdges.emplace_back(nodeId4, nodeId3);
                 boost::add_edge(nodeId4, nodeId3, topoGraph);
             }
-
-//            std::cerr << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
+//            std::cout << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
         }
     }
     for (auto [nodeId1, nodeId2]: addedEdges) {
@@ -684,6 +759,17 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckTest(bool recursive) 
 //    std::cerr << "start feasibility check" << std::endl;
 
     std::list<SharedNodePair> sharedNodesList;
+
+    std::unordered_map<size_t, size_t> nodeAgentMapSnapshot;
+    for (size_t i = 0; i < agents.size(); i++) {
+        auto nodeId = paths[i][agents[i].state];
+        auto it = nodeAgentMapSnapshot.find(nodeId);
+        if (it == nodeAgentMapSnapshot.end()) {
+            nodeAgentMapSnapshot.emplace_hint(it, nodeId, i);
+        } else {
+            return std::make_pair(it->second, i);
+        }
+    }
 
     for (const auto &[nodeId, sharedNode]: sharedNodes) {
         for (const auto &sharedNodePair: sharedNode) {

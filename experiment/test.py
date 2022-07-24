@@ -21,11 +21,12 @@ TIMEOUT = 600
 MAP_SEEDS = 5
 AGENT_SEEDS = 5
 ITERATIONS = 5
-OBSTACLES = [90, 180, 270]
-# OBSTACLES = [270]
-AGENTS = [10, 20]
+# OBSTACLES = [90, 180, 270]
+OBSTACLES = [90]
 # AGENTS = [10, 20]
-DELAY_RATIOS = [0.2, 0.4]
+AGENTS = [10]
+DELAY_RATIOS = [0.1, 0.2]
+# DELAY_RATIOS = [0.2, 0.4]
 # DELAY_INTERVALS = range(1, 10)
 DELAY_INTERVALS = [1, 5, 10]
 # PAUSES = range(1, 10)
@@ -40,6 +41,7 @@ NAIVE_SETTINGS = [
     #     (True, True, False),
     #    (True, True, True),
 ]
+FEASIBILITY_TYPE = False
 EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
                   (len(DELAY_INTERVALS) + len(DELAY_STARTS)) * len(SIMULATORS) * len(NAIVE_SETTINGS)
 
@@ -50,7 +52,7 @@ failed_settings = set()
 async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=ITERATIONS, min_dp=0.25,
               max_dp=0.75, obstacles=90, simulator="online",
               delay_type="edge", delay_ratio=0.2, delay_start=0, delay_interval=0,
-              naive_feasibility=False, naive_cycle=False, only_cycle=False):
+              naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=FEASIBILITY_TYPE):
     global workers, count
 
     # base_filename = "%d-%d-%d-%d-%d" % (size[0], size[1], agent, task_per_agent, seed)
@@ -105,7 +107,8 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         args.append("--naive-cycle")
     if only_cycle:
         args.append("--only-cycle")
-    args.append("--feasibility-type")
+    if feasibility_type:
+        args.append("--feasibility-type")
     # print(' '.join(args))
     while workers <= 0:
         await asyncio.sleep(1)
@@ -155,7 +158,7 @@ async def run_test_2(map_seed, agent_seed, agents, obstacles):
                     await run("random", min_dp=0.5, max_dp=0.9,
                               map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
                               agents=agents, simulator=simulator,
-                              delay_start=0, delay_ratio=delay_ratio, delay_interval=delay_interval,
+                              delay_start=1, delay_ratio=delay_ratio, delay_interval=delay_interval,
                               naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
