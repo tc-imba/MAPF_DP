@@ -89,30 +89,41 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                     std::cout << "agent " << i << ": completed" << std::endl;
                 }
                 ++count;
-            } else if (delayedSet.find(i) != delayedSet.end()) {
-                if (debug) {
-                    std::cout << "agent " << i << ": delayed" << std::endl;
-                }
-                agents[i].timestep = currentTimestep;
-            } else {
-                agents[i].timestep = currentTimestep;
-                const auto &label = solution->plans[i]->path[state];
-                const auto &nextLabel = solution->plans[i]->path[state + 1];
-                const auto &nextNode = nodes[nextLabel.nodeId];
-                auto nextNodeState = nodeStates[nextLabel.nodeId];
-//                std::cout << label.nodeId << " " << nextLabel.nodeId << " " << nextNode.size() << std::endl;
-                if (label.nodeId == nextLabel.nodeId) {
-                    nextNodeState++;
-                }
-                assert(nextNodeState < nextNode.size());
-                auto next = nextNode[nextNodeState];
-                if (next.first == nextLabel.state && next.second == i) {
-                    // try to move
-                    unblocked.emplace_back(i);
-                } else if (debug) {
-                    std::cout << "agent " << i << ": blocked" << std::endl;
-                }
+                continue;
             }
+            agents[i].timestep = currentTimestep;
+            const auto &label = solution->plans[i]->path[state];
+            if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
+                if (debug) {
+                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by agent"
+                              << std::endl;
+                }
+                continue;
+            }
+            const auto &nextLabel = solution->plans[i]->path[state + 1];
+            const auto &nextNode = nodes[nextLabel.nodeId];
+            auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
+            if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
+                if (debug) {
+                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by edge"
+                              << std::endl;
+                }
+                continue;
+            }
+            auto nextNodeState = nodeStates[nextLabel.nodeId];
+//                std::cout << label.nodeId << " " << nextLabel.nodeId << " " << nextNode.size() << std::endl;
+            if (label.nodeId == nextLabel.nodeId) {
+                nextNodeState++;
+            }
+            assert(nextNodeState < nextNode.size());
+            auto next = nextNode[nextNodeState];
+            if (next.first == nextLabel.state && next.second == i) {
+                // try to move
+                unblocked.emplace_back(i);
+            } else if (debug) {
+                std::cout << "agent " << i << ": blocked" << std::endl;
+            }
+
         }
         for (auto i: unblocked) {
             auto &state = agents[i].state;

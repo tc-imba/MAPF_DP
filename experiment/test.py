@@ -32,11 +32,11 @@ DELAY_INTERVALS = [1, 5, 10]
 # PAUSES = range(1, 10)
 DELAY_STARTS = [1, 5, 10]
 # SIMULATORS = ["default", "online"]
-SIMULATORS = ["online"]
+SIMULATORS = ["default"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    (False, True, False),
-    (False, True, True),
+    # (False, True, False),
+    # (False, True, True),
     #     (True, False, False),
     #     (True, True, False),
     #    (True, True, True),
