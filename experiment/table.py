@@ -25,6 +25,7 @@ obstacles_marker = {
     180: "s",
     270: "^",
 }
+DELAY_RATIOS = [0.1, 0.2]
 
 
 def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
@@ -50,19 +51,21 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
         assert False
 
     if data_type == "infinite":
-        xlabel = 'timestep (t)'
+        xlabel = 'start timestep (t)'
         xticks_field = 'timestep'
     elif data_type == "periodic":
-        xlabel = 'interval (t)'
+        xlabel = 'delay interval (k)'
         xticks_field = 'interval'
     else:
         assert False
 
     fig = plt.figure(figsize=(16, 9), dpi=100)
     plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
+    axes = []
 
-    for i, rate in enumerate([0.2, 0.4]):
-        ax = plt.subplot(1, 2, i + 1)
+    for i, rate in enumerate(DELAY_RATIOS):
+        ax = plt.subplot(1, len(DELAY_RATIOS), i + 1)
+        axes.append(ax)
         sub_df = df[df["rate"] == rate]
         xticks = []
         for group, df2 in sub_df.groupby(groupby):
@@ -118,9 +121,10 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
             marker = obstacles_marker[obstacles]
             ax.plot(x, y, linestyle=linestyle, color=color, marker=marker, label=label,
                     linewidth=2.5, markersize=8)
-        ax.set_xticks(npy.arange(len(xticks)), xticks)
+        ax.set_xticks(npy.arange(len(xticks)))
+        ax.set_xticklabels(xticks)
         ax.set_xlabel(xlabel)
-        ax.set_title(f"{int(rate * 100)}% of agents blocked")
+        ax.set_title(f"{int(rate * 100)}% of edges blocked")
         if ylog:
             ax.set_yscale("log")
             plt.tick_params(axis='y', which='minor')
@@ -131,7 +135,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
     plt.ylabel(ylabel)
     bbox_extra_artists = []
     if legend:
-        ax = plt.subplot(1, 2, 1)
+        ax = axes[0]
         handles, labels = ax.get_legend_handles_labels()
         if len(handles) % 3 == 0:
             ncol = 3

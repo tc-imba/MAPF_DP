@@ -187,24 +187,30 @@ int main(int argc, const char *argv[]) {
 //    while (solver.step()) {}
     solver.solveWithCache(filename, agentSeed);
     double approx = solver.approxAverageMakeSpan(*solver.solution);
-    std::unique_ptr<Simulator> simulator;
+    std::shared_ptr<OnlineSimulator> onlineSimulator;
+    std::shared_ptr<Simulator> simulator;
 
     unsigned int finished = 0;
 
     for (unsigned int i = simulationSeed; finished < iteration; i++) {
         graph.generateDelayProbability(i, minDP, maxDP);
 
+        onlineSimulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+        onlineSimulator->delayRatio = delayRatio;
+        onlineSimulator->delayType = delayType;
+        onlineSimulator->setSolution(solver.solution);
         if (simulatorType == "default") {
             simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
+            simulator->delayRatio = delayRatio;
+            simulator->delayType = delayType;
+            simulator->setSolution(solver.solution);
         } else if (simulatorType == "online") {
-            simulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+            simulator = onlineSimulator;
         } else {
             assert(0);
         }
-        simulator->delayRatio = delayRatio;
-        simulator->delayType = delayType;
 
-        if (mapType == "hardcoded") {
+/*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
             std::shared_ptr<AgentPlan> a0 = std::make_shared<AgentPlan>();
             std::shared_ptr<AgentPlan> a1 = std::make_shared<AgentPlan>();
@@ -218,17 +224,16 @@ int main(int argc, const char *argv[]) {
             simulator->setSolution(solution);
 
         } else {
-            simulator->setSolution(solver.solution);
-        }
+
+        }*/
 
         unsigned int currentTimestep = 1;
-        int count = simulator->simulate(currentTimestep, currentTimestep + 200);
+        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + 200);
         if (count == agentNum) {
 #ifdef DEBUG_CYCLE
             simulator->debug = true;
 #endif
             if (simulatorType == "online") {
-                auto onlineSimulator = dynamic_cast<OnlineSimulator *>(simulator.get());
                 onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
                 onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
                 onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
