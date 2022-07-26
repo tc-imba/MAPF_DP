@@ -25,10 +25,11 @@ obstacles_marker = {
     180: "s",
     270: "^",
 }
-DELAY_RATIOS = [0.01, 0.05]
+EDGE_DELAY_RATIOS = [0.01, 0.05]
+AGENT_DELAY_RATIOS = [0.1, 0.2]
 
 
-def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
+def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=True):
     ylog = False
     if yfield == "time":
         if plot_type == "feasibility":
@@ -63,8 +64,15 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
     plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
     axes = []
 
-    for i, rate in enumerate(DELAY_RATIOS):
-        ax = plt.subplot(1, len(DELAY_RATIOS), i + 1)
+    if delay_type == "edge":
+        delay_ratios = EDGE_DELAY_RATIOS
+    elif delay_type == "agent":
+        delay_ratios = AGENT_DELAY_RATIOS
+    else:
+        assert False
+
+    for i, rate in enumerate(delay_ratios):
+        ax = plt.subplot(1, len(delay_ratios), i + 1)
         axes.append(ax)
         sub_df = df[df["rate"] == rate]
         xticks = []
@@ -148,7 +156,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
                            bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure)
         bbox_extra_artists.append(legend)
 
-    output_file = plot_dir / f"{plot_type}-{data_type}-{agents}-{yfield}.pdf"
+    output_file = plot_dir / f"{delay_type}-{plot_type}-{data_type}-{agents}-{yfield}.pdf"
     print(output_file)
     fig.savefig(fname=output_file, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
     plt.close()
@@ -171,35 +179,35 @@ def generate_table(df, agents, yfield, groupby, data_type, plot_type):
         f.write('\\end{tabular}')
 
 
-def plot_online_offline(data, agents, data_type):
+def plot_online_offline(data, agents, data_type, delay_type):
     df = data[(((data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
             data["simulator"] == "default")) & (data["agents"] == agents)]
     groupby = ["simulator", "cycle", "obstacles"]
     plot_type = "online-offline"
-    plot(df, agents, "value", groupby, data_type, plot_type)
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type)
 
 
-def plot_feasibility(data, agents, data_type):
+def plot_feasibility(data, agents, data_type, delay_type):
     df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents)]
     groupby = ["feasibility", "obstacles"]
     plot_type = "feasibility"
-    plot(df, agents, "value", groupby, data_type, plot_type)
-    plot(df, agents, "time", groupby, data_type, plot_type)
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type)
 
 
-def plot_cycle(data, agents, data_type):
+def plot_cycle(data, agents, data_type, delay_type):
     df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents)]
     groupby = ["cycle", "obstacles"]
     plot_type = "cycle"
-    plot(df, agents, "value", groupby, data_type, plot_type, False)
-    plot(df, agents, "time", groupby, data_type, plot_type)
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type)
 
 
-def plot_category(data, agents, data_type):
+def plot_category(data, agents, data_type, delay_type):
     df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents)]
     groupby = ["obstacles"]
     plot_type = "category"
-    plot(df, agents, "category", groupby, data_type, plot_type)
+    plot(df, agents, "category", groupby, data_type, plot_type, delay_type)
     generate_table(df, agents, "category", groupby, data_type, plot_type)
 
 
@@ -207,13 +215,14 @@ def main():
     df_infinite = pandas.read_csv(os.path.join(data_dir, "df_infinite.csv"))
     df_periodic = pandas.read_csv(os.path.join(data_dir, "df_periodic.csv"))
     df_infinite_feasibility_category = pandas.read_csv(os.path.join(data_dir, "df_infinite_feasibility_category.csv"))
-    for agents in [10, 20]:
-        plot_online_offline(df_infinite, agents, "infinite")
-        plot_online_offline(df_periodic, agents, "periodic")
-        plot_feasibility(df_infinite, agents, "infinite")
-        plot_feasibility(df_periodic, agents, "periodic")
-        plot_cycle(df_infinite, agents, "infinite")
-        plot_cycle(df_periodic, agents, "periodic")
+    for delay_type in ["agent", "edge"]:
+        for agents in [10, 20]:
+            plot_online_offline(df_infinite, agents, "infinite", delay_type)
+            plot_online_offline(df_periodic, agents, "periodic", delay_type)
+            plot_feasibility(df_infinite, agents, "infinite", delay_type)
+            plot_feasibility(df_periodic, agents, "periodic", delay_type)
+            plot_cycle(df_infinite, agents, "infinite", delay_type)
+            plot_cycle(df_periodic, agents, "periodic", delay_type)
         # plot_category(df_infinite_feasibility_category, agents, "infinite")
 
 
