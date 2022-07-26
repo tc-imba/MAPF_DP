@@ -23,20 +23,20 @@ AGENT_SEEDS = 5
 ITERATIONS = 5
 OBSTACLES = [90, 180, 270]
 # OBSTACLES = [90]
-AGENTS = [10, 20]
+AGENTS = [20]
 # AGENTS = [10]
-DELAY_RATIOS = [0.5, 0.1, 0.2]
-# DELAY_RATIOS = [0.2, 0.4]
+DELAY_RATIOS = [0.01, 0.05]
+# DELAY_RATIOS = [0.1, 0.2]
 # DELAY_INTERVALS = range(1, 10)
 DELAY_INTERVALS = [1, 5, 10]
 # PAUSES = range(1, 10)
 DELAY_STARTS = [1, 5, 10]
 # SIMULATORS = ["default", "online"]
-SIMULATORS = ["default"]
+SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    # (False, True, False),
-    # (False, True, True),
+    (False, True, False),
+    (False, True, True),
     #     (True, False, False),
     #     (True, True, False),
     #    (True, True, True),
