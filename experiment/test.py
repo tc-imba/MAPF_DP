@@ -23,27 +23,30 @@ AGENT_SEEDS = 5
 ITERATIONS = 5
 OBSTACLES = [90, 180, 270]
 # OBSTACLES = [90]
-AGENTS = [20]
+AGENTS = [10, 20]
 # AGENTS = [10]
-DELAY_RATIOS = [0.01, 0.05]
-# DELAY_RATIOS = [0.1, 0.2]
+EDGE_DELAY_RATIOS = [0.01, 0.05]
+AGENT_DELAY_RATIOS = [0.1, 0.2]
+
 # DELAY_INTERVALS = range(1, 10)
-DELAY_INTERVALS = [1, 5, 10]
+DELAY_INTERVALS = [1, 10, 20]
+# DELAY_INTERVALS = [20, 30]
 # PAUSES = range(1, 10)
 DELAY_STARTS = [1, 5, 10]
-# SIMULATORS = ["default", "online"]
-SIMULATORS = ["online"]
+# SIMULATORS = ["default"]
+DELAY_TYPES = ["agent", "edge"]
+SIMULATORS = ["online", "default"]
 NAIVE_SETTINGS = [
     (False, False, False),
-    (False, True, False),
-    (False, True, True),
+    # (False, True, False),
+    # (False, True, True),
     #     (True, False, False),
     #     (True, True, False),
     #    (True, True, True),
 ]
 FEASIBILITY_TYPE = False
-EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(DELAY_RATIOS) * \
-                  (len(DELAY_INTERVALS) + len(DELAY_STARTS)) * len(SIMULATORS) * len(NAIVE_SETTINGS)
+EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
+                  len(DELAY_TYPES) * len(DELAY_INTERVALS) * len(SIMULATORS) * len(NAIVE_SETTINGS)
 
 result_files = set()
 failed_settings = set()
@@ -138,28 +141,40 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     print('%s completed (%d/%d)' % (output_filename, count, EXPERIMENT_JOBS))
 
 
+def get_delay_ratios():
+    for delay_type in DELAY_TYPES:
+        if delay_type == "edge":
+            yield delay_type, EDGE_DELAY_RATIOS
+        elif delay_type == "agent":
+            yield delay_type, AGENT_DELAY_RATIOS
+        else:
+            assert False
+
+
 async def run_test_1(map_seed, agent_seed, agents, obstacles):
-    for delay_start in DELAY_STARTS:
-        for delay_ratio in DELAY_RATIOS:
-            for simulator in SIMULATORS:
-                for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
-                    await run("random", min_dp=0.5, max_dp=0.9,
-                              map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
-                              agents=agents, simulator=simulator,
-                              delay_start=delay_start, delay_ratio=delay_ratio, delay_interval=0,
-                              naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
+    for delay_type, delay_ratios in get_delay_ratios():
+        for delay_start in DELAY_STARTS:
+            for delay_ratio in delay_ratios:
+                for simulator in SIMULATORS:
+                    for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
+                        await run("random", min_dp=0.5, max_dp=0.9,
+                                  map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
+                                  agents=agents, simulator=simulator, delay_type=delay_type,
+                                  delay_start=delay_start, delay_ratio=delay_ratio, delay_interval=0,
+                                  naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
 async def run_test_2(map_seed, agent_seed, agents, obstacles):
-    for delay_ratio in DELAY_RATIOS:
-        for delay_interval in DELAY_INTERVALS:
-            for simulator in SIMULATORS:
-                for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
-                    await run("random", min_dp=0.5, max_dp=0.9,
-                              map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
-                              agents=agents, simulator=simulator,
-                              delay_start=1, delay_ratio=delay_ratio, delay_interval=delay_interval,
-                              naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
+    for delay_type, delay_ratios in get_delay_ratios():
+        for delay_ratio in delay_ratios:
+            for delay_interval in DELAY_INTERVALS:
+                for simulator in SIMULATORS:
+                    for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
+                        await run("random", min_dp=0.5, max_dp=0.9,
+                                  map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
+                                  agents=agents, simulator=simulator, delay_type=delay_type,
+                                  delay_start=1, delay_ratio=delay_ratio, delay_interval=delay_interval,
+                                  naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
 async def main():
@@ -174,9 +189,9 @@ async def main():
                 for agents in AGENTS:
                     if obstacles > 270 and agents > 10:
                         continue
-                    tasks.append(
-                        run_test_1(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)
-                    )
+                    # tasks.append(
+                    #     run_test_1(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)
+                    # )
                     tasks.append(
                         run_test_2(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)
                     )

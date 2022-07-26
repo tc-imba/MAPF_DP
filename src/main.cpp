@@ -228,7 +228,7 @@ int main(int argc, const char *argv[]) {
         }*/
 
         unsigned int currentTimestep = 1;
-        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + 200);
+        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + 300);
         if (count == agentNum) {
 #ifdef DEBUG_CYCLE
             simulator->debug = true;
@@ -242,7 +242,7 @@ int main(int argc, const char *argv[]) {
             simulator->setAgents(agents);
             currentTimestep = 1;
             auto start = std::chrono::steady_clock::now();
-            count = simulator->simulate(currentTimestep, currentTimestep + 200, delayStart, delayInterval);
+            count = simulator->simulate(currentTimestep, currentTimestep + 300, delayStart, delayInterval);
             auto end = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsed_seconds = end - start;
 //            boost::interprocess::named_mutex namedMutex{boost::interprocess::open_or_create, outputFileName.c_str()};

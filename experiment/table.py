@@ -25,7 +25,7 @@ obstacles_marker = {
     180: "s",
     270: "^",
 }
-DELAY_RATIOS = [0.1, 0.2]
+DELAY_RATIOS = [0.01, 0.05]
 
 
 def plot(df, agents, yfield, groupby, data_type, plot_type, legend=True):
