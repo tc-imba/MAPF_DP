@@ -35,7 +35,7 @@ DELAY_INTERVALS = [1, 10, 20]
 DELAY_STARTS = [1, 5, 10]
 # SIMULATORS = ["default"]
 DELAY_TYPES = ["agent", "edge"]
-SIMULATORS = ["online", "default"]
+SIMULATORS = ["default"]
 NAIVE_SETTINGS = [
     (False, False, False),
     # (False, True, False),

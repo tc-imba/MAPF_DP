@@ -181,14 +181,14 @@ def generate_table(df, agents, yfield, groupby, data_type, plot_type):
 
 def plot_online_offline(data, agents, data_type, delay_type):
     df = data[(((data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
-            data["simulator"] == "default")) & (data["agents"] == agents)]
+            data["simulator"] == "default")) & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     groupby = ["simulator", "cycle", "obstacles"]
     plot_type = "online-offline"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type)
 
 
 def plot_feasibility(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents)]
+    df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     groupby = ["feasibility", "obstacles"]
     plot_type = "feasibility"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type)
@@ -196,7 +196,7 @@ def plot_feasibility(data, agents, data_type, delay_type):
 
 
 def plot_cycle(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents)]
+    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     groupby = ["cycle", "obstacles"]
     plot_type = "cycle"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, False)
@@ -204,7 +204,7 @@ def plot_cycle(data, agents, data_type, delay_type):
 
 
 def plot_category(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents)]
+    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     groupby = ["obstacles"]
     plot_type = "category"
     plot(df, agents, "category", groupby, data_type, plot_type, delay_type)

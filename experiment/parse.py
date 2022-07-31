@@ -45,13 +45,15 @@ def parse_data(data_type) -> pandas.DataFrame:
     main_df = pandas.DataFrame(columns=column_names)
     for delay_type in delay_types_list:
         for obstacles in obstacles_list:
-            for simulator in simulators_list:
-                for agents in agents_list:
-                    for start in starts_list:
-                        for interval in intervals_list:
-                            for rate in delay_ratios_list:
-                                for feasibility, cycle in [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"),
-                                                           ("h", "o")]:
+            for agents in agents_list:
+                for start in starts_list:
+                    for interval in intervals_list:
+                        for rate in delay_ratios_list:
+                            for feasibility, cycle in [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"),
+                                                       ("h", "o")]:
+                                raw_dfs = {}
+
+                                for simulator in simulators_list:
                                     # for feasibility, cycle in [("h", "h"), ("n", "h")]:
                                     file = f"{simulator}-{obstacles}-{agents}-{delay_type}-{rate}-{start}-{interval}-{feasibility}-{cycle}.csv"
                                     try:
@@ -59,7 +61,24 @@ def parse_data(data_type) -> pandas.DataFrame:
                                                              names=header_names)
                                         df.sort_values(by=['map', 'agent', 'iteration'], inplace=True)
                                         df.to_csv(os.path.join(parsed_result_dir, file), index=False)
+                                        raw_dfs[simulator] = df
+                                    except:
+                                        pass
 
+                                if len(raw_dfs) != len(simulators_list):
+                                    continue
+
+                                base_df = raw_dfs[simulators_list[0]]
+                                for simulator in simulators_list[1:]:
+                                    target_df = raw_dfs[simulator]
+                                    base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
+                                base_df = base_df[['map', 'agent', 'iteration']]
+
+                                for simulator in simulators_list:
+                                    df = raw_dfs[simulator]
+                                    df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+
+                                    try:
                                         value = npy.mean(df['value'])
                                         time = npy.mean(df['time'])
                                         execution_time = 0
@@ -80,17 +99,20 @@ def parse_data(data_type) -> pandas.DataFrame:
                                             feasibility_count = npy.mean(df['feasibility_count'])
                                         if len(df.columns) > 12:
                                             feasibility_count_all = npy.sum(
-                                                df[['feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4']],
+                                                df[['feasibility_1', 'feasibility_2', 'feasibility_3',
+                                                    'feasibility_4']],
                                                 axis=1
                                             )
-                                            feasibility_type_a = npy.nanmean(df['feasibility_1'] / feasibility_count_all)
-                                            feasibility_type_b = npy.nanmean(df['feasibility_4'] / feasibility_count_all)
+                                            feasibility_type_a = npy.nanmean(
+                                                df['feasibility_1'] / feasibility_count_all)
+                                            feasibility_type_b = npy.nanmean(
+                                                df['feasibility_4'] / feasibility_count_all)
                                             feasibility_type_c = npy.nanmean(
                                                 (df['feasibility_2'] + df['feasibility_3']) / feasibility_count_all)
                                     except:
                                         value = 0
                                         time = 0
-                                    # print(file, mean)
+                                        # print(file, mean)
                                     if time == 0:
                                         continue
                                     row = {
@@ -117,12 +139,15 @@ def parse_data(data_type) -> pandas.DataFrame:
                                         "feasibility_type_c": feasibility_type_c,
                                     }
                                     main_df = main_df.append(row, ignore_index=True)
+
+
     return main_df
 
 
 def main():
     df_infinite = parse_data("infinite")
     df_periodic = parse_data("periodic")
+
     df_infinite.to_csv(os.path.join(data_dir, "df_infinite.csv"), index=False)
     df_periodic.to_csv(os.path.join(data_dir, "df_periodic.csv"), index=False)
 
