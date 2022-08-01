@@ -26,7 +26,7 @@ obstacles_marker = {
     270: "^",
 }
 EDGE_DELAY_RATIOS = [0.01, 0.05]
-AGENT_DELAY_RATIOS = [0.1, 0.2]
+AGENT_DELAY_RATIOS = [0.1, 0.2, 0.3]
 
 
 def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=True):
@@ -132,7 +132,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
         ax.set_xticks(npy.arange(len(xticks)))
         ax.set_xticklabels(xticks)
         ax.set_xlabel(xlabel)
-        ax.set_title(f"{int(rate * 100)}% of edges blocked")
+        ax.set_title(f"{int(rate * 100)}% of {delay_type}s blocked")
         if ylog:
             ax.set_yscale("log")
             plt.tick_params(axis='y', which='minor')
