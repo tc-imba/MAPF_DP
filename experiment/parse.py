@@ -15,7 +15,7 @@ os.makedirs(parsed_result_dir, exist_ok=True)
 obstacles_list = [90, 180, 270]
 agents_list = [10, 20, 30]
 simulators_list = ["online", "default"]
-delay_ratios_list = [0.01, 0.05, 0.1, 0.2]
+delay_ratios_list = [0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
 
@@ -25,7 +25,7 @@ def parse_data(data_type) -> pandas.DataFrame:
         intervals_list = [0]
     elif data_type == "periodic":
         starts_list = [1]
-        intervals_list = [1, 10, 20]
+        intervals_list = [1, 10, 20, 30]
     else:
         assert False
 
