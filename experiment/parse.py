@@ -54,8 +54,13 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
                                 raw_dfs = {}
 
                                 for simulator in simulators_list:
-                                    # for feasibility, cycle in [("h", "h"), ("n", "h")]:
-                                    file = f"{simulator}-{obstacles}-{agents}-{delay_type}-{rate}-{start}-{interval}-{feasibility}-{cycle}.csv"
+                                    if simulator == "default":
+                                        _feasibility = "h"
+                                        _cycle = "h"
+                                    else:
+                                        _feasibility = feasibility
+                                        _cycle = cycle
+                                    file = f"{simulator}-{obstacles}-{agents}-{delay_type}-{rate}-{start}-{interval}-{_feasibility}-{_cycle}.csv"
                                     try:
                                         df = pandas.read_csv(os.path.join(result_dir, file), header=None,
                                                              names=header_names)
@@ -75,6 +80,9 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
                                 base_df = base_df[['map', 'agent', 'iteration']]
 
                                 for simulator in simulators_list:
+                                    if simulator == "default" and (feasibility != "h" or cycle != "h"):
+                                        continue
+
                                     df = raw_dfs[simulator]
                                     df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
 

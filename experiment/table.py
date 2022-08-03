@@ -106,7 +106,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
                 if plot_type == "feasibility":
                     y = npy.array(df2["execution_time"] / df2["feasibility_count"] * 1000)
                 elif plot_type == "cycle":
-                    y = npy.array(df2["execution_time"] / df2["cycle_count"] * 1000)
+                    y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
                 else:
                     assert False
             elif yfield == "category":
@@ -167,10 +167,10 @@ def generate_table(df, agents, yfield, groupby, data_type, plot_type):
     print(output_file)
     with output_file.open('w') as f:
         f.write('\\begin{tabular}{cccccc}\n')
-        f.write('Obstacles & $t$ & Blocked \\% & Type A \\% & Type B \\% & Type C \\% \\\\\\hline\n')
+        f.write('Obstacles & $k$ & Blocked \\% & Type A \\% & Type B \\% & Type C \\% \\\\\\hline\n')
         for index, row in df.iterrows():
             obstacles = int(row['obstacles'])
-            timestep = int(row['timestep'])
+            timestep = int(row['interval'])
             rate = int(row['rate'] * 100)
             type_a = row['feasibility_type_a'] * 100
             type_b = row['feasibility_type_b'] * 100
@@ -215,15 +215,17 @@ def main():
     df_infinite = pandas.read_csv(os.path.join(data_dir, "df_infinite.csv"))
     df_periodic = pandas.read_csv(os.path.join(data_dir, "df_periodic.csv"))
     df_infinite_feasibility_category = pandas.read_csv(os.path.join(data_dir, "df_infinite_feasibility_category.csv"))
-    for delay_type in ["agent", "edge"]:
+    df_periodic_feasibility_category = pandas.read_csv(os.path.join(data_dir, "df_periodic_feasibility_category.csv"))
+    for delay_type in ["agent"]:
         for agents in [10, 20]:
-            plot_online_offline(df_infinite, agents, "infinite", delay_type)
+            # plot_online_offline(df_infinite, agents, "infinite", delay_type)
             plot_online_offline(df_periodic, agents, "periodic", delay_type)
-            plot_feasibility(df_infinite, agents, "infinite", delay_type)
+            # plot_feasibility(df_infinite, agents, "infinite", delay_type)
             plot_feasibility(df_periodic, agents, "periodic", delay_type)
-            plot_cycle(df_infinite, agents, "infinite", delay_type)
+            # plot_cycle(df_infinite, agents, "infinite", delay_type)
             plot_cycle(df_periodic, agents, "periodic", delay_type)
-        # plot_category(df_infinite_feasibility_category, agents, "infinite")
+            # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
+            plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
 
 if __name__ == '__main__':
