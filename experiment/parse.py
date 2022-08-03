@@ -1,15 +1,15 @@
+import click
 import numpy as npy
 import pandas
 import os
 
 project_root = os.path.dirname(os.path.dirname(__file__))
-result_dir = os.path.join(project_root, "result")
-parsed_result_dir = os.path.join(result_dir, "parsed")
+# parsed_result_dir = os.path.join(result_dir, "parsed")
 plot_dir = os.path.join(project_root, "plot")
 data_dir = os.path.join(project_root, "data")
 os.makedirs(plot_dir, exist_ok=True)
 os.makedirs(data_dir, exist_ok=True)
-os.makedirs(parsed_result_dir, exist_ok=True)
+# os.makedirs(parsed_result_dir, exist_ok=True)
 
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
@@ -19,7 +19,7 @@ delay_ratios_list = [0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
 
-def parse_data(data_type) -> pandas.DataFrame:
+def parse_data(result_dir, data_type) -> pandas.DataFrame:
     if data_type == "infinite":
         starts_list = [1, 5, 10]
         intervals_list = [0]
@@ -60,7 +60,7 @@ def parse_data(data_type) -> pandas.DataFrame:
                                         df = pandas.read_csv(os.path.join(result_dir, file), header=None,
                                                              names=header_names)
                                         df.sort_values(by=['map', 'agent', 'iteration'], inplace=True)
-                                        df.to_csv(os.path.join(parsed_result_dir, file), index=False)
+                                        df.to_csv(os.path.join(result_dir, "parsed", file), index=False)
                                         raw_dfs[simulator] = df
                                     except:
                                         pass
@@ -140,16 +140,25 @@ def parse_data(data_type) -> pandas.DataFrame:
                                     }
                                     main_df = main_df.append(row, ignore_index=True)
 
-
     return main_df
 
 
-def main():
-    df_infinite = parse_data("infinite")
-    df_periodic = parse_data("periodic")
+@click.command()
+@click.option('-o', '--output-suffix', default='')
+@click.option('-i', '--input-suffix', default='')
+def main(output_suffix, input_suffix):
+    if input_suffix:
+        input_suffix = '_' + input_suffix
+    if output_suffix:
+        output_suffix = '_' + output_suffix
 
-    df_infinite.to_csv(os.path.join(data_dir, "df_infinite.csv"), index=False)
-    df_periodic.to_csv(os.path.join(data_dir, "df_periodic.csv"), index=False)
+    result_dir = os.path.join(project_root, f"result{input_suffix}")
+
+    df_infinite = parse_data(result_dir, "infinite")
+    df_periodic = parse_data(result_dir, "periodic")
+
+    df_infinite.to_csv(os.path.join(data_dir, f"df_infinite{output_suffix}.csv"), index=False)
+    df_periodic.to_csv(os.path.join(data_dir, f"df_periodic{output_suffix}.csv"), index=False)
 
 
 if __name__ == '__main__':
