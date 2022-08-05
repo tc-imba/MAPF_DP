@@ -35,14 +35,14 @@ DELAY_INTERVALS = [10, 20, 30]
 DELAY_STARTS = [1, 5, 10]
 # SIMULATORS = ["default"]
 DELAY_TYPES = ["agent"]
-SIMULATORS = ["default", "online"]
+SIMULATORS = ["online"]
 NAIVE_SETTINGS = [
-    (False, False, False),
-    # (False, True, False),
-    # (False, True, True),
-    #     (True, False, False),
-    #     (True, True, False),
-    #    (True, True, True),
+    # (False, False, False),     # online/offline,cycle
+    (False, True, False),      # feasibility,cycle     
+    # (False, True, True),       # cycle
+    # (True, False, False),
+    # (True, True, False),       # feasibility
+    # (True, True, True),
 ]
 FEASIBILITY_TYPE = False
 EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
