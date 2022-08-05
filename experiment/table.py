@@ -104,7 +104,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
                     y = npy.array(df2["value"])
             elif yfield == "time":
                 if plot_type == "feasibility":
-                    y = npy.array(df2["execution_time"] / df2["feasibility_count"] * 1000)
+                    y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
                 elif plot_type == "cycle":
                     y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
                 else:
@@ -165,12 +165,23 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
 def generate_table(df, agents, yfield, groupby, data_type, plot_type):
     output_file = plot_dir / f"{plot_type}-{data_type}-{agents}-{yfield}.tex"
     print(output_file)
+    if data_type == "infinite":
+        timestep_label = "t"
+    elif data_type == "periodic":
+        timestep_label = "k"
+    else:
+        assert False
     with output_file.open('w') as f:
         f.write('\\begin{tabular}{cccccc}\n')
-        f.write('Obstacles & $k$ & Blocked \\% & Type A \\% & Type B \\% & Type C \\% \\\\\\hline\n')
+        f.write(f'Obstacles & ${timestep_label}$ & Blocked \\% & TP \\% & TN \\% & FN \\% \\\\\\hline\n')
         for index, row in df.iterrows():
             obstacles = int(row['obstacles'])
-            timestep = int(row['interval'])
+            if data_type == "infinite":
+                timestep = int(row['timestep'])
+            elif data_type == "periodic":
+                timestep = int(row['interval'])
+            else:
+                assert False
             rate = int(row['rate'] * 100)
             type_a = row['feasibility_type_a'] * 100
             type_b = row['feasibility_type_b'] * 100

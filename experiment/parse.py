@@ -40,6 +40,7 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
         "value", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
         "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
         "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
+        "average_timestep_time", "average_feasibility_time", "average_cycle_time"
     ]
 
     main_df = pandas.DataFrame(columns=column_names)
@@ -105,6 +106,11 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
                                             cycle_agents = npy.mean(df['cycle_agents'])
                                             unblocked_agents = npy.mean(df['unblocked_agents'])
                                             feasibility_count = npy.mean(df['feasibility_count'])
+                                            average_timestep_time = npy.mean(
+                                                df['execution_time'] / df['first_agent_arriving'])
+                                            average_feasibility_time = npy.mean(
+                                                df['execution_time'] / df['feasibility_count'])
+                                            average_cycle_time = npy.mean(df['execution_time'] / df['cycle_count'])
                                         if len(df.columns) > 12:
                                             feasibility_count_all = npy.sum(
                                                 df[['feasibility_1', 'feasibility_2', 'feasibility_3',
@@ -145,6 +151,9 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
                                         "feasibility_type_a": feasibility_type_a,
                                         "feasibility_type_b": feasibility_type_b,
                                         "feasibility_type_c": feasibility_type_c,
+                                        "average_timestep_time": average_timestep_time,
+                                        "average_feasibility_time": average_feasibility_time,
+                                        "average_cycle_time": average_cycle_time,
                                     }
                                     main_df = main_df.append(row, ignore_index=True)
 

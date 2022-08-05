@@ -18,9 +18,9 @@ workers = multiprocessing.cpu_count()
 count = 0
 
 TIMEOUT = 600
-MAP_SEEDS = 5
-AGENT_SEEDS = 5
-ITERATIONS = 5
+MAP_SEEDS = 10
+AGENT_SEEDS = 10
+ITERATIONS = 10
 OBSTACLES = [90, 180, 270]
 # OBSTACLES = [90]
 AGENTS = [10, 20]
@@ -35,18 +35,19 @@ DELAY_INTERVALS = [10, 20, 30]
 DELAY_STARTS = [1, 5, 10]
 # SIMULATORS = ["default"]
 DELAY_TYPES = ["agent"]
-SIMULATORS = ["online"]
+SIMULATORS = ["online", "offline"]
 NAIVE_SETTINGS = [
-    # (False, False, False),     # online/offline,cycle
+    (False, False, False),     # online/offline,cycle
     (False, True, False),      # feasibility,cycle     
-    # (False, True, True),       # cycle
+    (False, True, True),       # cycle
     # (True, False, False),
-    # (True, True, False),       # feasibility
+    (True, True, False),       # feasibility
     # (True, True, True),
 ]
-FEASIBILITY_TYPE = False
-EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
-                  len(DELAY_TYPES) * len(DELAY_INTERVALS) * len(SIMULATORS) * len(NAIVE_SETTINGS)
+FEASIBILITY_TYPES = [True, False]
+EXPERIMENT_JOBS = 0
+# EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
+#                   len(DELAY_TYPES) * len(DELAY_INTERVALS) * len(SIMULATORS) * len(NAIVE_SETTINGS)
 
 result_files = set()
 failed_settings = set()
@@ -55,8 +56,8 @@ failed_settings = set()
 async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=ITERATIONS, min_dp=0.25,
               max_dp=0.75, obstacles=90, simulator="online",
               delay_type="edge", delay_ratio=0.2, delay_start=0, delay_interval=0,
-              naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=FEASIBILITY_TYPE):
-    global workers, count
+              naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False):
+    global workers, count, EXPERIMENT_JOBS
 
     # base_filename = "%d-%d-%d-%d-%d" % (size[0], size[1], agent, task_per_agent, seed)
     # task_filename = "task/well-formed-%s.task" % base_filename
@@ -70,6 +71,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     cbs_file = Path(result_dir) / (cbs_prefix + ".cbs")
     cbs_failed_file = Path(result_dir) / (cbs_prefix + ".failed")
     settings_name = "%d-%d-%d" % (map_seed, agent_seed, agents)
+    EXPERIMENT_JOBS += 1
 
     if cbs_failed_file.exists():
         count += 1
@@ -151,26 +153,38 @@ def get_delay_ratios():
             assert False
 
 
-async def run_test_1(map_seed, agent_seed, agents, obstacles):
+async def run_test_1(map_seed, agent_seed, agents, obstacles, feasibility_type):
     for delay_type, delay_ratios in get_delay_ratios():
         for delay_start in DELAY_STARTS:
             for delay_ratio in delay_ratios:
                 for simulator in SIMULATORS:
-                    for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
-                        await run("random", min_dp=0.5, max_dp=0.9,
+                    if simulator == "offline" and feasibility_type:
+                        continue
+                    elif simulator == "offline" or feasibility_type:
+                        naive_settings = [(False, False, False)]
+                    else:
+                        naive_settings = NAIVE_SETTINGS
+                    for (naive_feasibility, naive_cycle, only_cycle) in naive_settings:
+                        await run("random", min_dp=0.5, max_dp=0.9, feasibility_type=feasibility_type,
                                   map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
                                   agents=agents, simulator=simulator, delay_type=delay_type,
                                   delay_start=delay_start, delay_ratio=delay_ratio, delay_interval=0,
                                   naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
-async def run_test_2(map_seed, agent_seed, agents, obstacles):
+async def run_test_2(map_seed, agent_seed, agents, obstacles, feasibility_type):
     for delay_type, delay_ratios in get_delay_ratios():
         for delay_ratio in delay_ratios:
             for delay_interval in DELAY_INTERVALS:
                 for simulator in SIMULATORS:
-                    for (naive_feasibility, naive_cycle, only_cycle) in NAIVE_SETTINGS:
-                        await run("random", min_dp=0.5, max_dp=0.9,
+                    if simulator == "offline" and feasibility_type:
+                        continue
+                    elif simulator == "offline" or feasibility_type:
+                        naive_settings = [(False, False, False)]
+                    else:
+                        naive_settings = NAIVE_SETTINGS
+                    for (naive_feasibility, naive_cycle, only_cycle) in naive_settings:
+                        await run("random", min_dp=0.5, max_dp=0.9, feasibility_type=feasibility_type,
                                   map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
                                   agents=agents, simulator=simulator, delay_type=delay_type,
                                   delay_start=1, delay_ratio=delay_ratio, delay_interval=delay_interval,
@@ -189,12 +203,19 @@ async def main():
                 for agents in AGENTS:
                     if obstacles > 270 and agents > 10:
                         continue
-                    # tasks.append(
-                    #     run_test_1(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)
-                    # )
-                    tasks.append(
-                        run_test_2(map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles)
-                    )
+                    for feasibility_type in FEASIBILITY_TYPES:
+                        # tasks.append(
+                        #     run_test_1(
+                        #         map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles,
+                        #         feasibility_type=feasibility_type
+                        #     )
+                        # )
+                        tasks.append(
+                            run_test_2(
+                                map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles,
+                                feasibility_type=feasibility_type
+                            )
+                        )
 
     await asyncio.gather(*tasks)
 
