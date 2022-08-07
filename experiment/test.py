@@ -33,18 +33,19 @@ DELAY_INTERVALS = [10, 20, 30]
 # DELAY_INTERVALS = [20, 30]
 # PAUSES = range(1, 10)
 DELAY_STARTS = [1, 5, 10]
-# SIMULATORS = ["default"]
+SIMULATORS = ["default"]
 DELAY_TYPES = ["agent"]
-SIMULATORS = ["online", "offline"]
+# SIMULATORS = ["online", "default"]
 NAIVE_SETTINGS = [
-    (False, False, False),     # online/offline,cycle
-    (False, True, False),      # feasibility,cycle     
-    (False, True, True),       # cycle
+    (False, False, False),     # online/default,cycle
+    # (False, True, False),      # feasibility,cycle
+    # (False, True, True),       # cycle
     # (True, False, False),
-    (True, True, False),       # feasibility
+    # (True, True, False),       # feasibility
     # (True, True, True),
 ]
-FEASIBILITY_TYPES = [True, False]
+FEASIBILITY_TYPES = [False]
+# FEASIBILITY_TYPES = [True, False]
 EXPERIMENT_JOBS = 0
 # EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
 #                   len(DELAY_TYPES) * len(DELAY_INTERVALS) * len(SIMULATORS) * len(NAIVE_SETTINGS)
@@ -158,9 +159,9 @@ async def run_test_1(map_seed, agent_seed, agents, obstacles, feasibility_type):
         for delay_start in DELAY_STARTS:
             for delay_ratio in delay_ratios:
                 for simulator in SIMULATORS:
-                    if simulator == "offline" and feasibility_type:
+                    if simulator == "default" and feasibility_type:
                         continue
-                    elif simulator == "offline" or feasibility_type:
+                    elif simulator == "default" or feasibility_type:
                         naive_settings = [(False, False, False)]
                     else:
                         naive_settings = NAIVE_SETTINGS
@@ -177,9 +178,9 @@ async def run_test_2(map_seed, agent_seed, agents, obstacles, feasibility_type):
         for delay_ratio in delay_ratios:
             for delay_interval in DELAY_INTERVALS:
                 for simulator in SIMULATORS:
-                    if simulator == "offline" and feasibility_type:
+                    if simulator == "default" and feasibility_type:
                         continue
-                    elif simulator == "offline" or feasibility_type:
+                    elif simulator == "default" or feasibility_type:
                         naive_settings = [(False, False, False)]
                     else:
                         naive_settings = NAIVE_SETTINGS
