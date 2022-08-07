@@ -723,7 +723,11 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                     for (auto [nodeId1, nodeId2]: addedEdges) {
                         boost::remove_edge(nodeId1, nodeId2, topoGraph);
                     }
+//                    std::cout << "infeasible" << std::endl;
                     return std::make_pair(it->agentId1, it->agentId2);
+                } else {
+//                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
+//                              << it->state2 << std::endl;
                 }
                 it = sharedNodesList.erase(it);
                 ++erasedEdges;
@@ -738,6 +742,8 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             }
         }
 
+//        std::cout << erasedEdges << std::endl;
+
         if (erasedEdges == 0 && !sharedNodesList.empty()) {
             auto it = sharedNodesList.begin();
             auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
@@ -750,6 +756,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             sharedNodesList.erase(it);
             if (recursive) {
                 auto sharedNodesListBackup = sharedNodesList;
+                std::cout << "recursive" << std::endl;
                 auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
                 boost::remove_edge(nodeId1, nodeId2, topoGraph);
                 addedEdges.pop_back();
@@ -771,6 +778,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
     for (auto [nodeId1, nodeId2]: addedEdges) {
         boost::remove_edge(nodeId1, nodeId2, topoGraph);
     }
+//    std::cout << "feasible" << std::endl;
     return std::make_pair(agents.size(), agents.size());
 }
 

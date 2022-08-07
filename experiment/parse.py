@@ -19,7 +19,7 @@ delay_ratios_list = [0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
 
-def parse_data(result_dir, data_type) -> pandas.DataFrame:
+def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
     if data_type == "infinite":
         starts_list = [1, 5, 10]
         intervals_list = [0]
@@ -67,6 +67,13 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
                                                              names=header_names)
                                         df.sort_values(by=['map', 'agent', 'iteration'], inplace=True)
                                         df.to_csv(os.path.join(result_dir, "parsed", file), index=False)
+                                        if len(df) > 0 and simulator == "online":
+                                            condition = (df['feasibility_1'] == 0) & (df['feasibility_2'] == 0) & (
+                                                        df['feasibility_3'] == 0) & (df['feasibility_4'] == 0)
+                                            if category:
+                                                df = df[~condition]
+                                            else:
+                                                df = df[condition]
                                         raw_dfs[simulator] = df
                                     except:
                                         pass
@@ -117,12 +124,15 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
                                                     'feasibility_4']],
                                                 axis=1
                                             )
-                                            feasibility_type_a = npy.nanmean(
-                                                df['feasibility_1'] / feasibility_count_all)
-                                            feasibility_type_b = npy.nanmean(
-                                                df['feasibility_4'] / feasibility_count_all)
-                                            feasibility_type_c = npy.nanmean(
-                                                (df['feasibility_2'] + df['feasibility_3']) / feasibility_count_all)
+                                            if npy.sum(df['feasibility_1'] > 0):
+                                                feasibility_type_a = npy.nanmean(
+                                                    df['feasibility_1'] / feasibility_count_all)
+                                            if npy.sum(df['feasibility_4'] > 0):
+                                                feasibility_type_b = npy.nanmean(
+                                                    df['feasibility_4'] / feasibility_count_all)
+                                            if npy.sum(df['feasibility_2'] > 0) or npy.sum(df['feasibility_3'] > 0):
+                                                feasibility_type_c = npy.nanmean(
+                                                    (df['feasibility_2'] + df['feasibility_3']) / feasibility_count_all)
                                     except:
                                         value = 0
                                         time = 0
@@ -163,7 +173,8 @@ def parse_data(result_dir, data_type) -> pandas.DataFrame:
 @click.command()
 @click.option('-o', '--output-suffix', default='')
 @click.option('-i', '--input-suffix', default='')
-def main(output_suffix, input_suffix):
+@click.option('--category', is_flag=True, default=False)
+def main(output_suffix, input_suffix, category):
     if input_suffix:
         input_suffix = '_' + input_suffix
     if output_suffix:
@@ -171,8 +182,8 @@ def main(output_suffix, input_suffix):
 
     result_dir = os.path.join(project_root, f"result{input_suffix}")
 
-    df_infinite = parse_data(result_dir, "infinite")
-    df_periodic = parse_data(result_dir, "periodic")
+    df_infinite = parse_data(result_dir, "infinite", category)
+    df_periodic = parse_data(result_dir, "periodic", category)
 
     df_infinite.to_csv(os.path.join(data_dir, f"df_infinite{output_suffix}.csv"), index=False)
     df_periodic.to_csv(os.path.join(data_dir, f"df_periodic{output_suffix}.csv"), index=False)
