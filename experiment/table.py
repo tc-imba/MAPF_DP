@@ -15,21 +15,25 @@ plot_dir = project_root / "plot"
 data_dir = project_root / "data"
 plot_dir.mkdir(exist_ok=True)
 
-obstacles_color = {
-    90: "#5BB8D7",
-    180: "#57A86B",
-    270: "#A8A857",
-}
-obstacles_marker = {
-    90: "o",
-    180: "s",
-    270: "^",
-}
+obstacles_color = ["#5BB8D7", "#57A86B", "#A8A857"]
+obstacles_marker = ["o", "s", "^"]
+
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2, 0.3]
+OBSTACLES = [90, 180, 270]
 
 
-def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=True):
+def get_subplot_key(subplot_type, data):
+    if subplot_type == "delay-ratio":
+        subplot_key = int(data)
+    elif subplot_type == "obstacle":
+        subplot_key = f"{int(data * 100)}%"
+    else:
+        assert False
+    return subplot_key
+
+
+def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_type, legend=True):
     ylog = False
     if yfield == "time":
         if plot_type == "feasibility":
@@ -64,35 +68,43 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
     plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
     axes = []
 
-    if delay_type == "edge":
-        delay_ratios = EDGE_DELAY_RATIOS
-    elif delay_type == "agent":
-        delay_ratios = AGENT_DELAY_RATIOS
+    if subplot_type == "delay-ratio":
+        subplot_field = "rate"
+        if delay_type == "edge":
+            subplot_keys = EDGE_DELAY_RATIOS
+        elif delay_type == "agent":
+            subplot_keys = AGENT_DELAY_RATIOS
+        else:
+            assert False
+    elif subplot_type == "obstacle":
+        subplot_field = "obstacles"
+        subplot_keys = OBSTACLES
     else:
         assert False
 
-    for i, rate in enumerate(delay_ratios):
-        ax = plt.subplot(1, len(delay_ratios), i + 1)
+    for i, key in enumerate(subplot_keys):
+        ax = plt.subplot(1, len(subplot_keys), i + 1)
         axes.append(ax)
-        sub_df = df[df["rate"] == rate]
+        sub_df = df[df[subplot_field] == key]
         xticks = []
-        for group, df2 in sub_df.groupby(groupby):
+        for j, (group, df2) in enumerate(sub_df.groupby(groupby)):
             if plot_type == "online-offline":
-                (simulator, cycle, obstacles) = group
-                obstacles = int(obstacles)
+                (simulator, cycle, subplot_key) = group
+                subplot_key = get_subplot_key(subplot_type, subplot_key)
                 if cycle != "proposed":
                     cycle = "naive"
                 if simulator == "default":
-                    label = f"offline-{obstacles}"
+                    label = f"offline-{subplot_key}"
                 else:
-                    label = f"online-{cycle}-{obstacles}"
+                    label = f"online-{cycle}-{subplot_key}"
             elif plot_type == "category":
-                obstacles = int(group)
-                label = f"{obstacles}"
+                subplot_key = get_subplot_key(subplot_type, group)
+                label = f"{subplot_key}"
             else:
-                (simulator, obstacles) = group
-                obstacles = int(obstacles)
-                label = f"{simulator}-{obstacles}"
+                (simulator, subplot_key) = group
+                subplot_key = get_subplot_key(subplot_type, subplot_key)
+                label = f"{simulator}-{subplot_key}"
+
             if not xticks:
                 for _, row in df2.iterrows():
                     xticks.append(f"{int(row[xticks_field])}")
@@ -124,26 +136,29 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
                 linestyle = "-"
             else:
                 assert False
-
-            color = obstacles_color[obstacles]
-            marker = obstacles_marker[obstacles]
+            color = obstacles_color[j % len(obstacles_color)]
+            marker = obstacles_marker[j % len(obstacles_marker)]
             ax.plot(x, y, linestyle=linestyle, color=color, marker=marker, label=label,
                     linewidth=2.5, markersize=8)
         ax.set_xticks(npy.arange(len(xticks)))
         ax.set_xticklabels(xticks)
         ax.set_xlabel(xlabel)
-        ax.set_title(f"{int(rate * 100)}% of {delay_type}s blocked")
+        if subplot_type == "delay-ratio":
+            ax.set_title(f"{int(key * 100)}% of {delay_type}s blocked")
+        elif subplot_type == "obstacle":
+            ax.set_title(f"{int(key)} obstacles")
         if ylog:
             ax.set_yscale("log")
             plt.tick_params(axis='y', which='minor')
-            ax.yaxis.set_minor_locator(LogLocator(base=10,subs=[2.0,5.0]))
+            ax.yaxis.set_minor_locator(LogLocator(base=10, subs=[2.0, 5.0]))
             ax.yaxis.set_minor_formatter(ScalarFormatter())
             ax.yaxis.set_major_formatter(ScalarFormatter())
 
-    plt.ylabel(ylabel)
+    # plt.ylabel(ylabel)
     bbox_extra_artists = []
     if legend:
         ax = axes[0]
+        ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if len(handles) % 3 == 0:
             ncol = 3
@@ -156,7 +171,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, legend=T
                            bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure)
         bbox_extra_artists.append(legend)
 
-    output_file = plot_dir / f"{delay_type}-{plot_type}-{data_type}-{agents}-{yfield}.pdf"
+    output_file = plot_dir / f"{delay_type}-{plot_type}-{subplot_type}-{data_type}-{agents}-{yfield}.pdf"
     print(output_file)
     fig.savefig(fname=output_file, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
     plt.close()
@@ -195,30 +210,48 @@ def plot_online_offline(data, agents, data_type, delay_type):
             data["simulator"] == "default")) & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     groupby = ["simulator", "cycle", "obstacles"]
     plot_type = "online-offline"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type)
+    subplot_type = "delay-ratio"
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
+    groupby = ["simulator", "cycle", "rate"]
+    subplot_type = "obstacle"
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_feasibility(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
+    df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents) & (
+                data["delay_type"] == delay_type)]
     groupby = ["feasibility", "obstacles"]
     plot_type = "feasibility"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type)
+    subplot_type = "delay-ratio"
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
+    groupby = ["feasibility", "rate"]
+    subplot_type = "obstacle"
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_cycle(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
+    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (
+                data["delay_type"] == delay_type)]
     groupby = ["cycle", "obstacles"]
     plot_type = "cycle"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, False)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type)
+    subplot_type = "delay-ratio"
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
+    groupby = ["cycle", "rate"]
+    subplot_type = "obstacle"
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_category(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
+    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (
+                data["delay_type"] == delay_type)]
     groupby = ["obstacles"]
     plot_type = "category"
-    plot(df, agents, "category", groupby, data_type, plot_type, delay_type)
+    subplot_type = "delay-ratio"
+    plot(df, agents, "category", groupby, data_type, plot_type, delay_type, subplot_type)
     generate_table(df, agents, "category", groupby, data_type, plot_type)
 
 
@@ -236,7 +269,7 @@ def main():
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
             plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
-            plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
+            # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
 
 if __name__ == '__main__':
