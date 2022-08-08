@@ -137,7 +137,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         value = 0
                                         time = 0
                                         # print(file, mean)
-                                    if time == 0:
+                                    if time == 0 or npy.isnan(time):
                                         continue
                                     row = {
                                         "simulator": simulator,

@@ -269,7 +269,7 @@ def main():
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
             plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
-            # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
+            plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
 
 if __name__ == '__main__':
