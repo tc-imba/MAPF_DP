@@ -38,14 +38,14 @@ DELAY_TYPES = ["agent"]
 SIMULATORS = ["prioritized"]
 NAIVE_SETTINGS = [
     (False, False, False),     # online/default,cycle
-    # (False, True, False),      # feasibility,cycle
-    # (False, True, True),       # cycle
+    (False, True, False),      # feasibility,cycle
+    (False, True, True),       # cycle
     # (True, False, False),
-    # (True, True, False),       # feasibility
+    (True, True, False),       # feasibility
     # (True, True, True),
 ]
-FEASIBILITY_TYPES = [False]
-# FEASIBILITY_TYPES = [True, False]
+# FEASIBILITY_TYPES = [False]
+FEASIBILITY_TYPES = [True, False]
 EXPERIMENT_JOBS = 0
 # EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
 #                   len(DELAY_TYPES) * len(DELAY_INTERVALS) * len(SIMULATORS) * len(NAIVE_SETTINGS)

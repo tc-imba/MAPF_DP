@@ -28,6 +28,8 @@ public:
     size_t cycleCheckAgents = 0;
     size_t unblockedAgents = 0;
     size_t firstAgentArrivingTimestep = 0;
+//    size_t feasibilityCheckIteration[2] = {0, 0};
+//    size_t feasibilityCheckIterationTemp = 0;
 
     size_t feasibilityCheckUnsettledCount = 0;
     size_t feasibilityCheckTopoCount = 0;

@@ -14,13 +14,13 @@ int main(int argc, const char *argv[]) {
 
     optionParser.overview = "Multi Agent Path Finding with Delay Probability";
     optionParser.syntax = "./MAPF_DP [OPTIONS]";
-//    optionParser.example = "./MAPF --flex -a 0 --phi 0 -b -s -m -db -re -d test-benchmark -t task/well-formed-21-35-10-2.task -o auto\n";
+    optionParser.example = "./MAPF_DP --map random --map-seed 0 --agent-seed 0 --simulation-seed 0 --agents 20 --iteration 10 --simulator online --delay-start 1 --delay-ratio 0.3 --delay-interval 10 --obstacles 270 --delay agent\n";
     optionParser.footer = "";
 
     optionParser.add("", false, 0, 0, "Display this Message.", "-h", "--help");
     optionParser.add("", false, 0, 0, "Debug Mode", "-d", "--debug");
     optionParser.add("", false, 0, 0, "All Constraints", "--all");
-    optionParser.add("", false, 0, 0, "Use delay probability", "--dp");
+    optionParser.add("", false, 0, 0, "Use delay probability (in solver)", "--dp");
     optionParser.add("", false, 0, 0, "Use naive feasibility check", "--naive-feasibility");
     optionParser.add("", false, 0, 0, "Use naive cycle check", "--naive-cycle");
     optionParser.add("", false, 0, 0, "Use only cycle check", "--only-cycle");
@@ -37,7 +37,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("../cmake-build-relwithdebinfo/EECBS", false, 1, 0, "Solver binary (for EECBS)", "--solver-binary");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Window Size (0 means no limit)", "-w", "--window", validWindowSize);
+    optionParser.add("0", false, 1, 0, "Window Size (0 means no limit, deprecated)", "-w", "--window", validWindowSize);
 
     auto validObstacles = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("90", false, 1, 0, "Obstacles", "--obstacles", validObstacles);
@@ -58,9 +58,9 @@ int main(int argc, const char *argv[]) {
     optionParser.add("10", false, 1, 0, "Iteration Number", "-i", "--iteration", validIteration);
 
     auto validMin = new ez::ezOptionValidator("d", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Min Delay Probability", "--min", validMin);
+    optionParser.add("0", false, 1, 0, "Min Delay Probability (in solver)", "--min", validMin);
     auto validMax = new ez::ezOptionValidator("d", "ge", "0");
-    optionParser.add("0.5", false, 1, 0, "Min Delay Probability", "--max", validMax);
+    optionParser.add("0.5", false, 1, 0, "Min Delay Probability (in solver)", "--max", validMax);
 
     auto validDelayRatio = new ez::ezOptionValidator("d", "ge", "0");
     optionParser.add("0.2", false, 1, 0, "Delay Ratio", "--delay-ratio", validDelayRatio);

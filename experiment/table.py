@@ -26,7 +26,7 @@ def get_subplot_key(subplot_type, data):
     if subplot_type == "delay-ratio":
         subplot_key = int(data)
     elif subplot_type == "obstacle":
-        subplot_key = f"{int(data * 100)}%"
+        subplot_key = f"{int(data * 100)}%-agents-paused"
     else:
         assert False
     return subplot_key
@@ -62,7 +62,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
         xlabel = 'start timestep (t)'
         xticks_field = 'timestep'
     elif data_type == "periodic":
-        xlabel = 'delay interval (k)'
+        xlabel = 'length of each pause (k)'
         xticks_field = 'interval'
     else:
         assert False
