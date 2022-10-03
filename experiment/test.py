@@ -4,37 +4,34 @@ import subprocess
 import platform
 from pathlib import Path
 import multiprocessing
+import click
 
 project_root = os.path.dirname(os.path.dirname(__file__))
 program = os.path.join(project_root, "cmake-build-relwithdebinfo", "MAPF_DP")
 if platform.system() == "Windows":
     program += ".exe"
-data_root = os.path.join(project_root, "maps")
-result_dir = os.path.join(project_root, "result")
-os.makedirs(data_root, exist_ok=True)
-os.makedirs(result_dir, exist_ok=True)
 
 workers = multiprocessing.cpu_count()
 count = 0
 
 TIMEOUT = 600
-MAP_SEEDS = 10
-AGENT_SEEDS = 10
-ITERATIONS = 10
-OBSTACLES = [90, 180, 270]
+# MAP_SEEDS = 10
+# AGENT_SEEDS = 10
+# ITERATIONS = 10
+# OBSTACLES = [90, 180, 270]
 # OBSTACLES = [90]
-AGENTS = [10, 20]
+# AGENTS = [10, 20]
 # AGENTS = [10]
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2, 0.3]
 
 # DELAY_INTERVALS = range(1, 10)
-DELAY_INTERVALS = [10, 20, 30]
+# DELAY_INTERVALS = [10, 20, 30]
 # DELAY_INTERVALS = [20, 30]
 # PAUSES = range(1, 10)
-DELAY_STARTS = [1, 5, 10]
-SIMULATORS = ["default"]
-DELAY_TYPES = ["agent"]
+# DELAY_STARTS = [1, 5, 10]
+# SIMULATORS = ["default"]
+# DELAY_TYPES = ["agent"]
 # SIMULATORS = ["online", "default"]
 NAIVE_SETTINGS = [
     (False, False, False),     # online/default,cycle
@@ -44,8 +41,8 @@ NAIVE_SETTINGS = [
     (True, True, False),       # feasibility
     # (True, True, True),
 ]
-# FEASIBILITY_TYPES = [False]
-FEASIBILITY_TYPES = [True, False]
+FEASIBILITY_TYPES = [False]
+# FEASIBILITY_TYPES = [True, False]
 EXPERIMENT_JOBS = 0
 # EXPERIMENT_JOBS = MAP_SEEDS * AGENT_SEEDS * len(OBSTACLES) * len(AGENTS) * len(AGENT_DELAY_RATIOS) * \
 #                   len(DELAY_TYPES) * len(DELAY_INTERVALS) * len(SIMULATORS) * len(NAIVE_SETTINGS)
@@ -54,7 +51,8 @@ result_files = set()
 failed_settings = set()
 
 
-async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=ITERATIONS, min_dp=0.25,
+async def run(result_dir, map_type,
+              objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=10, min_dp=0.25,
               max_dp=0.75, obstacles=90, simulator="online",
               delay_type="edge", delay_ratio=0.2, delay_start=0, delay_interval=0,
               naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False):
@@ -144,8 +142,8 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     print('%s completed (%d/%d)' % (output_filename, count, EXPERIMENT_JOBS))
 
 
-def get_delay_ratios():
-    for delay_type in DELAY_TYPES:
+def get_delay_ratios(delay_types):
+    for delay_type in delay_types:
         if delay_type == "edge":
             yield delay_type, EDGE_DELAY_RATIOS
         elif delay_type == "agent":
@@ -154,30 +152,30 @@ def get_delay_ratios():
             assert False
 
 
-async def run_test_1(map_seed, agent_seed, agents, obstacles, feasibility_type):
-    for delay_type, delay_ratios in get_delay_ratios():
-        for delay_start in DELAY_STARTS:
-            for delay_ratio in delay_ratios:
-                for simulator in SIMULATORS:
-                    if simulator == "default" and feasibility_type:
-                        continue
-                    elif simulator == "default" or feasibility_type:
-                        naive_settings = [(False, False, False)]
-                    else:
-                        naive_settings = NAIVE_SETTINGS
-                    for (naive_feasibility, naive_cycle, only_cycle) in naive_settings:
-                        await run("random", min_dp=0.5, max_dp=0.9, feasibility_type=feasibility_type,
-                                  map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
-                                  agents=agents, simulator=simulator, delay_type=delay_type,
-                                  delay_start=delay_start, delay_ratio=delay_ratio, delay_interval=0,
-                                  naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
+# async def run_test_1(result_dir, map_seed, agent_seed, agents, obstacles, feasibility_type):
+#     for delay_type, delay_ratios in get_delay_ratios():
+#         for delay_start in DELAY_STARTS:
+#             for delay_ratio in delay_ratios:
+#                 for simulator in SIMULATORS:
+#                     if simulator == "default" and feasibility_type:
+#                         continue
+#                     elif simulator == "default" or feasibility_type:
+#                         naive_settings = [(False, False, False)]
+#                     else:
+#                         naive_settings = NAIVE_SETTINGS
+#                     for (naive_feasibility, naive_cycle, only_cycle) in naive_settings:
+#                         await run(result_dir, "random", min_dp=0.5, max_dp=0.9, feasibility_type=feasibility_type,
+#                                   map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
+#                                   agents=agents, simulator=simulator, delay_type=delay_type,
+#                                   delay_start=delay_start, delay_ratio=delay_ratio, delay_interval=0,
+#                                   naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
-async def run_test_2(map_seed, agent_seed, agents, obstacles, feasibility_type):
-    for delay_type, delay_ratios in get_delay_ratios():
+async def run_test_2(result_dir, simulators, delay_intervals, delay_types, map_seed, agent_seed, agents, iteration, obstacles, feasibility_type):
+    for delay_type, delay_ratios in get_delay_ratios(delay_types):
         for delay_ratio in delay_ratios:
-            for delay_interval in DELAY_INTERVALS:
-                for simulator in SIMULATORS:
+            for delay_interval in delay_intervals:
+                for simulator in simulators:
                     if simulator == "default" and feasibility_type:
                         continue
                     elif simulator == "default" or feasibility_type:
@@ -185,23 +183,39 @@ async def run_test_2(map_seed, agent_seed, agents, obstacles, feasibility_type):
                     else:
                         naive_settings = NAIVE_SETTINGS
                     for (naive_feasibility, naive_cycle, only_cycle) in naive_settings:
-                        await run("random", min_dp=0.5, max_dp=0.9, feasibility_type=feasibility_type,
+                        await run(result_dir, "random", min_dp=0.5, max_dp=0.9, feasibility_type=feasibility_type,
                                   map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacles,
-                                  agents=agents, simulator=simulator, delay_type=delay_type,
+                                  agents=agents, iteration=iteration, simulator=simulator, delay_type=delay_type,
                                   delay_start=1, delay_ratio=delay_ratio, delay_interval=delay_interval,
                                   naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle)
 
 
-async def main():
+@click.command(context_settings=dict(show_default=True))
+@click.option('--result-dir', default='result', help='output result directory (relative to project root)')
+@click.option('--simulators', default='online,default', help='the simulators to run')
+@click.option('--map-seeds', default=10, help='use map seeds [0, <map_seeds>)')
+@click.option('--agent-seeds', default=10, help='use agent seeds [0, <agent_seeds>)')
+@click.option('--obstacles', default='90,180,270', help='obstacles in the map')
+@click.option('--agents', default='10,20', help='agents in the map')
+@click.option('--iteration', default=10, help='simulations in each <map_seed, agent_seed> instance')
+@click.option('--delay-intervals', default='10,20,30', help='delay every k timesteps')
+@click.option('--delay-types', default='edge', help='delay on agent or edge')
+async def main(result_dir, simulators, map_seeds, agent_seeds, obstacles, agents, iteration, delay_intervals, delay_types):
+    result_dir = os.path.join(project_root, result_dir)
+    os.makedirs(result_dir, exist_ok=True)
     os.chdir(result_dir)
-    # for file in Path(result_dir).iterdir():
-    #     print(file)
+
+    simulators = simulators.split(',')
+    delay_types = delay_types.split(',')
+    obstacles = list(map(lambda x: int(x), obstacles.split(',')))
+    agents = list(map(lambda x: int(x), agents.split(',')))
+    delay_intervals = list(map(lambda x: int(x), delay_intervals.split(',')))
 
     tasks = []
-    for map_seed in range(MAP_SEEDS):
-        for agent_seed in range(AGENT_SEEDS):
-            for obstacles in OBSTACLES:
-                for agents in AGENTS:
+    for map_seed in range(map_seeds):
+        for agent_seed in range(agent_seeds):
+            for obstacles in obstacles:
+                for agents in agents:
                     if obstacles > 270 and agents > 10:
                         continue
                     for feasibility_type in FEASIBILITY_TYPES:
@@ -213,8 +227,9 @@ async def main():
                         # )
                         tasks.append(
                             run_test_2(
-                                map_seed=map_seed, agent_seed=agent_seed, agents=agents, obstacles=obstacles,
-                                feasibility_type=feasibility_type
+                                result_dir=result_dir, simulators=simulators, delay_intervals=delay_intervals,
+                                map_seed=map_seed, agent_seed=agent_seed, agents=agents, iteration=iteration,
+                                obstacles=obstacles, feasibility_type=feasibility_type, delay_types=delay_types,
                             )
                         )
 
