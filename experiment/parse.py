@@ -25,7 +25,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
         intervals_list = [0]
     elif data_type == "periodic":
         starts_list = [1]
-        intervals_list = [10, 20, 30]
+        intervals_list = [1, 10, 20, 30]
     else:
         assert False
 
