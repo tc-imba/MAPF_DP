@@ -52,7 +52,7 @@ private:
     Graph::topo_graph_t topoGraph;
 
     std::unordered_map<size_t, size_t> nodeAgentMap;
-    std::set<size_t> blocked, unblocked, moved, ready, unshared;
+    std::set<size_t> blocked, unblocked, moved, ready, unshared, keepMoving;
 
     void printSets(const std::string &title);
 
@@ -63,6 +63,8 @@ private:
     void initSimulation();
 
     void initChecks();
+
+    void unnecessaryBlockCheck();
 
     void unsharedCheck();
 

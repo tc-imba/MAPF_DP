@@ -190,6 +190,17 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
         unblocked.insert(ready.begin(), ready.end());
         unblocked.insert(unshared.begin(), unshared.end());
+
+        for (auto i : keepMoving) {
+            if (unshared.find(i) == unshared.end()) {
+                std::cout << i << " in keepMoving not in unshared" << std::endl;
+            }
+            if (unblocked.find(i) == unblocked.end()) {
+                std::cout << i << " in keepMoving not in unblocked" << std::endl;
+            }
+        }
+
+
         ready.clear();
         unshared.clear();
 //        printSets("final       |");
@@ -463,6 +474,44 @@ void OnlineSimulator::initSimulation() {
 
 void OnlineSimulator::initChecks() {
     ready.clear();
+    std::set<unsigned int> dests;
+    auto edges = boost::edges(topoGraph);
+    for (auto it = edges.first; it != edges.second; ++it) {
+        auto dest = boost::target(*it, topoGraph);
+        dests.emplace(dest);
+    }
+    for (const auto &[nodeId, sharedNode]: sharedNodes) {
+        for (auto it = sharedNode.begin(); it != sharedNode.end(); ++it) {
+            if (it->state2 > agents[it->agentId2].state) {
+//                if (it->state1 + 1 < paths[it->agentId1].size() && it->state2 > agents[it->agentId2].state) {
+                    auto dest = pathTopoNodeIds[it->agentId2][it->state2];
+                    dests.emplace(dest);
+//                }
+            }
+            if (it->state1 > agents[it->agentId1].state) {
+//                if (it->state2 + 1 < paths[it->agentId2].size() && it->state1 > agents[it->agentId1].state) {
+                    auto dest = pathTopoNodeIds[it->agentId1][it->state1];
+                    dests.emplace(dest);
+//                }
+            }
+        }
+    }
+
+    keepMoving.clear();
+    for (auto it = moved.begin(); it != moved.end();) {
+        auto &agent = agents[*it];
+        if (agent.current != agent.goal && agent.state + 1 < paths[*it].size()) {
+            auto dest = pathTopoNodeIds[*it][agent.state + 1];
+            if (dests.find(dest) == dests.end()) {
+                keepMoving.emplace(*it);
+//                unblocked.emplace(*it);
+//                it = moved.erase(it);
+//                continue;
+            }
+        }
+        ++it;
+    }
+
     for (auto i: boost::join(blocked, moved)) {
         auto &agent = agents[i];
         if (agent.current != agent.goal && agent.state + 1 < paths[i].size()) {
@@ -479,6 +528,13 @@ void OnlineSimulator::initChecks() {
 //        }
 //    }
 }
+
+
+void OnlineSimulator::unnecessaryBlockCheck() {
+
+}
+
+
 
 void OnlineSimulator::unsharedCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
@@ -1014,6 +1070,5 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
         return exhaustiveResult;
     }
 }
-
 
 
