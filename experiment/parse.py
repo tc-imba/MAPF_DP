@@ -15,7 +15,7 @@ os.makedirs(data_dir, exist_ok=True)
 obstacles_list = [90, 180, 270]
 agents_list = [10, 20, 30]
 simulators_list = ["online", "default"]
-delay_ratios_list = [0.01, 0.05, 0.1, 0.2, 0.3]
+delay_ratios_list = [0, 0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
 

@@ -26,7 +26,7 @@ OBSTACLES = [90, 180, 270]
 AGENTS = [10, 20]
 # AGENTS = [10]
 EDGE_DELAY_RATIOS = [0.01, 0.05]
-AGENT_DELAY_RATIOS = [0.1]
+AGENT_DELAY_RATIOS = [0]
 
 # DELAY_INTERVALS = range(1, 10)
 DELAY_INTERVALS = [1]
@@ -38,10 +38,10 @@ DELAY_TYPES = ["agent"]
 SIMULATORS = ["online", "default"]
 NAIVE_SETTINGS = [
     (False, False, False),     # online/default,cycle
-    (False, True, False),      # feasibility,cycle
-    (False, True, True),       # cycle
+    #(False, True, False),      # feasibility,cycle
+    #(False, True, True),       # cycle
     # (True, False, False),
-    (True, True, False),       # feasibility
+    #(True, True, False),       # feasibility
     # (True, True, True),
 ]
 FEASIBILITY_TYPES = [False]
