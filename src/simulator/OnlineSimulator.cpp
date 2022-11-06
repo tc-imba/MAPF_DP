@@ -362,7 +362,8 @@ void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
     std::unordered_map<unsigned int, std::vector<std::pair<size_t, unsigned int> > > m;
     for (auto x: {i, j}) {
         for (size_t k = 0; k < paths[x].size(); k++) {
-            m[paths[x][k]].emplace_back(x, k);
+            // node states: k * 2
+            m[paths[x][k]].emplace_back(x, k * 2);
         }
     }
     // remove unshared nodes and init shared nodes
@@ -441,13 +442,20 @@ void OnlineSimulator::initSimulation() {
             auto newNodeId = solver->solution->plans[i]->path[j].nodeId;
             if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
+                if (!pathTopoNodeIds[i].empty()) {
+                    // add an edge state to topo graph
+                    pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
+                }
+                // add a node state to topo graph
                 pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
             }
         }
-        for (size_t j = 0; j < paths[i].size() - 1; j++) {
+        // when j % 2 == 0, it is a node state
+        // when j % 2 == 0, it is an edge state
+        for (size_t j = 0; j < pathTopoNodeIds[i].size() - 1; j++) {
             boost::add_edge(pathTopoNodeIds[i][j], pathTopoNodeIds[i][j + 1], topoGraph);
         }
-        topoGraphNodeNum += paths[i].size();
+        topoGraphNodeNum += pathTopoNodeIds[i].size();
     }
 
 
@@ -500,7 +508,7 @@ void OnlineSimulator::initChecks() {
     keepMoving.clear();
     for (auto it = moved.begin(); it != moved.end();) {
         auto &agent = agents[*it];
-        if (agent.current != agent.goal && agent.state + 1 < paths[*it].size()) {
+        if (agent.current != agent.goal && agent.state + 1 < pathTopoNodeIds[*it].size()) {
             auto dest = pathTopoNodeIds[*it][agent.state + 1];
             if (dests.find(dest) == dests.end()) {
                 keepMoving.emplace(*it);
@@ -514,7 +522,7 @@ void OnlineSimulator::initChecks() {
 
     for (auto i: boost::join(blocked, moved)) {
         auto &agent = agents[i];
-        if (agent.current != agent.goal && agent.state + 1 < paths[i].size()) {
+        if (agent.current != agent.goal && agent.state + 1 < pathTopoNodeIds[i].size()) {
             ready.insert(i);
         }
     }
@@ -539,7 +547,7 @@ void OnlineSimulator::unnecessaryBlockCheck() {
 void OnlineSimulator::unsharedCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         auto &agent = agents[*it];
-        auto nextNodeId = paths[*it][agent.state + 1];
+        auto nextNodeId = paths[*it][agent.state / 2 + 1];
         auto it2 = sharedNodes.find(nextNodeId);
         if (it2 == sharedNodes.end() || it2->second.empty()) {
             unshared.insert(*it);
@@ -554,7 +562,7 @@ void OnlineSimulator::unsharedCheck() {
 void OnlineSimulator::neighborCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         auto &agent = agents[*it];
-        auto nextNodeId = paths[*it][agent.state + 1];
+        auto nextNodeId = paths[*it][agent.state / 2 + 1];
         auto it2 = nodeAgentMap.find(nextNodeId);
         if (it2 != nodeAgentMap.end() && *it != it2->second) {
             blocked.insert(*it);
@@ -568,7 +576,7 @@ void OnlineSimulator::neighborCheck() {
 void OnlineSimulator::deadEndCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         bool remove = false;
-        if (agents[*it].state == paths[*it].size() - 2) {
+        if (agents[*it].state / 2 == paths[*it].size() - 2) {
             for (auto &&[j, state]: deadEndStates[*it]) {
                 if (agents[j].state <= state) {
                     remove = true;
@@ -602,13 +610,15 @@ void OnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &readyList, size
 //        }
 //        std::cout << std::endl;
         if (checkedReady.size() <= maxReadyList.size()) return;
+        std::vector<unsigned int> oldStates(agents.size());
         for (auto i: checkedReady) {
-            agents[i].state++;
+            oldStates[i] = agents[i].state;
+            agents[i].state = (agents[i].state / 2 + 1) * 2;
         }
         // perform a neighbor check here
         auto agentId1 = agents.size(), agentId2 = agents.size();
         for (size_t i = 0; i < agents.size(); i++) {
-            auto nodeId = paths[i][agents[i].state];
+            auto nodeId = paths[i][agents[i].state / 2];
             auto it = nodeAgentMap.find(nodeId);
             if (it != nodeAgentMap.end() && it->second != i) {
 //                std::cout << "neighbor in cycle: " << i << " " << nodeId << " " << it->second << std::endl;
@@ -623,7 +633,7 @@ void OnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &readyList, size
             agentId2 = pair.second;
         }
         for (auto i: checkedReady) {
-            agents[i].state--;
+            agents[i].state = oldStates[i];
         }
         if (agentId1 == agents.size() && agentId2 == agents.size()) {
             maxReadyList.swap(checkedReady);
@@ -661,8 +671,10 @@ void OnlineSimulator::naiveCycleCheck() {
 void OnlineSimulator::heuristicCycleCheck() {
     //    std::cerr << "start cycle check: ";
     std::set<size_t> newReady = ready;
+    std::vector<unsigned int> oldStates(agents.size());
     for (auto i: newReady) {
-        agents[i].state++;
+        oldStates[i] = agents[i].state;
+        agents[i].state = (agents[i].state / 2 + 1) * 2;
 //        std::cerr << i << " ";
     }
 //    std::cerr << std::endl;
@@ -750,7 +762,7 @@ void OnlineSimulator::cycleCheck() {
         cycleCheckCount++;
         cycleCheckAgents += ready.size();
     }
-    // suppose all unblocked agents are at their next state
+    // suppose all unblocked agents are at their next state (an edge state)
     for (auto i: unblocked) {
         agents[i].state++;
     }
