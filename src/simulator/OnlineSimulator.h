@@ -44,6 +44,30 @@ private:
         unsigned int state2;
     };
 
+    struct SDGNode {
+        size_t agentId;
+        unsigned int state;
+    };
+
+    struct SDGEdge {
+        SDGNode source, dest;
+    };
+
+    typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
+
+    // each SDGNode has a corresponding SDGData
+    struct SDGData {
+        // conflicts between the current SDGNode and other SDGNodes
+        std::vector<SDGNode> conflicts;
+        // determined edges from these SDGNodes (sources) to the current SDGNode (destination)
+        // this recording direction is designed for unnecessary blocking
+        std::vector<SDGNode> determinedEdgeSources;
+        //
+        std::vector<SDGEdgePair> unsettledEdgePairs;
+    };
+
+    std::vector<std::vector<SDGData>> sdgData;
+
     std::vector<std::vector<unsigned int>> paths;
     std::vector<std::vector<std::pair<size_t, unsigned int> > > deadEndStates;
     std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
@@ -84,7 +108,7 @@ private:
     bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
 
     std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<SharedNodePair> &sharedNodesList,
+            std::list<SDGEdgePair> &sharedNodesList,
             bool recursive
 //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
     );
@@ -92,6 +116,8 @@ private:
     std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
 
     std::pair<size_t, size_t> feasibilityCheck();
+
+    bool generateUnsettledEdges();
 
 
 };
