@@ -50,6 +50,8 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             ylabel = 'Sum of Cost (average)'
         else:
             assert False
+    elif yfield == "loop":
+        ylabel = 'Edges added into Stack in Feasibility Check'
     elif yfield == "category":
         ylabel = 'Percentage of Feasibility Category A'
     else:
@@ -121,6 +123,8 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                     y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
                 else:
                     assert False
+            elif yfield == "loop":
+                y = npy.array(df2["average_feasibility_loop"])
             elif yfield == "category":
                 y = npy.array(df2["feasibility_type_a"] * 100)
             else:
@@ -218,17 +222,19 @@ def plot_online_offline(data, agents, data_type, delay_type):
 
 
 def plot_feasibility(data, agents, data_type, delay_type):
-    df = data[(data["simulator"] == "online") & (data["cycle"] == "semi-naive") & (data["agents"] == agents) & (
-                data["delay_type"] == delay_type)]
+    df = data[(data["simulator"] == "online") & (data["cycle"] == "proposed") & (data["agents"] == agents) & (
+                data["delay_type"] == delay_type) & (data["obstacles"] == 270)]
     groupby = ["feasibility", "obstacles"]
     plot_type = "feasibility"
     subplot_type = "delay-ratio"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
     plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
+    plot(df, agents, "loop", groupby, data_type, plot_type, delay_type, subplot_type)
     groupby = ["feasibility", "rate"]
     subplot_type = "obstacle"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
     plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
+    plot(df, agents, "loop", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_cycle(data, agents, data_type, delay_type):
@@ -263,13 +269,13 @@ def main():
     for delay_type in ["agent"]:
         for agents in [10, 20]:
             # plot_online_offline(df_infinite, agents, "infinite", delay_type)
-            plot_online_offline(df_periodic, agents, "periodic", delay_type)
+            # plot_online_offline(df_periodic, agents, "periodic", delay_type)
             # plot_feasibility(df_infinite, agents, "infinite", delay_type)
             plot_feasibility(df_periodic, agents, "periodic", delay_type)
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
-            plot_cycle(df_periodic, agents, "periodic", delay_type)
+            # plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
-            plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
+            # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
 
 if __name__ == '__main__':
