@@ -29,6 +29,10 @@ public:
     size_t unblockedAgents = 0;
     size_t firstAgentArrivingTimestep = 0;
 
+    size_t feasibilityCheckUnsettledCount = 0;
+    size_t feasibilityCheckTopoCount = 0;
+    size_t feasibilityCheckLoopCount = 0;
+
 private:
     struct SharedNodePair {
         size_t agentId1;
