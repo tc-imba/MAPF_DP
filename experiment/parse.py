@@ -4,12 +4,13 @@ import pandas
 import os
 
 project_root = os.path.dirname(os.path.dirname(__file__))
-# parsed_result_dir = os.path.join(result_dir, "parsed")
 plot_dir = os.path.join(project_root, "plot")
 data_dir = os.path.join(project_root, "data")
+result_dir = os.path.join(project_root, "result")
+parsed_result_dir = os.path.join(result_dir, "parsed")
 os.makedirs(plot_dir, exist_ok=True)
 os.makedirs(data_dir, exist_ok=True)
-# os.makedirs(parsed_result_dir, exist_ok=True)
+os.makedirs(parsed_result_dir, exist_ok=True)
 
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
@@ -80,6 +81,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                     except:
                                         pass
 
+
                                 if len(raw_dfs) != len(simulators_list):
                                     continue
 
@@ -118,11 +120,12 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                             cycle_agents = npy.mean(df['cycle_agents'])
                                             unblocked_agents = npy.mean(df['unblocked_agents'])
                                             feasibility_count = npy.mean(df['feasibility_count'])
-                                            average_timestep_time = npy.mean(
-                                                df['execution_time'] / df['first_agent_arriving'])
-                                            average_feasibility_time = npy.mean(
-                                                df['execution_time'] / df['feasibility_count'])
-                                            average_cycle_time = npy.mean(df['execution_time'] / df['cycle_count'])
+                                            average_timestep_time = npy.ma.masked_invalid(
+                                                df['execution_time'] / df['first_agent_arriving']).mean() or None
+                                            average_feasibility_time = npy.ma.masked_invalid(
+                                                df['execution_time'] / df['feasibility_count']).mean() or None
+                                            average_cycle_time = npy.ma.masked_invalid(
+                                                df['execution_time'] / df['cycle_count']).mean() or None
                                         if len(df.columns) > 12:
                                             feasibility_count_all = npy.sum(
                                                 df[['feasibility_1', 'feasibility_2', 'feasibility_3',
@@ -145,7 +148,6 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                     except:
                                         value = 0
                                         time = 0
-                                        # print(file, mean)
                                     if time == 0 or npy.isnan(time):
                                         continue
                                     row = {
