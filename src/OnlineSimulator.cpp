@@ -312,6 +312,9 @@ void OnlineSimulator::print(std::ostream &out) const {
     for (int i = 0; i < 4; i++) {
         out << "," << feasibilityCheckTypes[i];
     }
+    out << "," << feasibilityCheckUnsettledCount
+        << "," << feasibilityCheckLoopCount
+        << "," << feasibilityCheckTopoCount;
 }
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
@@ -419,6 +422,9 @@ void OnlineSimulator::initSimulation() {
     for (int i = 0; i < 4; i++) {
         feasibilityCheckTypes[i] = 0;
     }
+    feasibilityCheckUnsettledCount = 0;
+    feasibilityCheckTopoCount = 0;
+    feasibilityCheckLoopCount = 0;
 }
 
 
@@ -677,15 +683,22 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 //    std::cout << "feasibility check" << std::endl;
 
     while (!sharedNodesList.empty()) {
+        if (firstAgentArrivingTimestep == 0) {
+            feasibilityCheckLoopCount++;
+        }
         unsigned int erasedEdges = 0;
 
+
         for (auto it = sharedNodesList.begin(); it != sharedNodesList.end();) {
+            if (firstAgentArrivingTimestep == 0) {
+                feasibilityCheckTopoCount++;
+            }
             std::vector<std::pair<unsigned int, unsigned int>> selectedEdges;
             unsigned int maxSelectedEdges = 0;
             if (it->state2 > agents[it->agentId2].state) {
                 if (it->state1 + 1 == paths[it->agentId1].size()) {
                     ++maxSelectedEdges;
-                } else if (it->state1 + 1 < paths[it->agentId1].size()) {
+                } else if (it->state1 + 1 < paths[it->agentId1].size() && it->state2 > agents[it->agentId2].state) {
                     auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
                     auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
                     boost::add_edge(nodeId1, nodeId2, topoGraph);
@@ -803,6 +816,10 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckTest(bool recursive) 
         for (const auto &sharedNodePair: sharedNode) {
             sharedNodesList.emplace_back(sharedNodePair);
         }
+    }
+
+    if (firstAgentArrivingTimestep == 0) {
+        feasibilityCheckUnsettledCount += sharedNodesList.size();
     }
 
     return feasibilityCheckHelper(sharedNodesList, recursive);
