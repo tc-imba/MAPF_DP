@@ -140,8 +140,8 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                                     (df['feasibility_2'] + df['feasibility_3']) / feasibility_count_all)
                                         if len(df.columns) > 16:
                                             average_feasibility_unsettled = npy.mean(df['feasibility_unsettled'] / df['first_agent_arriving'])
-                                            average_feasibility_loop = npy.mean(df['feasibility_unsettled'] / df['first_agent_arriving'])
-                                            average_feasibility_topo = npy.mean(df['feasibility_unsettled'] / df['first_agent_arriving'])
+                                            average_feasibility_loop = npy.mean(df['feasibility_loop'] / df['first_agent_arriving'])
+                                            average_feasibility_topo = npy.mean(df['feasibility_topo'] / df['first_agent_arriving'])
                                     except:
                                         value = 0
                                         time = 0
