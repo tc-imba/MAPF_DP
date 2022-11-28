@@ -153,6 +153,9 @@ int main(int argc, const char *argv[]) {
         graph.generateHardCodedGraph(filename, mapSeed);
         agentNum = 3;
         agentSeed = 1;
+    } else if (mapType == "ncs") {
+        filename = "NCS_Test";
+        graph.generateNCSGraph("../maps/NCS_Test.yaml", filename, mapSeed);
     }
     if (useDP) {
         graph.generateDelayProbability(mapSeed, minDP, maxDP);
@@ -167,6 +170,8 @@ int main(int argc, const char *argv[]) {
         agents = graph.generateWarehouseAgents(agentNum, agentSeed, true);
     } else if (mapType == "hardcoded") {
         agents = graph.generateHardCodedAgents(agentNum);
+    } else if (mapType == "ncs") {
+        exit(0);
     }
 
     CBSSolver solver(graph, agents);

@@ -67,6 +67,8 @@ public:
 
     void generateHardCodedGraph(const std::string &filename = "", size_t seed = 0);
 
+    void generateNCSGraph(const std::string &inputFilePath, const std::string &filename = "", size_t seed = 0);
+
     void calculateAllPairShortestPath(const std::string &filename = "", bool dp = false);
 
     void calculateUnweightedAllPairShortestPath();

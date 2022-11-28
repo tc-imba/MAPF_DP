@@ -8,3 +8,4 @@ include_directories(${Boost_INCLUDE_DIRS})
 #add_definitions("-D DEBUG_CYCLE")
 
 add_executable(MAPF_DP src/main.cpp src/Solver.cpp src/CBSSolver.cpp src/Graph.cpp src/DefaultSimulator.cpp src/DefaultSimulator.h src/OnlineSimulator.cpp src/OnlineSimulator.h)
+target_link_libraries(MAPF_DP yaml-cpp)

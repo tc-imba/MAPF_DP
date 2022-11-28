@@ -7,6 +7,7 @@
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include <random>
 #include <iostream>
@@ -335,6 +336,45 @@ void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
 
     generateGraph(gridGraph, filename, seed);
 }
+
+void Graph::generateNCSGraph(const std::string &inputFilePath, const std::string &filename, size_t seed) {
+    std::ofstream graphFileOut;
+    if (!filename.empty()) graphFileOut.open(filename + ".graph");
+    std::ostream &graphOut = !graphFileOut.is_open() ? std::cout : graphFileOut;
+
+    YAML::Node root = YAML::LoadFile(inputFilePath);
+    auto edgesNode = root["levels"]["L1"]["lanes"];
+    g.clear();
+    size_t E = 0;
+    for (const auto &edgeNode : edgesNode) {
+        auto src = edgeNode[0].as<size_t>();
+        auto dest = edgeNode[1].as<size_t>();
+        if (src > dest) continue;
+        auto p = boost::add_edge(src, dest, g);
+        auto &edge = g[p.first];
+        edge.length = 1;
+        edge.dp = 0;
+        edge.index = E++;
+    }
+    auto vertices = boost::vertices(g);
+    size_t V = std::distance(vertices.first, vertices.second);
+    for (auto it = vertices.first; it != vertices.second; ++it) {
+        g[*it].type = '.';
+    }
+
+    std::cerr << V << " " << E << std::endl;
+    nodeNum = V;
+    edgeNum = E;
+
+    boost::dynamic_properties dp;
+    dp.property("node_id", boost::get(boost::vertex_index, g));
+    dp.property("type", boost::get(&Node::type, g));
+    dp.property("length", boost::get(&Edge::length, g));
+    dp.property("dp", boost::get(&Edge::dp, g));
+
+    boost::write_graphviz_dp(graphOut, g, dp);
+}
+
 
 double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
