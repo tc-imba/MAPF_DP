@@ -5,7 +5,7 @@
 #include "CBSSolver.h"
 #include "DefaultSimulator.h"
 #include "OnlineSimulator.h"
-#include "ezOptionParser.hpp"
+#include "utils/ezOptionParser.hpp"
 
 int main(int argc, const char *argv[]) {
     ez::ezOptionParser optionParser;
