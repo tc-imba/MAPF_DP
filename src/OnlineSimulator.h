@@ -32,6 +32,8 @@ public:
     size_t feasibilityCheckUnsettledCount = 0;
     size_t feasibilityCheckTopoCount = 0;
     size_t feasibilityCheckLoopCount = 0;
+    size_t feasibilityCheckAllEdgeCount = 0;
+    size_t feasibilityCheckRandomEdgeCount = 0;
 
 private:
     struct SharedNodePair {

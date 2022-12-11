@@ -226,7 +226,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                 auto it = nodeAgentMap.find(nextNodeId);
                 if (it != nodeAgentMap.end() && it->second != i) {
                     std::cout << i << " " << it->second << " " << nextNodeId << std::endl;
-                    exit(0);
+                    exit(-1);
                 }
 
                 if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
@@ -314,7 +314,9 @@ void OnlineSimulator::print(std::ostream &out) const {
     }
     out << "," << feasibilityCheckUnsettledCount
         << "," << feasibilityCheckLoopCount
-        << "," << feasibilityCheckTopoCount;
+        << "," << feasibilityCheckTopoCount
+        << "," << feasibilityCheckRandomEdgeCount
+        << "," << feasibilityCheckAllEdgeCount;
 }
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
@@ -765,6 +767,10 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             // TODO: add randomness here
             addedEdges.emplace_back(nodeId1, nodeId2);
             boost::add_edge(nodeId1, nodeId2, topoGraph);
+            if (firstAgentArrivingTimestep == 0) {
+                feasibilityCheckRandomEdgeCount++;
+                feasibilityCheckAllEdgeCount += 2;
+            }
 
             sharedNodesList.erase(it);
             if (recursive) {
@@ -779,6 +785,9 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                         boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
                     }
                     return result;
+                }
+                if (firstAgentArrivingTimestep == 0) {
+                    feasibilityCheckRandomEdgeCount++;
                 }
                 auto nodeId3 = pathTopoNodeIds[it->agentId1][it->state1];
                 auto nodeId4 = pathTopoNodeIds[it->agentId2][it->state2 + 1];

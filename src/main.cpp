@@ -229,6 +229,7 @@ int main(int argc, const char *argv[]) {
 
         unsigned int currentTimestep = 1;
         int count = onlineSimulator->simulate(currentTimestep, currentTimestep + 300);
+
         if (count == agentNum) {
 #ifdef DEBUG_CYCLE
             simulator->debug = true;
