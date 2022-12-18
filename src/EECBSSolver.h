@@ -13,7 +13,7 @@ public:
 
     std::string getSolverName() override { return "eecbs"; }
 
-    bool readSolution(const std::string &pathFileName);
+    bool readSolution(std::ifstream &fin);
 
     bool solve() override;
 };

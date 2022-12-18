@@ -11,8 +11,7 @@
 #include "utils/eecbs.h"
 #include "EECBSSolver.h"
 
-bool EECBSSolver::readSolution(const std::string &pathFileName) {
-    std::ifstream fin(pathFileName);
+bool EECBSSolver::readSolution(std::ifstream &fin) {
     if (!fin.is_open()) return false;
 
     auto node = std::make_shared<CBSNode>();
@@ -89,7 +88,11 @@ bool EECBSSolver::solve() {
         cstrings.push_back((char *) string.c_str());
     }
     eecbs((int) cstrings.size(), cstrings.data());
-    success = readSolution(pathFileName);
+
+    std::ifstream fin(pathFileName);
+    success = readSolution(fin);
+    fin.close();
+
     remove_all(ph);
 
     return success;
