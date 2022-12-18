@@ -3,9 +3,11 @@
 //#include <boost/interprocess/sync/named_mutex.hpp>
 #include "Graph.h"
 #include "CBSSolver.h"
+#include "EECBSSolver.h"
 #include "DefaultSimulator.h"
 #include "OnlineSimulator.h"
 #include "utils/ezOptionParser.hpp"
+
 
 int main(int argc, const char *argv[]) {
     ez::ezOptionParser optionParser;
@@ -28,6 +30,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("default", false, 1, 0, "Simulator type (default / online)", "--simulator");
     optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
     optionParser.add("agent", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
+    optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit)", "-w", "--window", validWindowSize);
@@ -73,7 +76,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, outputFileName, delayType;
+    std::string mapType, objective, simulatorType, outputFileName, delayType, solverType;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType;
@@ -81,6 +84,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--output")->getString(outputFileName);
+    optionParser.get("--solver")->getString(solverType);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
@@ -169,10 +173,19 @@ int main(int argc, const char *argv[]) {
         agents = graph.generateHardCodedAgents(agentNum);
     }
 
-    CBSSolver solver(graph, agents);
-    solver.debug = debug;
-    solver.useDP = useDP;
-    solver.allConstraint = allConstraint;
+    std::shared_ptr<Solver> solver;
+    if (solverType == "default") {
+        solver = std::unique_ptr<Solver>(new CBSSolver(graph, agents));
+    } else if (solverType == "eecbs") {
+        solver = std::unique_ptr<Solver>(new EECBSSolver(graph, agents));
+    } else {
+        assert(0);
+    }
+
+//    CBSSolver solver(graph, agents);
+    solver->debug = debug;
+    solver->useDP = useDP;
+    solver->allConstraint = allConstraint;
 
     MakeSpanType makeSpanType = MakeSpanType::UNKNOWN;
     if (objective == "maximum") {
@@ -182,11 +195,24 @@ int main(int argc, const char *argv[]) {
     } else {
         assert(0);
     }
-    solver.init(0, makeSpanType);
-    solver.initCBS(window);
+
+    solver->init(makeSpanType);
+    if (solverType == "default") {
+        auto defaultSolver = std::static_pointer_cast<CBSSolver>(solver);
+        defaultSolver->initCBS(window);
+    } else if (solverType == "eecbs") {
+//        auto eecbsSolver = std::static_pointer_cast<EECBSSolver>(solver);
+//        solver = std::unique_ptr<Solver>(new EECBSSolver(graph, agents));
+    } else {
+        assert(0);
+    }
+    if (!solver->solveWithCache(filename, agentSeed)) {
+        exit(-1);
+    }
+
 //    while (solver.step()) {}
-    solver.solveWithCache(filename, agentSeed);
-    double approx = solver.approxAverageMakeSpan(*solver.solution);
+
+    double approx = solver->approxAverageMakeSpan(*solver->solution);
     std::shared_ptr<OnlineSimulator> onlineSimulator;
     std::shared_ptr<Simulator> simulator;
 
@@ -198,12 +224,12 @@ int main(int argc, const char *argv[]) {
         onlineSimulator = std::make_unique<OnlineSimulator>(graph, agents, i);
         onlineSimulator->delayRatio = delayRatio;
         onlineSimulator->delayType = delayType;
-        onlineSimulator->setSolution(solver.solution);
+        onlineSimulator->setSolution(solver->solution);
         if (simulatorType == "default") {
             simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
             simulator->delayRatio = delayRatio;
             simulator->delayType = delayType;
-            simulator->setSolution(solver.solution);
+            simulator->setSolution(solver->solution);
         } else if (simulatorType == "online") {
             simulator = onlineSimulator;
         } else {

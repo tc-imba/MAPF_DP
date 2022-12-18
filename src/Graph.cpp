@@ -267,6 +267,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
                                 const std::string &filename, size_t seed) {
     assert(obstacles <= height * width);
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
+    graphFilename = filename;
 
     if (loadGridGraph(gridGraph, filename)) {
         std::cerr << "load grid graph from " << filename << ".map" << std::endl;
@@ -532,3 +533,9 @@ void Graph::saveAgents(const std::string &mapName, const std::string &filename, 
     agentFileOut.close();
 }
 
+unsigned int Graph::getNodeIdByGridPos(unsigned int x, unsigned int y) {
+    if (x >= height || y >= width) {
+        return std::numeric_limits<unsigned int>::max();
+    }
+    return gridGraphIds[x][y];
+}

@@ -121,22 +121,35 @@ protected:
     std::vector<Agent> &agents;
     MakeSpanType makeSpanType;
 
+
 public:
     bool success = false;
     bool debug = false;
     bool useDP = false;
     bool allConstraint = false;
+    CBSNodePtr solution;
+    unsigned int currentTimestep;
 
     Solver() = delete;
 
     Solver(Graph &graph, std::vector<Agent> &agents);
 
+    virtual std::string getSolverName() = 0;
+
     static size_t
     combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int seed);
 
-    void init(MakeSpanType makeSpanType = MakeSpanType::MAXIMUM);
+    void init(MakeSpanType _makeSpanType = MakeSpanType::MAXIMUM);
 
-    virtual bool step() = 0;
+//    virtual bool step() = 0;
+
+    virtual bool solve() = 0;
+
+    double approxAverageMakeSpan(CBSNode &cbsNode);
+
+    bool solveWithCache(const std::string &directory, unsigned int agentSeed);
+
+
 };
 
 

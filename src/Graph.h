@@ -24,6 +24,7 @@ private:
     double minDP = 0;
     double maxDP = 0.5;
     size_t height, width;
+    std::string graphFilename;
 
     void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed, bool write = true);
 
@@ -32,8 +33,6 @@ private:
     bool isConnected();
 
     void saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
-
-    void saveMapGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
 
     bool loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
 
@@ -86,6 +85,8 @@ public:
 
     [[nodiscard]] auto getEdgeNum() const { return edgeNum; }
 
+    [[nodiscard]] auto getFileName() const { return graphFilename; }
+
     std::vector<Agent> generateRandomAgents(unsigned int agentNum, size_t seed = 0);
 
     std::vector<Agent> generateWarehouseAgents(unsigned int agentNum, size_t seed = 0, bool swap = false);
@@ -93,6 +94,8 @@ public:
     std::vector<Agent> generateHardCodedAgents(unsigned int agentNum);
 
     void saveAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
+
+    unsigned int getNodeIdByGridPos(unsigned int x, unsigned int y);
 };
 
 
