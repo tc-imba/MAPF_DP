@@ -68,7 +68,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         naive_feasibility and "n" or "h",
         only_cycle and "o" or (naive_cycle and "n" or "h"),
     )
-    cbs_prefix = "random-30-30-%d-%d-%d-%d" % (obstacles, map_seed, agents, agent_seed)
+    cbs_prefix = "random-30-30-%d-%d-%d-%d-eecbs" % (obstacles, map_seed, agents, agent_seed)
     cbs_file = Path(result_dir) / (cbs_prefix + ".cbs")
     cbs_failed_file = Path(result_dir) / (cbs_prefix + ".failed")
     settings_name = "%d-%d-%d" % (map_seed, agent_seed, agents)
