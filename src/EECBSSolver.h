@@ -9,7 +9,7 @@
 
 class EECBSSolver : public Solver {
 public:
-    EECBSSolver(Graph &graph, std::vector<Agent> &agents) : Solver(graph, agents) {};
+    EECBSSolver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType) : Solver(graph, agents, makeSpanType) {};
 
     std::string getSolverName() override { return "eecbs"; }
 

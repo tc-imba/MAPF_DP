@@ -54,6 +54,8 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
 bool EECBSSolver::solve() {
     using namespace boost::filesystem;
 
+    executionTime = 0;
+
     path ph = path("eecbs_results") / unique_path();
     create_directories(ph);
 
@@ -87,7 +89,12 @@ bool EECBSSolver::solve() {
     for (const auto &string: arguments) {
         cstrings.push_back((char *) string.c_str());
     }
+
+    auto start = std::chrono::steady_clock::now();
     eecbs((int) cstrings.size(), cstrings.data());
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    executionTime = elapsed_seconds.count();
 
     std::ifstream fin(pathFileName);
     success = readSolution(fin);

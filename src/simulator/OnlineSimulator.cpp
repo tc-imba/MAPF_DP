@@ -48,7 +48,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         for (unsigned int i = 0; i < agents.size(); i++) {
 //        if (agents[i].current == agents[i].goal) continue;
             std::cout << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
-            for (const auto &label: solution->plans[i]->path) {
+            for (const auto &label: solver->solution->plans[i]->path) {
                 std::cout << "(" << label.state << "," << label.nodeId << ")->";
             }
             std::cout << std::endl;
@@ -129,7 +129,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 //        if (agents[i].current == agents[i].goal) continue;
                 std::cout << "agent " << i << " " << agents[i].state << " (" << agents[i].start << "->"
                           << agents[i].goal << "): ";
-                for (const auto &label: solution->plans[i]->path) {
+                for (const auto &label: solver->solution->plans[i]->path) {
                     std::cout << "(" << label.state << "," << label.nodeId << ")->";
                 }
                 std::cout << std::endl;
@@ -391,10 +391,13 @@ void OnlineSimulator::initSimulation() {
 
     unsigned int topoGraphNodeNum = 0;
     for (size_t i = 0; i < agents.size(); i++) {
+        agents[i].current = agents[i].start;
+        agents[i].state = 0;
+        agents[i].timestep = 0;
         blocked.insert(i);
         nodeAgentMap[agents[i].current] = i;
-        for (size_t j = 0; j < solution->plans[i]->path.size(); j++) {
-            auto newNodeId = solution->plans[i]->path[j].nodeId;
+        for (size_t j = 0; j < solver->solution->plans[i]->path.size(); j++) {
+            auto newNodeId = solver->solution->plans[i]->path[j].nodeId;
             if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
                 pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
@@ -674,6 +677,16 @@ void OnlineSimulator::cycleCheck() {
 //    std::cerr << "end cycle check: ";
 }
 
+bool OnlineSimulator::isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2) {
+    auto visitor = TopoGraphBFSVisitor(nodeId2);
+    try {
+        boost::breadth_first_search(topoGraph, nodeId1, boost::visitor(visitor));
+    } catch (...) {
+        return true;
+    }
+    return false;
+}
+
 std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
         std::list<SharedNodePair> &sharedNodesList,
         bool recursive
@@ -701,13 +714,16 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                 } else if (it->state1 + 1 < paths[it->agentId1].size() && it->state2 > agents[it->agentId2].state) {
                     auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
                     auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-                    boost::add_edge(nodeId1, nodeId2, topoGraph);
-                    std::vector<Graph::topo_vertex_t> container;
-                    try {
-                        boost::topological_sort(topoGraph, std::back_inserter(container));
+                    if (!isPathInTopoGraph(nodeId2, nodeId1)) {
                         selectedEdges.emplace_back(nodeId1, nodeId2);
-                    } catch (std::exception) {}
-                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                    }
+//                    boost::add_edge(nodeId1, nodeId2, topoGraph);
+//                    std::vector<Graph::topo_vertex_t> container;
+//                    try {
+//                        boost::topological_sort(topoGraph, std::back_inserter(container));
+//                        selectedEdges.emplace_back(nodeId1, nodeId2);
+//                    } catch (std::exception) {}
+//                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
                     ++maxSelectedEdges;
                 }
             }
@@ -717,13 +733,16 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                 } else if (it->state2 + 1 < paths[it->agentId2].size() && it->state1 > agents[it->agentId1].state) {
                     auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1];
                     auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
-                    boost::add_edge(nodeId2, nodeId1, topoGraph);
-                    try {
-                        std::vector<Graph::topo_vertex_t> container;
-                        boost::topological_sort(topoGraph, std::back_inserter(container));
+                    if (!isPathInTopoGraph(nodeId1, nodeId2)) {
                         selectedEdges.emplace_back(nodeId2, nodeId1);
-                    } catch (std::exception) {}
-                    boost::remove_edge(nodeId2, nodeId1, topoGraph);
+                    }
+//                    boost::add_edge(nodeId2, nodeId1, topoGraph);
+//                    try {
+//                        std::vector<Graph::topo_vertex_t> container;
+//                        boost::topological_sort(topoGraph, std::back_inserter(container));
+//                        selectedEdges.emplace_back(nodeId2, nodeId1);
+//                    } catch (std::exception) {}
+//                    boost::remove_edge(nodeId2, nodeId1, topoGraph);
                     ++maxSelectedEdges;
                 }
             }

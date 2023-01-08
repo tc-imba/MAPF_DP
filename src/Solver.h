@@ -121,7 +121,6 @@ protected:
     std::vector<Agent> &agents;
     MakeSpanType makeSpanType;
 
-
 public:
     bool success = false;
     bool debug = false;
@@ -129,17 +128,18 @@ public:
     bool allConstraint = false;
     CBSNodePtr solution;
     unsigned int currentTimestep;
+    double executionTime;
 
     Solver() = delete;
 
-    Solver(Graph &graph, std::vector<Agent> &agents);
+    Solver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType);
 
     virtual std::string getSolverName() = 0;
 
     static size_t
     combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int seed);
 
-    void init(MakeSpanType _makeSpanType = MakeSpanType::MAXIMUM);
+    virtual void init();
 
 //    virtual bool step() = 0;
 

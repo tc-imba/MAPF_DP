@@ -4,8 +4,8 @@
 #include "Graph.h"
 #include "CBSSolver.h"
 #include "EECBSSolver.h"
-#include "DefaultSimulator.h"
-#include "OnlineSimulator.h"
+#include "simulator/DefaultSimulator.h"
+#include "simulator/OnlineSimulator.h"
 #include "utils/ezOptionParser.hpp"
 
 
@@ -27,7 +27,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Classify feasibility types", "--feasibility-type");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
-    optionParser.add("default", false, 1, 0, "Simulator type (default / online)", "--simulator");
+    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan)", "--simulator");
     optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
     optionParser.add("agent", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
@@ -173,20 +173,6 @@ int main(int argc, const char *argv[]) {
         agents = graph.generateHardCodedAgents(agentNum);
     }
 
-    std::shared_ptr<Solver> solver;
-    if (solverType == "default") {
-        solver = std::unique_ptr<Solver>(new CBSSolver(graph, agents));
-    } else if (solverType == "eecbs") {
-        solver = std::unique_ptr<Solver>(new EECBSSolver(graph, agents));
-    } else {
-        assert(0);
-    }
-
-//    CBSSolver solver(graph, agents);
-    solver->debug = debug;
-    solver->useDP = useDP;
-    solver->allConstraint = allConstraint;
-
     MakeSpanType makeSpanType = MakeSpanType::UNKNOWN;
     if (objective == "maximum") {
         makeSpanType = MakeSpanType::MAXIMUM;
@@ -196,16 +182,20 @@ int main(int argc, const char *argv[]) {
         assert(0);
     }
 
-    solver->init(makeSpanType);
+    std::shared_ptr<Solver> solver;
     if (solverType == "default") {
-        auto defaultSolver = std::static_pointer_cast<CBSSolver>(solver);
-        defaultSolver->initCBS(window);
+        solver = std::shared_ptr<Solver>(new CBSSolver(graph, agents, makeSpanType, window));
     } else if (solverType == "eecbs") {
-//        auto eecbsSolver = std::static_pointer_cast<EECBSSolver>(solver);
-//        solver = std::unique_ptr<Solver>(new EECBSSolver(graph, agents));
+        solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType));
     } else {
         assert(0);
     }
+
+//    CBSSolver solver(graph, agents);
+    solver->debug = debug;
+    solver->useDP = useDP;
+    solver->allConstraint = allConstraint;
+    solver->init();
     if (!solver->solveWithCache(filename, agentSeed)) {
         exit(-1);
     }
@@ -224,17 +214,28 @@ int main(int argc, const char *argv[]) {
         onlineSimulator = std::make_unique<OnlineSimulator>(graph, agents, i);
         onlineSimulator->delayRatio = delayRatio;
         onlineSimulator->delayType = delayType;
-        onlineSimulator->setSolution(solver->solution);
-        if (simulatorType == "default") {
+        onlineSimulator->setSolver(solver);
+        if (simulatorType == "default" || simulatorType == "replan") {
             simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
             simulator->delayRatio = delayRatio;
             simulator->delayType = delayType;
-            simulator->setSolution(solver->solution);
+            simulator->setSolver(solver);
+
+            if (simulatorType == "replan") {
+                simulator->replanMode = true;
+                if (i != 0) {
+                    solver->init();
+                    if (!solver->solveWithCache(filename, agentSeed)) {
+                        exit(-1);
+                    }
+                }
+            }
         } else if (simulatorType == "online") {
             simulator = onlineSimulator;
         } else {
             assert(0);
         }
+        simulator->debug = debug;
 
 /*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
@@ -254,7 +255,8 @@ int main(int argc, const char *argv[]) {
         }*/
 
         unsigned int currentTimestep = 1;
-        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + 300);
+        const int maxTimestep = 300;
+        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + maxTimestep);
         if (count == agentNum) {
 #ifdef DEBUG_CYCLE
             simulator->debug = true;
@@ -268,7 +270,7 @@ int main(int argc, const char *argv[]) {
             simulator->setAgents(agents);
             currentTimestep = 1;
             auto start = std::chrono::steady_clock::now();
-            count = simulator->simulate(currentTimestep, currentTimestep + 300, delayStart, delayInterval);
+            count = simulator->simulate(currentTimestep, currentTimestep + maxTimestep, delayStart, delayInterval);
             auto end = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsed_seconds = end - start;
 //            boost::interprocess::named_mutex namedMutex{boost::interprocess::open_or_create, outputFileName.c_str()};

@@ -76,6 +76,8 @@ private:
 
     void cycleCheck();
 
+    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
+
     std::pair<size_t, size_t> feasibilityCheckHelper(
             std::list<SharedNodePair> &sharedNodesList,
             bool recursive

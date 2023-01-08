@@ -7,12 +7,15 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/properties.hpp>
+#include <boost/graph/breadth_first_search.hpp>
+#include <iostream>
 
 struct Agent {
     unsigned int start, goal, current;
     unsigned int state;
     unsigned int timestep;
     unsigned int waitingTimestep;
+    bool blocked;
 };
 
 class Graph {
@@ -26,7 +29,8 @@ private:
     size_t height, width;
     std::string graphFilename;
 
-    void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed, bool write = true);
+    void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
+                       bool write = true);
 
     void generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph);
 
@@ -52,7 +56,7 @@ public:
 
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, Node, Edge> graph_t;
 
-    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS > topo_graph_t;
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> topo_graph_t;
     typedef boost::graph_traits<topo_graph_t>::vertex_descriptor topo_vertex_t;
 
     graph_t g;
@@ -96,6 +100,22 @@ public:
     void saveAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
 
     unsigned int getNodeIdByGridPos(unsigned int x, unsigned int y);
+};
+
+class TopoGraphBFSVisitor : public boost::default_bfs_visitor {
+public:
+    struct done {
+    };
+
+    explicit TopoGraphBFSVisitor(const Graph::topo_graph_t::vertex_descriptor &v) : goal(v) {
+    };
+
+    void discover_vertex(const Graph::topo_graph_t::vertex_descriptor &v, const Graph::topo_graph_t &g) const {
+        if (v == goal) throw done{};
+    };
+
+protected:
+    const Graph::topo_graph_t::vertex_descriptor goal;
 };
 
 

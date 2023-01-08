@@ -33,13 +33,12 @@ private:
     unsigned int generateConstraintSet(CBSNode &cbsNode);
 
 public:
-    CBSSolver(Graph &graph, std::vector<Agent> &agents) : Solver(graph, agents) {};
+    CBSSolver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType, unsigned int window = 1000) :
+        Solver(graph, agents, makeSpanType), window(window) {};
 
     std::string getSolverName() override { return "default"; }
 
-//    void init(unsigned int _seed = 0, MakeSpanType _makeSpanType = MakeSpanType::MAXIMUM);
-
-    void initCBS(unsigned int _window = 1000);
+    void init() override;
 
     bool step();
 

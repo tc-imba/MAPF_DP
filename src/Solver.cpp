@@ -7,8 +7,7 @@
 #include <iostream>
 #include <fstream>
 
-void Solver::init(MakeSpanType _makeSpanType) {
-    makeSpanType = _makeSpanType;
+void Solver::init() {
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].current = agents[i].start;
         agents[i].timestep = agents[i].waitingTimestep = 0;
@@ -17,7 +16,8 @@ void Solver::init(MakeSpanType _makeSpanType) {
     success = false;
 }
 
-Solver::Solver(Graph &graph, std::vector<Agent> &agents) : graph(graph), agents(agents) {
+Solver::Solver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType) :
+        graph(graph), agents(agents), makeSpanType(makeSpanType) {
 
 }
 

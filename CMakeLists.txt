@@ -21,11 +21,11 @@ set(SOURCE_FILES
         src/CBSSolver.cpp
         src/EECBSSolver.cpp
         src/Graph.cpp
-        src/DefaultSimulator.cpp
-        src/DefaultSimulator.h
-        src/OnlineSimulator.cpp
-        src/OnlineSimulator.h
-)
+        src/simulator/DefaultSimulator.cpp
+        src/simulator/DefaultSimulator.h
+        src/simulator/OnlineSimulator.cpp
+        src/simulator/OnlineSimulator.h
+        )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
 target_link_libraries(MAPF_DP EECBS_Static)

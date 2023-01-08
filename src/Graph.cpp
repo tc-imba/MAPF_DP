@@ -377,6 +377,7 @@ const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
             return g[edge];
         }
     }
+    std::cerr << "can not find edge from " << nodeId1 << " to " << nodeId2 << std::endl;
     assert(0);
 }
 
@@ -528,6 +529,7 @@ void Graph::saveAgents(const std::string &mapName, const std::string &filename, 
                      << g[agents[i].start].y << "\t" << g[agents[i].start].x << "\t"
                      << g[agents[i].goal].y << "\t" << g[agents[i].goal].x << "\t"
                      << distances[agents[i].start][agents[i].goal] << std::endl;
+//        std::cout << i << " " << agents[i].start << std::endl;
     }
 
     agentFileOut.close();

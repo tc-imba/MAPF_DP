@@ -9,6 +9,10 @@
 
 class DefaultSimulator : public Simulator {
 public:
+    size_t firstAgentArrivingTimestep = 0;
+    double executionTime = 0;
+
+
     DefaultSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
 
     int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,

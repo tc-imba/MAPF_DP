@@ -325,15 +325,9 @@ double CBSSolver::getEstimate(const Label &label, const Label &parentLabel) {
 }
 
 
-//void CBSSolver::init(unsigned int _seed, MakeSpanType _makeSpanType) {
-//    Solver::init(_makeSpanType);
-//    seed = _seed;
-//}
-
-void CBSSolver::initCBS(unsigned int _window) {
-
+void CBSSolver::init() {
+    Solver::init();
     success = false;
-    window = _window;
 
     goalAgentMap.clear();
     for (unsigned int i = 0; i < agents.size(); i++) {
