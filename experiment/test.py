@@ -24,7 +24,7 @@ ITERATIONS = 10
 OBSTACLES = [90, 180, 270]
 # OBSTACLES = [90]
 # AGENTS = [10, 20]
-AGENTS = [30]
+AGENTS = [20]
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2]
 
@@ -35,13 +35,13 @@ DELAY_INTERVALS = [1, 10, 20]  # test 2
 DELAY_STARTS = [1, 5, 10]  # test 1, not used
 # SIMULATORS = ["default"]
 DELAY_TYPES = ["agent"]
-SIMULATORS = ["online", "default"]
+SIMULATORS = ["online", "default", "replan"]
 NAIVE_SETTINGS = [
     (False, False, False),     # online/default,cycle
     (False, True, False),      # feasibility,cycle
     (False, True, True),       # cycle
     # (True, False, False),
-    # (True, True, False),       # feasibility
+    (True, True, False),       # feasibility
     # (True, True, True),
 ]
 FEASIBILITY_TYPES = [False]
@@ -159,9 +159,9 @@ async def run_test_1(map_seed, agent_seed, agents, obstacles, feasibility_type):
         for delay_start in DELAY_STARTS:
             for delay_ratio in delay_ratios:
                 for simulator in SIMULATORS:
-                    if simulator == "default" and feasibility_type:
+                    if simulator != "online" and feasibility_type:
                         continue
-                    elif simulator == "default" or feasibility_type:
+                    elif simulator != "online" or feasibility_type:
                         naive_settings = [(False, False, False)]
                     else:
                         naive_settings = NAIVE_SETTINGS
@@ -178,9 +178,9 @@ async def run_test_2(map_seed, agent_seed, agents, obstacles, feasibility_type):
         for delay_ratio in delay_ratios:
             for delay_interval in DELAY_INTERVALS:
                 for simulator in SIMULATORS:
-                    if simulator == "default" and feasibility_type:
+                    if simulator != "online" and feasibility_type:
                         continue
-                    elif simulator == "default" or feasibility_type:
+                    elif simulator != "online" or feasibility_type:
                         naive_settings = [(False, False, False)]
                     else:
                         naive_settings = NAIVE_SETTINGS

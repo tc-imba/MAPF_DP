@@ -60,6 +60,7 @@ public:
     typedef boost::graph_traits<topo_graph_t>::vertex_descriptor topo_vertex_t;
 
     graph_t g;
+    bool debug = false;
 
     Graph();
 

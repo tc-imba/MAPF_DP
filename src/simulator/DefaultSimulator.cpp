@@ -251,7 +251,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
     }*/
 
     for (unsigned int i = 0; i < agents.size(); i++) {
-        agents[i].current = agents[i].start = savedStart[i];
+        agents[i].start = savedStart[i];
     }
 
     return countCompletedAgents();

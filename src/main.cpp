@@ -142,7 +142,7 @@ int main(int argc, const char *argv[]) {
 
 //    unsigned int agents = 30;
     graph.initDelayProbability(minDP, maxDP);
-
+    graph.debug = debug;
 
     std::string filename;
     if (mapType == "random") {
@@ -256,28 +256,26 @@ int main(int argc, const char *argv[]) {
 
         unsigned int currentTimestep = 1;
         const int maxTimestep = 300;
-        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + maxTimestep);
-        if (count == agentNum) {
+//        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + maxTimestep);
+
 #ifdef DEBUG_CYCLE
-            simulator->debug = true;
+        simulator->debug = true;
 #endif
-            if (simulatorType == "online") {
-                onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
-                onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
-                onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
-                onlineSimulator->isFeasibilityType = feasibilityType;
-            }
-            simulator->setAgents(agents);
-            currentTimestep = 1;
-            auto start = std::chrono::steady_clock::now();
-            count = simulator->simulate(currentTimestep, currentTimestep + maxTimestep, delayStart, delayInterval);
-            auto end = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsed_seconds = end - start;
-//            boost::interprocess::named_mutex namedMutex{boost::interprocess::open_or_create, outputFileName.c_str()};
-//            bool needLock = fout.is_open();
-//            if (needLock) {
-//                namedMutex.lock();
-//            }
+
+        if (simulatorType == "online") {
+            onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
+            onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
+            onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
+            onlineSimulator->isFeasibilityType = feasibilityType;
+        }
+        simulator->setAgents(agents);
+        currentTimestep = 1;
+        auto start = std::chrono::steady_clock::now();
+        auto count = simulator->simulate(currentTimestep, currentTimestep + maxTimestep, delayStart, delayInterval);
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+
+        if (count == agentNum) {
             out << mapSeed << "," << agentSeed << "," << i << ",";
             if (delayInterval == INT_MAX) {
                 out << count << "," << finished;
@@ -288,9 +286,6 @@ int main(int argc, const char *argv[]) {
             simulator->print(out);
             out << std::endl;
             finished++;
-//            if (needLock) {
-//                namedMutex.unlock();
-//            }
         } else {
             std::cerr << count << " " << agentNum << std::endl;
         }
