@@ -5,7 +5,7 @@
 #ifndef MAPF_DP_SOLVER_H
 #define MAPF_DP_SOLVER_H
 
-#include "Graph.h"
+#include "../Graph.h"
 
 
 enum class MakeSpanType {

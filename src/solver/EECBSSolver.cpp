@@ -8,7 +8,7 @@
 #include <iostream>
 #include <limits>
 
-#include "utils/eecbs.h"
+#include "../utils/eecbs.h"
 #include "EECBSSolver.h"
 
 bool EECBSSolver::readSolution(std::ifstream &fin) {

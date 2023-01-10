@@ -2,8 +2,8 @@
 #include <chrono>
 //#include <boost/interprocess/sync/named_mutex.hpp>
 #include "Graph.h"
-#include "CBSSolver.h"
-#include "EECBSSolver.h"
+#include "solver/CBSSolver.h"
+#include "solver/EECBSSolver.h"
 #include "simulator/DefaultSimulator.h"
 #include "simulator/OnlineSimulator.h"
 #include "utils/ezOptionParser.hpp"

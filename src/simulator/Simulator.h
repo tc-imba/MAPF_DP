@@ -5,8 +5,8 @@
 #ifndef MAPF_DP_SIMULATOR_H
 #define MAPF_DP_SIMULATOR_H
 
-#include "../Solver.h"
-#include "../EECBSSolver.h"
+#include "../solver/Solver.h"
+//#include "../EECBSSolver.h"
 
 #include <random>
 #include <iostream>

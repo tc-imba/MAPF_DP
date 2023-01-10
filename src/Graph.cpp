@@ -3,7 +3,7 @@
 //
 
 #include "Graph.h"
-#include "CBSSolver.h"
+//#include "solver/CBSSolver.h"
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
@@ -379,6 +379,7 @@ const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
     }
     std::cerr << "can not find edge from " << nodeId1 << " to " << nodeId2 << std::endl;
     assert(0);
+    exit(-1);
 }
 
 std::vector<Agent> Graph::generateRandomAgents(unsigned int agentNum, size_t seed) {

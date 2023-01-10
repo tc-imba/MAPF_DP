@@ -17,9 +17,9 @@ add_library(EECBS_Static ${SOURCE_FILES} src/utils/eecbs.cpp)
 target_link_libraries(EECBS_Static ${Boost_LIBRARIES})
 
 set(SOURCE_FILES
-        src/Solver.cpp
-        src/CBSSolver.cpp
-        src/EECBSSolver.cpp
+        src/solver/Solver.cpp
+        src/solver/CBSSolver.cpp
+        src/solver/EECBSSolver.cpp
         src/Graph.cpp
         src/simulator/DefaultSimulator.cpp
         src/simulator/DefaultSimulator.h
