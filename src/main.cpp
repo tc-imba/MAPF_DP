@@ -280,7 +280,7 @@ int main(int argc, const char *argv[]) {
             if (delayInterval == INT_MAX) {
                 out << count << "," << finished;
             } else {
-                out << simulator->averageMakeSpan(makeSpanType) << "," << approx;
+                out << simulator->averageMakeSpan(MakeSpanType::MAXIMUM) << "," << simulator->averageMakeSpan(MakeSpanType::AVERAGE);
             }
             out << "," << elapsed_seconds.count() << ",";
             simulator->print(out);
