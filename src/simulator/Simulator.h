@@ -132,14 +132,13 @@ public:
         return 0;
         */
 
-        std::vector<unsigned int> savedCurrent(agents.size());
+        std::vector<Agent> savedAgents = agents;
 
         for (unsigned int i = 0; i < agents.size(); i++) {
             if (debug) {
                 std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << std::endl;
             }
             auto &path = solver->solution->plans[i]->path;
-            savedCurrent[i] = agents[i].current;
             if (agents[i].state + 1 >= path.size()) {
                 // already at goal location
                 agents[i].start = agents[i].current;
@@ -172,7 +171,8 @@ public:
         // prepend a dummy state to the path of each agent
         for (unsigned int i = 0; i < agents.size(); i++) {
             agents[i].state = 0;
-            agents[i].current = savedCurrent[i];
+            agents[i].current = savedAgents[i].current;
+            agents[i].timestep = savedAgents[i].timestep;
             if (debug) {
                 std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << std::endl;
             }

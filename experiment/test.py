@@ -24,7 +24,7 @@ ITERATIONS = 10
 OBSTACLES = [90, 180, 270]
 # OBSTACLES = [90]
 # AGENTS = [10, 20]
-AGENTS = [20]
+AGENTS = [20, 30]
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2]
 
@@ -41,7 +41,7 @@ NAIVE_SETTINGS = [
     (False, True, False),      # feasibility,cycle
     (False, True, True),       # cycle
     # (True, False, False),
-    (True, True, False),       # feasibility
+    # (True, True, False),       # feasibility
     # (True, True, True),
 ]
 FEASIBILITY_TYPES = [False]
