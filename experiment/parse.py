@@ -15,7 +15,7 @@ os.makedirs(parsed_result_dir, exist_ok=True)
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
 agents_list = [10, 20, 30]
-simulators_list = ["online", "default"]
+simulators_list = ["online", "replan", "default"]
 delay_ratios_list = [0, 0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
@@ -32,14 +32,14 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
 
     header_names = [
         'map', 'agent', 'iteration',
-        'value', 'noop', 'time', 'execution_time', 'first_agent_arriving',
+        'value', 'makespan', 'time', 'execution_time', 'first_agent_arriving',
         'cycle_count', 'cycle_agents', 'unblocked_agents', 'feasibility_count',
         'feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4',
         'feasibility_unsettled', 'feasibility_loop', 'feasibility_topo',
     ]
     column_names = [
         "simulator", "agents", "timestep", "interval", "rate", "delay_type",
-        "value", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
+        "value", "makespan", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
         "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
         "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
         "average_timestep_time", "average_feasibility_time", "average_cycle_time",
@@ -101,6 +101,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                     try:
                                         value = npy.mean(df['value'])
                                         time = npy.mean(df['time'])
+                                        makespan = npy.mean(df['makespan'])
                                         execution_time = 0
                                         first_agent_arriving = 0
                                         cycle_count = 0
@@ -159,6 +160,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         "rate": rate,
                                         "delay_type": delay_type,
                                         "value": value,
+                                        "makespan": makespan,
                                         "time": time,
                                         "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
                                         "cycle": cycle == "n" and "semi-naive" or (
