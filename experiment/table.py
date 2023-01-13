@@ -209,9 +209,10 @@ def generate_table(df, agents, yfield, groupby, data_type, plot_type):
         f.write('\\end{tabular}')
 
 
-def plot_online_offline(data, agents, data_type, delay_type):
+def plot_simulator(data, agents, data_type, delay_type):
     df = data[(((data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
-            data["simulator"] == "default")) & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
+            data["simulator"] == "default") | (data["simulator"] == "replan"))
+              & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     groupby = ["simulator", "cycle", "obstacles"]
     plot_type = "online-offline"
     subplot_type = "delay-ratio"
@@ -269,9 +270,9 @@ def main():
     for delay_type in ["agent"]:
         for agents in [10, 20]:
             # plot_online_offline(df_infinite, agents, "infinite", delay_type)
-            # plot_online_offline(df_periodic, agents, "periodic", delay_type)
+            plot_simulator(df_periodic, agents, "periodic", delay_type)
             # plot_feasibility(df_infinite, agents, "infinite", delay_type)
-            plot_feasibility(df_periodic, agents, "periodic", delay_type)
+            # plot_feasibility(df_periodic, agents, "periodic", delay_type)
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
             # plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)

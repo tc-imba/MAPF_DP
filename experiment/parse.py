@@ -32,14 +32,14 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
 
     header_names = [
         'map', 'agent', 'iteration',
-        'value', 'makespan', 'time', 'execution_time', 'first_agent_arriving',
+        'makespan', 'value', 'time', 'execution_time', 'first_agent_arriving',
         'cycle_count', 'cycle_agents', 'unblocked_agents', 'feasibility_count',
         'feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4',
         'feasibility_unsettled', 'feasibility_loop', 'feasibility_topo',
     ]
     column_names = [
         "simulator", "agents", "timestep", "interval", "rate", "delay_type",
-        "value", "makespan", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
+        "makespan", "value", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
         "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
         "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
         "average_timestep_time", "average_feasibility_time", "average_cycle_time",
