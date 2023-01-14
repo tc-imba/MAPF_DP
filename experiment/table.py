@@ -20,8 +20,8 @@ obstacles_marker = ["o", "s", "^"]
 
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2, 0.3]
-OBSTACLES = [90, 180, 270]
-
+OBSTACLES = [90, 270]
+AGENTS = [20, 30]
 
 def get_subplot_key(subplot_type, data):
     if subplot_type == "delay-ratio":
@@ -36,7 +36,10 @@ def get_subplot_key(subplot_type, data):
 def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_type, legend=True):
     ylog = False
     if yfield == "time":
-        if plot_type == "feasibility":
+        if plot_type == "simulator":
+            ylabel = 'Average Computation Time of Each Timestep (ms)'
+            ylog = True
+        elif plot_type == "feasibility":
             ylabel = 'Average Computation Time of Each Feasibility Check (ms)'
         elif plot_type == "cycle":
             ylabel = 'Average Computation Time of Each Timestep (ms)'
@@ -90,13 +93,15 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
         sub_df = df[df[subplot_field] == key]
         xticks = []
         for j, (group, df2) in enumerate(sub_df.groupby(groupby)):
-            if plot_type == "online-offline":
+            if plot_type == "simulator":
                 (simulator, cycle, subplot_key) = group
                 subplot_key = get_subplot_key(subplot_type, subplot_key)
                 if cycle != "proposed":
                     cycle = "naive"
                 if simulator == "default":
                     label = f"offline-{subplot_key}"
+                elif simulator == "replan":
+                    label = f"online-replan-{subplot_key}"
                 else:
                     label = f"online-{cycle}-{subplot_key}"
             elif plot_type == "category":
@@ -117,12 +122,13 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                 else:
                     y = npy.array(df2["value"])
             elif yfield == "time":
-                if plot_type == "feasibility":
-                    y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
-                elif plot_type == "cycle":
-                    y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
-                else:
-                    assert False
+                y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
+                # if plot_type == "feasibility":
+                #     y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
+                # elif plot_type == "cycle":
+                #     y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
+                # else:
+                #     assert False
             elif yfield == "loop":
                 y = npy.array(df2["average_feasibility_loop"])
             elif yfield == "category":
@@ -130,8 +136,14 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             else:
                 assert False
 
-            if plot_type == "online-offline":
-                linestyle = simulator == "online" and "-" or (cycle == "naive" and ":" or "-.")
+            if plot_type == "simulator":
+                if simulator == "default":
+                    linestyle = "-."
+                elif simulator == "replan":
+                    linestyle = ":"
+                else:
+                    linestyle = "-"
+                # linestyle = simulator == "online" and "-" or (cycle == "naive" and ":" or "-.")
             elif plot_type == "feasibility":
                 linestyle = simulator == "heuristic" and "-" or ":"
             elif plot_type == "cycle":
@@ -140,8 +152,9 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                 linestyle = "-"
             else:
                 assert False
-            color = obstacles_color[j % len(obstacles_color)]
-            marker = obstacles_marker[j % len(obstacles_marker)]
+            # print(plot_type, simulator, linestyle, i, j)
+            color = obstacles_color[j % len(OBSTACLES)]
+            marker = obstacles_marker[j % len(OBSTACLES)]
             ax.plot(x, y, linestyle=linestyle, color=color, marker=marker, label=label,
                     linewidth=2.5, markersize=8)
         ax.set_xticks(npy.arange(len(xticks)))
@@ -166,8 +179,8 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
         handles, labels = ax.get_legend_handles_labels()
         if len(handles) % 3 == 0:
             ncol = 3
-            handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
-            labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
+            # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
+            # labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
         else:
             ncol = 2
         bbox_to_anchor_y = 0.97 + 0.03 * (len(handles) / ncol)
@@ -213,13 +226,16 @@ def plot_simulator(data, agents, data_type, delay_type):
     df = data[(((data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
             data["simulator"] == "default") | (data["simulator"] == "replan"))
               & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
+    df2 = df[df["simulator"] != "default"]
     groupby = ["simulator", "cycle", "obstacles"]
-    plot_type = "online-offline"
+    plot_type = "simulator"
     subplot_type = "delay-ratio"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
+    plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
     groupby = ["simulator", "cycle", "rate"]
     subplot_type = "obstacle"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
+    plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_feasibility(data, agents, data_type, delay_type):
@@ -268,13 +284,13 @@ def main():
     df_infinite_feasibility_category = pandas.read_csv(os.path.join(data_dir, "df_infinite_feasibility_category.csv"))
     df_periodic_feasibility_category = pandas.read_csv(os.path.join(data_dir, "df_periodic_feasibility_category.csv"))
     for delay_type in ["agent"]:
-        for agents in [10, 20]:
+        for agents in AGENTS:
             # plot_online_offline(df_infinite, agents, "infinite", delay_type)
-            plot_simulator(df_periodic, agents, "periodic", delay_type)
+            # plot_simulator(df_periodic, agents, "periodic", delay_type)
             # plot_feasibility(df_infinite, agents, "infinite", delay_type)
             # plot_feasibility(df_periodic, agents, "periodic", delay_type)
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
-            # plot_cycle(df_periodic, agents, "periodic", delay_type)
+            plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
             # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
