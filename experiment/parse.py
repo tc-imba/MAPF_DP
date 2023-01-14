@@ -58,7 +58,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                 raw_dfs = {}
 
                                 for simulator in simulators_list:
-                                    if simulator == "default":
+                                    if simulator == "default" or simulator == "replan":
                                         _feasibility = "h"
                                         _cycle = "h"
                                     else:
@@ -79,7 +79,6 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                                 df = df[condition]
                                         raw_dfs[simulator] = df
                                     except:
-                                        print("error: ", file)
                                         pass
 
 
