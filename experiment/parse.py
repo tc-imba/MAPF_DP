@@ -92,7 +92,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                 base_df = base_df[['map', 'agent', 'iteration']]
 
                                 for simulator in simulators_list:
-                                    if simulator == "default" and (feasibility != "h" or cycle != "h"):
+                                    if (simulator == "default" or simulator == "replan") and (feasibility != "h" or cycle != "h"):
                                         continue
 
                                     df = raw_dfs[simulator]
