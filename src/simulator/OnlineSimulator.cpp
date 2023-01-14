@@ -695,9 +695,6 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 ) {
     std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
 //    std::cout << "feasibility check" << std::endl;
-    if (firstAgentArrivingTimestep) {
-        feasibilityCheckRecursionCount++;
-    }
 
     while (!sharedNodesList.empty()) {
         if (firstAgentArrivingTimestep == 0) {
@@ -792,8 +789,11 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             sharedNodesList.erase(it);
             if (recursive) {
                 auto sharedNodesListBackup = sharedNodesList;
-                std::cout << "recursive" << std::endl;
+//                std::cout << "recursive" << std::endl;
                 auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
+                if (firstAgentArrivingTimestep) {
+                    feasibilityCheckRecursionCount++;
+                }
                 boost::remove_edge(nodeId1, nodeId2, topoGraph);
                 addedEdges.pop_back();
 
@@ -926,7 +926,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
         feasibilityCheckCount++;
     }
     if (!isFeasibilityType) {
-        return feasibilityCheckTest(!isHeuristicCycleCheck);
+        return feasibilityCheckTest(!isHeuristicFeasibilityCheck);
     }
     auto heuristicResult = feasibilityCheckTest(false);
     auto exhaustiveResult = feasibilityCheckTest(true);
