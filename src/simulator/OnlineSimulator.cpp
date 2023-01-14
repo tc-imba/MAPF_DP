@@ -314,7 +314,8 @@ void OnlineSimulator::print(std::ostream &out) const {
     }
     out << "," << feasibilityCheckUnsettledCount
         << "," << feasibilityCheckLoopCount
-        << "," << feasibilityCheckTopoCount;
+        << "," << feasibilityCheckTopoCount
+        << "," << feasibilityCheckRecursionCount;
 }
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
@@ -694,6 +695,9 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 ) {
     std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
 //    std::cout << "feasibility check" << std::endl;
+    if (firstAgentArrivingTimestep) {
+        feasibilityCheckRecursionCount++;
+    }
 
     while (!sharedNodesList.empty()) {
         if (firstAgentArrivingTimestep == 0) {
