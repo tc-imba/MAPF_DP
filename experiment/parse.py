@@ -35,7 +35,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
         'makespan', 'value', 'time', 'execution_time', 'first_agent_arriving',
         'cycle_count', 'cycle_agents', 'unblocked_agents', 'feasibility_count',
         'feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4',
-        'feasibility_unsettled', 'feasibility_loop', 'feasibility_topo',
+        'feasibility_unsettled', 'feasibility_loop', 'feasibility_topo', 'feasibility_recursion',
     ]
     column_names = [
         "simulator", "agents", "timestep", "interval", "rate", "delay_type",
@@ -43,7 +43,8 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
         "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
         "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
         "average_timestep_time", "average_feasibility_time", "average_cycle_time",
-        'average_feasibility_unsettled', 'average_feasibility_loop', 'average_feasibility_topo',
+        'average_feasibility_unsettled', 'average_feasibility_loop',
+        'average_feasibility_topo', 'average_feasibility_recursion',
     ]
 
     main_df = pandas.DataFrame(columns=column_names)
@@ -114,6 +115,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         average_feasibility_unsettled = 0
                                         average_feasibility_loop = 0
                                         average_feasibility_topo = 0
+                                        average_feasibility_recursion = 0
                                         if len(df.columns) > 8:
                                             execution_time = npy.mean(df['execution_time'])
                                             first_agent_arriving = npy.mean(df['first_agent_arriving'])
@@ -146,6 +148,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                             average_feasibility_unsettled = npy.mean(df['feasibility_unsettled'] / df['first_agent_arriving'])
                                             average_feasibility_loop = npy.mean(df['feasibility_loop'] / df['first_agent_arriving'])
                                             average_feasibility_topo = npy.mean(df['feasibility_topo'] / df['first_agent_arriving'])
+                                            average_feasibility_recursion = npy.mean(df['feasibility_recursion'] / df['first_agent_arriving'])
                                     except:
                                         value = 0
                                         time = 0
@@ -179,7 +182,8 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         "average_cycle_time": average_cycle_time,
                                         "average_feasibility_unsettled": average_feasibility_unsettled,
                                         "average_feasibility_loop": average_feasibility_loop,
-                                        "average_feasibility_topo": average_feasibility_topo
+                                        "average_feasibility_topo": average_feasibility_topo,
+                                        "average_feasibility_recursion": average_feasibility_recursion,
                                     }
                                     main_df = main_df.append(row, ignore_index=True)
 
