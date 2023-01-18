@@ -1,5 +1,6 @@
 import click
 import numpy as npy
+import scipy.stats
 import pandas
 import os
 
@@ -20,6 +21,10 @@ delay_ratios_list = [0, 0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
 
+def get_confidence_interval(data):
+    return scipy.stats.t.interval(0.95, len(data)-1, loc=npy.mean(data), scale=scipy.stats.sem(data))
+
+
 def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
     if data_type == "infinite":
         starts_list = [1, 5, 10]
@@ -38,13 +43,14 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
         'feasibility_unsettled', 'feasibility_loop', 'feasibility_topo', 'feasibility_recursion',
     ]
     column_names = [
-        "simulator", "agents", "timestep", "interval", "rate", "delay_type",
+        "simulator", "obstacles", "agents", "timestep", "interval", "rate", "delay_type",
         "makespan", "value", "time", "feasibility", "cycle", "execution_time", "first_agent_arriving",
         "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
         "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
         "average_timestep_time", "average_feasibility_time", "average_cycle_time",
         'average_feasibility_unsettled', 'average_feasibility_loop',
         'average_feasibility_topo', 'average_feasibility_recursion',
+        "value_lower", "value_upper"
     ]
 
     main_df = pandas.DataFrame(columns=column_names)
@@ -101,6 +107,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
 
                                     try:
                                         value = npy.mean(df['value'])
+                                        value_lower, value_upper = get_confidence_interval(df['value'])
                                         time = npy.mean(df['time'])
                                         makespan = npy.mean(df['makespan'])
                                         execution_time = 0
@@ -151,6 +158,9 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                             average_feasibility_recursion = npy.mean(df['feasibility_recursion'] / df['first_agent_arriving'])
                                     except:
                                         value = 0
+                                        makespan = 0
+                                        value_lower = 0
+                                        value_upper = 0
                                         time = 0
                                     if time == 0 or npy.isnan(time):
                                         continue
@@ -163,6 +173,8 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         "rate": rate,
                                         "delay_type": delay_type,
                                         "value": value,
+                                        "value_lower": value_lower,
+                                        "value_upper": value_upper,
                                         "makespan": makespan,
                                         "time": time,
                                         "feasibility": feasibility == "n" and "exhaustive" or "heuristic",
