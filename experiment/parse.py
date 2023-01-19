@@ -50,7 +50,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
         "average_timestep_time", "average_feasibility_time", "average_cycle_time",
         'average_feasibility_unsettled', 'average_feasibility_loop',
         'average_feasibility_topo', 'average_feasibility_recursion',
-        "value_lower", "value_upper"
+        "value_lower", "value_upper", "average_timestep_time_lower", "average_timestep_time_upper",
     ]
 
     main_df = pandas.DataFrame(columns=column_names)
@@ -130,12 +130,16 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                             cycle_agents = npy.mean(df['cycle_agents'])
                                             unblocked_agents = npy.mean(df['unblocked_agents'])
                                             feasibility_count = npy.mean(df['feasibility_count'])
-                                            average_timestep_time = npy.ma.masked_invalid(
-                                                df['execution_time'] / df['first_agent_arriving']).mean() or None
+                                            timestep_time = npy.ma.masked_invalid(
+                                                df['execution_time'] / df['first_agent_arriving'])
+                                            average_timestep_time = timestep_time.mean() or None
+                                            average_timestep_time_lower, average_timestep_time_upper = \
+                                                get_confidence_interval(timestep_time)
                                             average_feasibility_time = npy.ma.masked_invalid(
                                                 df['execution_time'] / df['feasibility_count']).mean() or None
                                             average_cycle_time = npy.ma.masked_invalid(
                                                 df['execution_time'] / df['cycle_count']).mean() or None
+
                                         if len(df.columns) > 12:
                                             feasibility_count_all = npy.sum(
                                                 df[['feasibility_1', 'feasibility_2', 'feasibility_3',
@@ -196,6 +200,8 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         "average_feasibility_loop": average_feasibility_loop,
                                         "average_feasibility_topo": average_feasibility_topo,
                                         "average_feasibility_recursion": average_feasibility_recursion,
+                                        "average_timestep_time_lower": average_timestep_time_lower,
+                                        "average_timestep_time_upper": average_timestep_time_upper,
                                     }
                                     main_df = main_df.append(row, ignore_index=True)
 

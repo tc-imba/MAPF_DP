@@ -139,6 +139,13 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             else:
                 assert False
 
+            y_lower = None
+            y_upper = None
+
+            if yfield == "value":
+                y_lower = y - npy.array(df2["value_lower"] * df2["agents"])
+                y_upper = npy.array(df2["value_upper"] * df2["agents"]) - y
+
             if plot_type == "simulator":
                 if simulator == "default":
                     linestyle = "-."
@@ -158,8 +165,14 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             # print(plot_type, simulator, linestyle, i, j)
             color = obstacles_color[j % len(OBSTACLES)]
             marker = obstacles_marker[j % len(OBSTACLES)]
-            ax.plot(x, y, linestyle=linestyle, color=color, marker=marker, label=label,
-                    linewidth=2.5, markersize=8)
+
+            if y_lower is None or y_upper is None:
+                ax.plot(x, y, linestyle=linestyle, color=color, marker=marker, label=label,
+                        linewidth=1.5, markersize=2.5)
+            else:
+                ax.errorbar(x, y, yerr=[y_lower, y_upper], linestyle=linestyle, color=color, marker=marker, label=label,
+                        linewidth=1.5, markersize=2.5, capsize=3)
+
         ax.set_xticks(npy.arange(len(xticks)))
         ax.set_xticklabels(xticks)
         ax.set_xlabel(xlabel)
@@ -295,7 +308,7 @@ def main():
             # plot_feasibility(df_infinite, agents, "infinite", delay_type)
             # plot_feasibility(df_periodic, agents, "periodic", delay_type)
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
-            plot_cycle(df_periodic, agents, "periodic", delay_type)
+            # plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
             # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
