@@ -125,7 +125,8 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                 else:
                     y = npy.array(df2["value"] * df2["agents"])
             elif yfield == "time":
-                y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
+                y = npy.array(df2["average_timestep_time"] * 1000)
+                # y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
                 # if plot_type == "feasibility":
                 #     y = npy.array(df2["execution_time"] / df2["first_agent_arriving"] * 1000)
                 # elif plot_type == "cycle":
@@ -145,6 +146,9 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             if yfield == "value":
                 y_lower = y - npy.array(df2["value_lower"] * df2["agents"])
                 y_upper = npy.array(df2["value_upper"] * df2["agents"]) - y
+            elif yfield == "time":
+                y_lower = y - npy.array(df2["average_timestep_time_lower"] * 1000)
+                y_upper = npy.array(df2["average_timestep_time_upper"] * 1000) - y
 
             if plot_type == "simulator":
                 if simulator == "default":
@@ -250,10 +254,10 @@ def plot_simulator(data, agents, data_type, delay_type):
     subplot_type = "delay-ratio"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
     plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
-    groupby = ["simulator", "cycle", "rate"]
-    subplot_type = "obstacle"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
-    plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    # groupby = ["simulator", "cycle", "rate"]
+    # subplot_type = "obstacle"
+    # plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
+    # plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
 
 
 def plot_feasibility(data, agents, data_type, delay_type):
@@ -280,10 +284,10 @@ def plot_cycle(data, agents, data_type, delay_type):
     subplot_type = "delay-ratio"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
     plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
-    groupby = ["cycle", "rate"]
-    subplot_type = "obstacle"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    # groupby = ["cycle", "rate"]
+    # subplot_type = "obstacle"
+    # plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
+    # plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
 
 
 def plot_category(data, agents, data_type, delay_type):
@@ -308,7 +312,7 @@ def main():
             # plot_feasibility(df_infinite, agents, "infinite", delay_type)
             # plot_feasibility(df_periodic, agents, "periodic", delay_type)
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
-            # plot_cycle(df_periodic, agents, "periodic", delay_type)
+            plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
             # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
