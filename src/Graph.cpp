@@ -362,9 +362,43 @@ void Graph::generateFileGraph(const std::string &filename) {
     generateGraph(gridGraph, filename, 0, false);
 }
 
+void Graph::generateDOTGraph(const std::string &filename) {
+    std::ifstream DOTFileIn(filename + ".graph");
+    std::cerr << "load DOT graph from " << filename << ".graph" << std::endl;
+
+    boost::dynamic_properties dp;
+    dp.property("node_id", boost::get(&Node::index, g));
+    dp.property("type", boost::get(&Node::type, g));
+    dp.property("length", boost::get(&Edge::length, g));
+    dp.property("dp", boost::get(&Edge::dp, g));
+
+    g.clear();
+    boost::read_graphviz(DOTFileIn, g, dp);
+
+    auto vertices = boost::vertices(g);
+    auto edges = boost::edges(g);
+
+//    for (auto it = vertices.first; it != vertices.second; it++) {
+//        std::cerr << *it << " " << g[*it].index << std::endl;
+//    }
+
+    for (auto it = edges.first; it != edges.second; it++) {
+        g[*it].length = 1;
+    }
+
+    nodeNum = std::distance(vertices.first, vertices.second);
+    edgeNum = std::distance(edges.first, edges.second);
+
+}
+
 double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
     return distances[nodeId1][nodeId2];
+}
+
+const Graph::Node &Graph::getNode(unsigned int nodeId) {
+    assert(nodeId < nodeNum);
+    return g[nodeId];
 }
 
 

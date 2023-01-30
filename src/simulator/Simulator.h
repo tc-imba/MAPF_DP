@@ -26,6 +26,8 @@ public:
     bool debug = false;
     bool replanMode = false;
     std::string delayType;
+    std::string outputFileName;
+
 //    size_t delayInterval = 1;
     double delayRatio = 0.2;
 

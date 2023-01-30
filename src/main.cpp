@@ -29,6 +29,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan)", "--simulator");
     optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
+    optionParser.add("", false, 1, 0, "Output Filename", "-o", "--simulator-output");
     optionParser.add("agent", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
 
@@ -76,7 +77,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, outputFileName, delayType, solverType;
+    std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, delayType, solverType;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType;
@@ -84,6 +85,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--output")->getString(outputFileName);
+    optionParser.get("--simulator-output")->getString(simulatorOutputFileName);
     optionParser.get("--solver")->getString(solverType);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--obstacles")->getULong(obstacles);
@@ -157,6 +159,9 @@ int main(int argc, const char *argv[]) {
         graph.generateHardCodedGraph(filename, mapSeed);
         agentNum = 3;
         agentSeed = 1;
+    } else if (mapType == "dot") {
+        filename = "barcamap";
+        graph.generateDOTGraph(filename);
     }
     if (useDP) {
         graph.generateDelayProbability(mapSeed, minDP, maxDP);
@@ -171,6 +176,8 @@ int main(int argc, const char *argv[]) {
         agents = graph.generateWarehouseAgents(agentNum, agentSeed, true);
     } else if (mapType == "hardcoded") {
         agents = graph.generateHardCodedAgents(agentNum);
+    }else if (mapType == "dot") {
+        agents = graph.generateRandomAgents(agentNum, agentSeed);
     }
 
     MakeSpanType makeSpanType = MakeSpanType::UNKNOWN;
@@ -236,6 +243,7 @@ int main(int argc, const char *argv[]) {
             assert(0);
         }
         simulator->debug = debug;
+        simulator->outputFileName = simulatorOutputFileName;
 
 /*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();

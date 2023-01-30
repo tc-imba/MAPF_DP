@@ -42,6 +42,7 @@ private:
 
 public:
     struct Node {
+        size_t index;
         char type;
         unsigned int x;
         unsigned int y;
@@ -49,7 +50,7 @@ public:
 
     struct Edge {
         unsigned int index;
-        unsigned int length;
+        double length;
         double dp;
         double _distance;
     };
@@ -78,11 +79,15 @@ public:
 
     void generateFileGraph(const std::string &filename);
 
+    void generateDOTGraph(const std::string &filename);
+
     void calculateAllPairShortestPath(const std::string &filename = "", bool dp = false);
 
     void calculateUnweightedAllPairShortestPath();
 
     double getHeuristic(unsigned int nodeId1, unsigned int nodeId2);
+
+    const Node &getNode(unsigned int nodeId);
 
     const Edge &getEdge(unsigned int nodeId1, unsigned int nodeId2);
 

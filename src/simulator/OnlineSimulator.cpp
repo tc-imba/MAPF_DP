@@ -7,6 +7,7 @@
 #include <iostream>
 #include <random>
 #include <chrono>
+#include <fstream>
 
 #include "OnlineSimulator.h"
 
@@ -41,6 +42,15 @@ void OnlineSimulator::printSets(const std::string &title) {
 int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
                               unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
+    std::ofstream fout;
+    if (!outputFileName.empty()) fout.open(outputFileName);
+
+    if (fout.is_open()) {
+        fout << currentTimestep << std::endl;
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            fout << i << " " << graph.getNode(paths[i][0]).index << std::endl;
+        }
+    }
 
     std::uniform_real_distribution<double> distribution(0, 1);
 
@@ -58,6 +68,9 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
 
     for (; currentTimestep < maxTimeStep; currentTimestep++) {
+        if (fout.is_open()) {
+            fout << currentTimestep << std::endl;
+        }
         if (debug) {
             std::cout << "begin timestep " << currentTimestep << std::endl;
         }
@@ -259,6 +272,9 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                     }
                     nodeAgentMap[nextNodeId] = i;
                 } else {
+                    if (fout.is_open()) {
+                        fout << i << " " << graph.getNode(nextNodeId).index << std::endl;
+                    }
                     if (debug) {
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
                                   << state + 1 << "," << nextNodeId << ")" << std::endl;
@@ -299,6 +315,8 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             break;
         }
     }*/
+    if (fout.is_open()) fout.close();
+
     return countCompletedAgents();
 }
 
