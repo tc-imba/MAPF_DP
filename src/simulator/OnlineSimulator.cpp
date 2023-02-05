@@ -46,7 +46,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
     if (!outputFileName.empty()) fout.open(outputFileName);
 
     if (fout.is_open()) {
-        fout << currentTimestep << std::endl;
+        fout << 0 << std::endl;
         for (unsigned int i = 0; i < agents.size(); i++) {
             fout << i << " " << graph.getNode(paths[i][0]).index << std::endl;
         }
