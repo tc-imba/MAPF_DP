@@ -35,13 +35,13 @@ DELAY_INTERVALS = [1, 10, 20]  # test 2
 DELAY_STARTS = [1, 5, 10]  # test 1, not used
 DELAY_TYPES = ["agent"]
 # SIMULATORS = ["online", "default", "replan"]
-SIMULATORS = ["online"]
+SIMULATORS = ["prioritized"]
 NAIVE_SETTINGS = [
-    # (False, False, False),     # online/default,cycle
+    (False, False, False),     # online/default,cycle
     # (False, True, False),      # feasibility,cycle
     # (False, True, True),       # cycle
     # (True, False, False),
-    (True, True, False),       # feasibility
+    # (True, True, False),       # feasibility
     # (True, True, True),
 ]
 FEASIBILITY_TYPES = [False]
@@ -87,6 +87,12 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         file: Path = Path(result_dir) / output_filename
         file.unlink(missing_ok=True)
 
+    if simulator == "prioritized":
+        simulator = "replan"
+        prioritized_replan = True
+    else:
+        prioritized_replan = False
+
     args = [
         # program,
         "--map", map_type,
@@ -115,6 +121,8 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         args.append("--only-cycle")
     if feasibility_type:
         args.append("--feasibility-type")
+    if prioritized_replan:
+        args.append("--prioritized-replan ")
     # print(' '.join(args))
     while workers <= 0:
         await asyncio.sleep(1)
