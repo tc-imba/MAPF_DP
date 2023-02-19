@@ -16,7 +16,7 @@ os.makedirs(parsed_result_dir, exist_ok=True)
 # obstacles_list = [90, 180, 270, 360, 450]
 obstacles_list = [90, 180, 270]
 agents_list = [10, 20, 30]
-simulators_list = ["online", "replan", "default"]
+simulators_list = ["online", "replan", "default", "prioritized"]
 delay_ratios_list = [0, 0.01, 0.05, 0.1, 0.2, 0.3]
 delay_types_list = ["agent", "edge"]
 
@@ -65,12 +65,12 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                 raw_dfs = {}
 
                                 for simulator in simulators_list:
-                                    if simulator == "default" or simulator == "replan":
-                                        _feasibility = "h"
-                                        _cycle = "h"
-                                    else:
+                                    if simulator == "online":
                                         _feasibility = feasibility
                                         _cycle = cycle
+                                    else:
+                                        _feasibility = "h"
+                                        _cycle = "h"
                                     file = f"{simulator}-{obstacles}-{agents}-{delay_type}-{rate}-{start}-{interval}-{_feasibility}-{_cycle}.csv"
                                     try:
                                         df = pandas.read_csv(os.path.join(result_dir, file), header=None,
