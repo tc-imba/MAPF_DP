@@ -53,7 +53,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
         "value_lower", "value_upper", "average_timestep_time_lower", "average_timestep_time_upper",
     ]
 
-    main_df = pandas.DataFrame(columns=column_names)
+    rows = []
     for delay_type in delay_types_list:
         for obstacles in obstacles_list:
             for agents in agents_list:
@@ -203,8 +203,9 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                         "average_timestep_time_lower": average_timestep_time_lower,
                                         "average_timestep_time_upper": average_timestep_time_upper,
                                     }
-                                    main_df = main_df.append(row, ignore_index=True)
+                                    rows.append(row)
 
+    main_df = pandas.DataFrame(data=rows, columns=column_names)
     return main_df
 
 
