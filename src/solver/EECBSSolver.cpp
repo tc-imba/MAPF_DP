@@ -8,7 +8,7 @@
 #include <iostream>
 #include <limits>
 
-#include "../utils/eecbs.h"
+#include "driver.h"
 #include "EECBSSolver.h"
 
 bool EECBSSolver::readSolution(std::ifstream &fin) {
@@ -51,6 +51,7 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
     return true;
 }
 
+
 bool EECBSSolver::solve() {
     using namespace boost::filesystem;
 
@@ -84,11 +85,20 @@ bool EECBSSolver::solve() {
     arguments.emplace_back("--suboptimality");
     arguments.emplace_back("1");
 
+    if (prioritizedReplan) {
+        std::string obstaclesFileName = scenFile.string() + ".obs";
+        saveObstacles(obstaclesFileName);
+        arguments.emplace_back("--dynamicObstacles");
+        arguments.emplace_back(obstaclesFileName);
+    }
+
     std::vector<char *> cstrings;
     cstrings.reserve(arguments.size());
     for (const auto &string: arguments) {
+//        std::cout << string << " ";
         cstrings.push_back((char *) string.c_str());
     }
+//    std::cout << std::endl;
 
     auto start = std::chrono::steady_clock::now();
     eecbs((int) cstrings.size(), cstrings.data());
@@ -100,9 +110,75 @@ bool EECBSSolver::solve() {
     success = readSolution(fin);
     fin.close();
 
-    remove_all(ph);
+    if (success) {
+        remove_all(ph);
+    }
+    prioritizedReplan = false;
 
     return success;
 }
 
+
+bool EECBSSolver::solveWithPrioritizedReplan() {
+    prioritizedReplan = true;
+    savedAgents = std::move(agents);
+    savedPlans.clear();
+    savedPlans.resize(savedAgents.size());
+    plannedAgentsMap.resize(savedAgents.size());
+    agents.clear();
+    for (size_t i = 0; i < savedAgents.size(); i++) {
+        auto &agent = savedAgents[i];
+        auto &path = solution->plans[i]->path;
+        if (agent.state + 1 >= path.size() || !agent.delayed) {
+            size_t distance = std::min((size_t) agent.state, path.size() - 1);
+            path.erase(path.begin(), path.begin() + distance);
+            savedPlans[i] = solution->plans[i];
+            plannedAgentsMap[i] = savedAgents.size();
+        } else {
+            savedPlans[i] = nullptr;
+            plannedAgentsMap[i] = agents.size();
+            agents.push_back(savedAgents[i]);
+        }
+    }
+    if (!agents.empty()) {
+        if (!solve()) {
+            agents = std::move(savedAgents);
+            std::cerr << "prioritized replan failed, retry with full replan" << std::endl;
+            prioritizedReplan = false;
+            init();
+            return solve();
+        }
+    }
+    agents = std::move(savedAgents);
+    for (size_t i = 0; i < agents.size(); i++) {
+        if (!savedPlans[i]) {
+            savedPlans[i] = solution->plans[plannedAgentsMap[i]];
+        }
+    }
+    solution->plans = std::move(savedPlans);
+    return true;
+}
+
+void EECBSSolver::saveObstacles(const std::string &filename) {
+    std::vector<std::tuple<unsigned int, unsigned int, int, int>> result;
+    for (size_t i = 0; i < savedAgents.size(); i++) {
+        if (savedPlans[i]) {
+            auto &path = savedPlans[i]->path;
+            for (int j = 0; j < path.size(); j++) {
+                auto &node = graph.getNode(path[j].nodeId);
+                auto tmax = (j == path.size() - 1) ? INT_MAX / 2 : j + 1;
+                result.emplace_back(node.x, node.y, j, tmax);
+            }
+        }
+    }
+    std::ofstream fileOut(filename);
+    fileOut << result.size() << std::endl;
+    for (const auto &row: result) {
+        fileOut << std::get<0>(row) << " "
+                << std::get<1>(row) << " "
+                << std::get<2>(row) << " "
+                << std::get<3>(row) << std::endl;
+    }
+    fileOut.close();
+}
 

@@ -16,6 +16,7 @@ struct Agent {
     unsigned int timestep;
     unsigned int waitingTimestep;
     bool blocked;
+    bool delayed;
 };
 
 class Graph {

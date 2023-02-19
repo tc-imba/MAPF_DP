@@ -25,6 +25,7 @@ protected:
 public:
     bool debug = false;
     bool replanMode = false;
+    bool prioritizedReplan = false;
     std::string delayType;
     std::string outputFileName;
 
@@ -168,8 +169,17 @@ public:
         }
 //        auto newSolver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, MakeSpanType::MAXIMUM));
         solver->init();
-        solver->solve();
-
+        bool success;
+        if (prioritizedReplan) {
+//            success = solver->solve();
+            success = solver->solveWithPrioritizedReplan();
+        } else {
+            success = solver->solve();
+        }
+        if (!success) {
+            std::cerr << "solve failed" << std::endl;
+            exit(-1);
+        }
         // prepend a dummy state to the path of each agent
         for (unsigned int i = 0; i < agents.size(); i++) {
             agents[i].state = 0;

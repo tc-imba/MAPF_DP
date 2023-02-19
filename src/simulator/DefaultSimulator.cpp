@@ -17,6 +17,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].state = 0;
         agents[i].blocked = true;
+        agents[i].delayed = false;
         savedStart[i] = agents[i].current = agents[i].start;
     }
 
@@ -120,6 +121,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                     std::cout << "agent " << i << ": completed" << std::endl;
                 }
                 agents[i].blocked = true;
+                agents[i].delayed = false;
                 ++count;
                 continue;
             }
@@ -149,6 +151,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                     exit(-1);
                 }
                 agents[i].blocked = true;
+                agents[i].delayed = false;
 //                continue;
             }
             if (debug) {
@@ -169,6 +172,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                               << std::endl;
                 }
                 agents[i].blocked = false;
+                agents[i].delayed = true;
                 continue;
             }
 
@@ -180,6 +184,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                               << std::endl;
                 }
                 agents[i].blocked = false;
+                agents[i].delayed = true;
                 continue;
             }
 
@@ -207,6 +212,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                           << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
             }
             agents[i].blocked = true;
+            agents[i].delayed = false;
             agents[i].current = nextLabel.nodeId;
             agents[i].waitingTimestep = 0;
             ++state;

@@ -9,11 +9,11 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 include_directories("EECBS/inc")
 file(GLOB SOURCE_FILES "EECBS/src/*.cpp")
-list(REMOVE_ITEM SOURCE_FILES "EECBS/src/driver.cpp")
+list(REMOVE_ITEM SOURCE_FILES "EECBS/src/main.cpp")
 
-add_executable(EECBS ${SOURCE_FILES} EECBS/src/driver.cpp)
+add_executable(EECBS ${SOURCE_FILES} EECBS/src/main.cpp)
 target_link_libraries(EECBS ${Boost_LIBRARIES})
-add_library(EECBS_Static ${SOURCE_FILES} src/utils/eecbs.cpp)
+add_library(EECBS_Static ${SOURCE_FILES})
 target_link_libraries(EECBS_Static ${Boost_LIBRARIES})
 
 set(SOURCE_FILES

@@ -149,6 +149,7 @@ public:
 
     bool solveWithCache(const std::string &directory, unsigned int agentSeed);
 
+    virtual bool solveWithPrioritizedReplan() {return solve(); };
 
 };
 

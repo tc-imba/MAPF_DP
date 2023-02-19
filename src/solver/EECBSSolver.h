@@ -8,6 +8,12 @@
 #include "Solver.h"
 
 class EECBSSolver : public Solver {
+private:
+    bool prioritizedReplan = false;
+    std::vector<Agent> savedAgents;
+    std::vector<std::shared_ptr<AgentPlan >> savedPlans;
+    std::vector<size_t> plannedAgentsMap;
+
 public:
     EECBSSolver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType) : Solver(graph, agents, makeSpanType) {};
 
@@ -16,6 +22,10 @@ public:
     bool readSolution(std::ifstream &fin);
 
     bool solve() override;
+
+    bool solveWithPrioritizedReplan() override;
+
+    void saveObstacles(const std::string &filename);
 };
 
 #endif //MAPF_DP_EECBSSOLVER_H
