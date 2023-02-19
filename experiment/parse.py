@@ -95,6 +95,7 @@ def parse_data(result_dir, data_type, category) -> pandas.DataFrame:
                                 base_df = raw_dfs[simulators_list[0]]
                                 for simulator in simulators_list[1:]:
                                     target_df = raw_dfs[simulator]
+                                    base_df = base_df[['map', 'agent', 'iteration']]
                                     base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
                                 base_df = base_df[['map', 'agent', 'iteration']]
 
