@@ -14,6 +14,8 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
     std::unordered_map<unsigned int, int> nodeStates;
     std::vector<unsigned int> savedStart(agents.size());
 
+    openOutputFiles();
+
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].state = 0;
         agents[i].blocked = true;
@@ -235,11 +237,16 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
         }
 
         if (replanMode) {
-            if (firstAgentArrivingTimestep == 0) {
-                executionTime += replan();
-            } else {
-                replan();
+            auto currentExecutionTime = replan();
+            if (currentExecutionTime < 0) {
+                currentTimestep = maxTimeStep + 100;
+                break;
             }
+            bool firstAgentArrived = firstAgentArrivingTimestep > 0;
+            if (!firstAgentArrived) {
+                executionTime += currentExecutionTime;
+            }
+            executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
             refresh = true;
         }
 
@@ -258,6 +265,12 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
 
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].start = savedStart[i];
+    }
+
+    closeOutputFiles();
+
+    if (currentTimestep > maxTimeStep + 1) {
+        return 0;
     }
 
     return countCompletedAgents();

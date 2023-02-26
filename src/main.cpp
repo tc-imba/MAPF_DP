@@ -29,10 +29,12 @@ int main(int argc, const char *argv[]) {
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan)", "--simulator");
-    optionParser.add("", false, 1, 0, "Output Filename", "-o", "--output");
-    optionParser.add("", false, 1, 0, "Output Filename", "-o", "--simulator-output");
-    optionParser.add("agent", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
+    optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
+    optionParser.add("", false, 1, 0, "Simulator Output Filename", "-o", "--simulator-output");
+    optionParser.add("", false, 1, 0, "Time Output Filename", "-o", "--time-output");
+    optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
+    optionParser.add("../cmake-build-relwithdebinfo/EECBS", false, 1, 0, "Solver binary (for EECBS)", "--solver-binary");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit)", "-w", "--window", validWindowSize);
@@ -78,7 +80,7 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, delayType, solverType;
+    std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan;
@@ -87,7 +89,9 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--simulator-output")->getString(simulatorOutputFileName);
+    optionParser.get("--time-output")->getString(timeOutputFileName);
     optionParser.get("--solver")->getString(solverType);
+    optionParser.get("--solver-binary")->getString(solverBinaryFile);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
@@ -195,7 +199,8 @@ int main(int argc, const char *argv[]) {
     if (solverType == "default") {
         solver = std::shared_ptr<Solver>(new CBSSolver(graph, agents, makeSpanType, window));
     } else if (solverType == "eecbs") {
-        solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType));
+        if (solverBinaryFile.empty()) exit(-1);
+        solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile));
     } else {
         assert(0);
     }
@@ -209,7 +214,11 @@ int main(int argc, const char *argv[]) {
         exit(-1);
     }
 
-//    while (solver.step()) {}
+    if (!timeOutputFileName.empty()) {
+        // delete old file
+        std::ofstream tempFile(timeOutputFileName);
+        tempFile.close();
+    }
 
     double approx = solver->approxAverageMakeSpan(*solver->solution);
     std::shared_ptr<OnlineSimulator> onlineSimulator;
@@ -247,6 +256,8 @@ int main(int argc, const char *argv[]) {
         }
         simulator->debug = debug;
         simulator->outputFileName = simulatorOutputFileName;
+        simulator->timeOutputFileName = timeOutputFileName;
+
 
 /*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
@@ -296,6 +307,7 @@ int main(int argc, const char *argv[]) {
             out << "," << elapsed_seconds.count() << ",";
             simulator->print(out);
             out << std::endl;
+            simulator->printExecutionTime(i);
             finished++;
         } else {
             std::cerr << count << " " << agentNum << std::endl;

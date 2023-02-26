@@ -11,6 +11,7 @@
 #include <random>
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 
 class Simulator {
 protected:
@@ -21,6 +22,7 @@ protected:
     std::shared_ptr<Solver> solver = nullptr;
 
     std::set<unsigned int> delayedSet;
+    std::vector<std::pair<bool, double> > executionTimeVec;
 
 public:
     bool debug = false;
@@ -28,6 +30,11 @@ public:
     bool prioritizedReplan = false;
     std::string delayType;
     std::string outputFileName;
+    std::string timeOutputFileName;
+
+    std::ofstream outputFile;
+    std::ofstream timeOutputFile;
+
 
 //    size_t delayInterval = 1;
     double delayRatio = 0.2;
@@ -104,10 +111,31 @@ public:
         return count;
     }
 
+    void openOutputFiles() {
+        if (!outputFileName.empty()) outputFile.open(outputFileName);
+//        if (!timeOutputFileName.empty()) timeOutputFile.open(timeOutputFileName);
+    }
+
+    void closeOutputFiles() {
+        if (outputFile.is_open()) outputFile.close();
+//        if (timeOutputFile.is_open()) timeOutputFile.close();
+    }
+
     virtual int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
                          unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) = 0;
 
     virtual void print(std::ostream &out) const = 0;
+
+    void printExecutionTime(size_t iteration) {
+        timeOutputFile.open(timeOutputFileName, std::ios_base::app);
+        if (timeOutputFile.is_open()) {
+            timeOutputFile << iteration << " " << executionTimeVec.size() << std::endl;
+            for (auto &p : executionTimeVec) {
+                timeOutputFile << (int) p.first << " " << p.second << std::endl;
+            }
+            timeOutputFile.close();
+        }
+    }
 
     double replan() {
 /*
@@ -178,7 +206,8 @@ public:
         }
         if (!success) {
             std::cerr << "solve failed" << std::endl;
-            exit(-1);
+            return -1;
+//            exit(-1);
         }
         // prepend a dummy state to the path of each agent
         for (unsigned int i = 0; i < agents.size(); i++) {

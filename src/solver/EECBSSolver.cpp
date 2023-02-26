@@ -4,6 +4,8 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string_regex.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/process.hpp>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -54,6 +56,7 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
 
 bool EECBSSolver::solve() {
     using namespace boost::filesystem;
+    using namespace boost::process;
 
     executionTime = 0;
 
@@ -69,7 +72,7 @@ bool EECBSSolver::solve() {
     graph.saveAgents(mapFileName, scenFile.string(), agents);
 
     std::vector<std::string> arguments;
-    arguments.emplace_back("eecbs");
+    arguments.emplace_back(solverBinaryFile);
     arguments.emplace_back("-m");
     arguments.emplace_back(mapFileName);
     arguments.emplace_back("-a");
@@ -92,6 +95,9 @@ bool EECBSSolver::solve() {
         arguments.emplace_back(obstaclesFileName);
     }
 
+    std::string argumentsStr = boost::algorithm::join(arguments, " ");
+
+
     std::vector<char *> cstrings;
     cstrings.reserve(arguments.size());
     for (const auto &string: arguments) {
@@ -100,8 +106,13 @@ bool EECBSSolver::solve() {
     }
 //    std::cout << std::endl;
 
+
+    child c(argumentsStr, std_out > stderr, std_err > stderr);
     auto start = std::chrono::steady_clock::now();
-    eecbs((int) cstrings.size(), cstrings.data());
+    c.wait();
+
+//    eecbs((int) cstrings.size(), cstrings.data());
+
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     executionTime = elapsed_seconds.count();
@@ -110,9 +121,9 @@ bool EECBSSolver::solve() {
     success = readSolution(fin);
     fin.close();
 
-    if (success) {
+//    if (success) {
         remove_all(ph);
-    }
+//    }
     prioritizedReplan = false;
 
     return success;
@@ -142,11 +153,14 @@ bool EECBSSolver::solveWithPrioritizedReplan() {
     }
     if (!agents.empty()) {
         if (!solve()) {
+            auto lastExecutionTime = executionTime;
             agents = std::move(savedAgents);
             std::cerr << "prioritized replan failed, retry with full replan" << std::endl;
             prioritizedReplan = false;
             init();
-            return solve();
+            auto result = solve();
+            executionTime += lastExecutionTime;
+            return result;
         }
     }
     agents = std::move(savedAgents);

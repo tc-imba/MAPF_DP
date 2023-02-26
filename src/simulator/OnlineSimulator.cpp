@@ -43,7 +43,8 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                               unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
     std::ofstream fout;
-    if (!outputFileName.empty()) fout.open(outputFileName);
+    executionTimeVec.clear();
+    openOutputFiles();
 
     if (fout.is_open()) {
         fout << 0 << std::endl;
@@ -315,7 +316,7 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
             break;
         }
     }*/
-    if (fout.is_open()) fout.close();
+    closeOutputFiles();
 
     return countCompletedAgents();
 }

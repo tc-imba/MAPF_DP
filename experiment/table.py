@@ -19,7 +19,7 @@ obstacles_marker = ["o", "s", "^"]
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2, 0.3]
 OBSTACLES = [90, 270]
-AGENTS = [20, 30]
+AGENTS = [10, 20, 30]
 
 
 def get_subplot_key(subplot_type, data):

@@ -28,7 +28,11 @@ set(SOURCE_FILES
         )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
-target_link_libraries(MAPF_DP EECBS_Static)
+IF (WIN32)
+    target_link_libraries(MAPF_DP EECBS_Static ws2_32)
+ELSE()
+    target_link_libraries(MAPF_DP EECBS_Static)
+ENDIF()
 
 add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp)
 target_link_libraries(MAPF_Map_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
