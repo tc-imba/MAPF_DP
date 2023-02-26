@@ -122,7 +122,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     if feasibility_type:
         args.append("--feasibility-type")
     if prioritized_replan:
-        args.append("--prioritized-replan ")
+        args.append("--prioritized-replan")
     # print(' '.join(args))
     while workers <= 0:
         await asyncio.sleep(1)

@@ -100,6 +100,8 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                     label = f"baseline-{subplot_key}"
                 elif simulator == "replan":
                     label = f"replan-{subplot_key}"
+                elif simulator == "prioritized":
+                    label = f"prioritized-{subplot_key}"
                 else:
                     label = f"{cycle}-{subplot_key}"
             elif plot_type == "category":
@@ -155,6 +157,8 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                     linestyle = "-."
                 elif simulator == "replan":
                     linestyle = ":"
+                elif simulator == "prioritized":
+                    linestyle = "--"
                 else:
                     linestyle = "-"
                 # linestyle = simulator == "online" and "-" or (cycle == "naive" and ":" or "-.")
@@ -246,14 +250,14 @@ def generate_table(df, agents, yfield, groupby, data_type, plot_type):
 
 def plot_simulator(data, agents, data_type, delay_type):
     df = data[(((data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
-            data["simulator"] == "default") | (data["simulator"] == "replan"))
+            data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "prioritized"))
               & (data["agents"] == agents) & (data["delay_type"] == delay_type)]
     df2 = df[df["simulator"] != "default"]
     groupby = ["simulator", "cycle", "obstacles"]
     plot_type = "simulator"
     subplot_type = "delay-ratio"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
-    plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=True)
+    plot(df2, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=True)
     # groupby = ["simulator", "cycle", "rate"]
     # subplot_type = "obstacle"
     # plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=agents == 20)
@@ -312,7 +316,7 @@ def main():
             # plot_feasibility(df_infinite, agents, "infinite", delay_type)
             # plot_feasibility(df_periodic, agents, "periodic", delay_type)
             # plot_cycle(df_infinite, agents, "infinite", delay_type)
-            plot_cycle(df_periodic, agents, "periodic", delay_type)
+            # plot_cycle(df_periodic, agents, "periodic", delay_type)
             # plot_category(df_infinite_feasibility_category, agents, "infinite", delay_type)
             # plot_category(df_periodic_feasibility_category, agents, "periodic", delay_type)
 
