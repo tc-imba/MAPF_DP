@@ -20,14 +20,14 @@ obstacles_marker = ["o", "s", "^"]
 
 EDGE_DELAY_RATIOS = [0.01, 0.05]
 AGENT_DELAY_RATIOS = [0.1, 0.2, 0.3]
-OBSTACLES = [90, 270]
+OBSTACLES = [90, 180, 270]
 
 
 def get_subplot_key(subplot_type, data):
     if subplot_type == "delay-ratio":
         subplot_key = int(data)
     elif subplot_type == "obstacle":
-        subplot_key = f"{int(data * 100)}%-agents-paused"
+        subplot_key = f"{int(data * 100)}%"
     else:
         assert False
     return subplot_key
@@ -37,7 +37,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
     ylog = False
     if yfield == "time":
         if plot_type == "feasibility":
-            ylabel = 'Average Computation Time of Each Timestep (ms)'
+            ylabel = 'Average Computation Time of Each Feasibility Check (ms)'
         elif plot_type == "cycle":
             ylabel = 'Average Computation Time of Each Timestep (ms)'
             ylog = True
@@ -47,7 +47,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
         if data_type == "infinite":
             ylabel = 'Success Rate (%)'
         elif data_type == "periodic":
-            ylabel = 'Sum of Costs (average)'
+            ylabel = 'Sum of Cost (average)'
         else:
             assert False
     elif yfield == "category":
@@ -59,13 +59,13 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
         xlabel = 'start timestep (t)'
         xticks_field = 'timestep'
     elif data_type == "periodic":
-        xlabel = 'length of each pause (k)'
+        xlabel = 'delay interval (k)'
         xticks_field = 'interval'
     else:
         assert False
 
-    fig = plt.figure(figsize=(24, 9), dpi=100)
-    plt.rcParams.update({'font.size': 20, 'font.family': 'monospace'})
+    fig = plt.figure(figsize=(16, 9), dpi=100)
+    plt.rcParams.update({'font.size': 16, 'font.family': 'monospace'})
     axes = []
 
     if subplot_type == "delay-ratio":
@@ -87,7 +87,6 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
         axes.append(ax)
         sub_df = df[df[subplot_field] == key]
         xticks = []
-        ymax = 0
         for j, (group, df2) in enumerate(sub_df.groupby(groupby)):
             if plot_type == "online-offline":
                 (simulator, cycle, subplot_key) = group
@@ -95,9 +94,9 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
                 if cycle != "proposed":
                     cycle = "naive"
                 if simulator == "default":
-                    label = f"baseline-{subplot_key}"
+                    label = f"offline-{subplot_key}"
                 else:
-                    label = f"proposed-{subplot_key}"
+                    label = f"online-{cycle}-{subplot_key}"
             elif plot_type == "category":
                 subplot_key = get_subplot_key(subplot_type, group)
                 label = f"{subplot_key}"
@@ -141,14 +140,9 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             marker = obstacles_marker[j % len(obstacles_marker)]
             ax.plot(x, y, linestyle=linestyle, color=color, marker=marker, label=label,
                     linewidth=2.5, markersize=8)
-            ymax = max(ymax, np.max(y))
         ax.set_xticks(npy.arange(len(xticks)))
         ax.set_xticklabels(xticks)
         ax.set_xlabel(xlabel)
-        if yfield == "time" and plot_type == "feasibility":
-            base = 10 ** int(np.log10(ymax))
-            ymax = (ymax // base + 1) * base
-            ax.set_ylim(0, ymax)
         if subplot_type == "delay-ratio":
             ax.set_title(f"{int(key * 100)}% of {delay_type}s blocked")
         elif subplot_type == "obstacle":
@@ -160,13 +154,11 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             ax.yaxis.set_minor_formatter(ScalarFormatter())
             ax.yaxis.set_major_formatter(ScalarFormatter())
 
-
-
     # plt.ylabel(ylabel)
     bbox_extra_artists = []
-    ax = axes[0]
-    ax.set_ylabel(ylabel)
     if legend:
+        ax = axes[0]
+        ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if len(handles) % 3 == 0:
             ncol = 3
@@ -174,11 +166,7 @@ def plot(df, agents, yfield, groupby, data_type, plot_type, delay_type, subplot_
             labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
         else:
             ncol = 2
-        bbox_to_anchor_y = 0.95 + 0.05 * (len(handles) / ncol)
-        if len(handles) == 9:
-            order = [0, 2, 1]
-            handles = [handles[i // 3 * 3 + order[i % 3]] for i in range(len(handles))]
-            labels = [labels[i // 3 * 3 + order[i % 3]] for i in range(len(labels))]
+        bbox_to_anchor_y = 0.97 + 0.03 * (len(handles) / ncol)
         legend = ax.legend(handles, labels, loc='upper center', ncol=ncol, columnspacing=0.5,
                            bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure)
         bbox_extra_artists.append(legend)
@@ -236,11 +224,11 @@ def plot_feasibility(data, agents, data_type, delay_type):
     plot_type = "feasibility"
     subplot_type = "delay-ratio"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
     groupby = ["feasibility", "rate"]
     subplot_type = "obstacle"
     plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_cycle(data, agents, data_type, delay_type):
@@ -249,12 +237,12 @@ def plot_cycle(data, agents, data_type, delay_type):
     groupby = ["cycle", "obstacles"]
     plot_type = "cycle"
     subplot_type = "delay-ratio"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
     groupby = ["cycle", "rate"]
     subplot_type = "obstacle"
-    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type)
-    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "value", groupby, data_type, plot_type, delay_type, subplot_type, legend=False)
+    plot(df, agents, "time", groupby, data_type, plot_type, delay_type, subplot_type)
 
 
 def plot_category(data, agents, data_type, delay_type):

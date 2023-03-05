@@ -76,8 +76,6 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 //
         auto start = std::chrono::steady_clock::now();
 
-        /** Algorithm 2 **/
-
 #ifdef DEBUG_CYCLE
         auto lastMoved = moved;
         auto lastBlocked = blocked;
@@ -112,18 +110,12 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
         cycleCheck();
         printSets("cycle       |");
 #else
-        /** line 1 **/
         initChecks();
         if (!isOnlyCycleCheck) {
-            /** note that the iteration (line 2-3) occurs three times separately in the following functions **/
-            /** line 4-6 **/
             unsharedCheck();
-            /** line 7-8 **/
             neighborCheck();
-            /** line 9-10 **/
             deadEndCheck();
         }
-        /** line 12-23 **/
         cycleCheck();
 #endif
 
@@ -320,9 +312,6 @@ void OnlineSimulator::print(std::ostream &out) const {
     for (int i = 0; i < 4; i++) {
         out << "," << feasibilityCheckTypes[i];
     }
-//    for (int i = 0; i < 2; i++) {
-//        out << "," << feasibilityCheckIteration[i];
-//    }
 }
 
 void OnlineSimulator::initSharedNodes(size_t i, size_t j) {
@@ -573,7 +562,6 @@ void OnlineSimulator::naiveCycleCheck() {
 //    ready.insert(maxReadyList.begin(), maxReadyList.end());
 }
 
-/** Algorithm 2: line 12-23 **/
 void OnlineSimulator::heuristicCycleCheck() {
     //    std::cerr << "start cycle check: ";
     std::set<size_t> newReady = ready;
@@ -585,17 +573,12 @@ void OnlineSimulator::heuristicCycleCheck() {
 
     // use feasibility check to block some agents
     std::set<size_t> removed;
-    /** line 12 **/
     while (!newReady.empty()) {
 //        std::cerr << "check 1" << std::endl;
-        /** line 13 is done before the iteration and updated in each iteration **/
-        /** line 14 **/
         auto [agentId1, agentId2] = feasibilityCheck();
-        /** line 15 **/
         if (agentId1 == agents.size() && agentId2 == agents.size()) {
             break;
         }
-        /** line 16-17 **/
         // TODO: add randomness here
 //        std::cerr << agentId1 << " " << agentId2 << std::endl;
         if (newReady.find(agentId1) != newReady.end()) {
@@ -620,18 +603,13 @@ void OnlineSimulator::heuristicCycleCheck() {
     // if all agents are blocked, try one by one to unblock
 //    if (newReady.empty()) {
 //        std::cerr << "warn: ready empty" << std::endl;
-    /** line 18-19 **/
     for (auto i: ready) {
         if (newReady.find(i) == newReady.end()) {
             agents[i].state++;
 //            std::cerr << "check 2: " << i << std::endl;
-            /** line 20 **/
             auto [agentId1, agentId2] = feasibilityCheck();
-            /** line 21-23 **/
             if (agentId1 == agents.size() && agentId2 == agents.size()) {
                 newReady.insert(i);
-                // we find that whether to break here does not affect the result
-                // you can comment out the next line to achieve line 23 in algorithm 2
                 // break;
             } else {
                 agents[i].state--;
@@ -690,21 +668,18 @@ void OnlineSimulator::cycleCheck() {
 //    std::cerr << "end cycle check: ";
 }
 
-/** Algorithm 1 **/
 std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
         std::list<SharedNodePair> &sharedNodesList,
         bool recursive
+//        std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
 ) {
     std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
 //    std::cout << "feasibility check" << std::endl;
 
-    /** line 1 **/
     while (!sharedNodesList.empty()) {
-        /** line 2 **/
         unsigned int erasedEdges = 0;
-        /** line 3 **/
+
         for (auto it = sharedNodesList.begin(); it != sharedNodesList.end();) {
-//            feasibilityCheckIterationTemp++;
             std::vector<std::pair<unsigned int, unsigned int>> selectedEdges;
             unsigned int maxSelectedEdges = 0;
             if (it->state2 > agents[it->agentId2].state) {
@@ -741,7 +716,6 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
             }
 
             if (selectedEdges.empty()) {
-                /** line 4 **/
                 if (maxSelectedEdges > 0) {
                     // failed
 //                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
@@ -750,24 +724,17 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                         boost::remove_edge(nodeId1, nodeId2, topoGraph);
                     }
 //                    std::cout << "infeasible" << std::endl;
-                    /** line 5 **/
                     return std::make_pair(it->agentId1, it->agentId2);
                 } else {
 //                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
 //                              << it->state2 << std::endl;
                 }
-                /** unreachable code, only for execution safety  **/
                 it = sharedNodesList.erase(it);
                 ++erasedEdges;
-                /** unreachable code end **/
-            } /** line 6 **/
-            else if (selectedEdges.size() == 1) {
-                /** line 7 **/
+            } else if (selectedEdges.size() == 1) {
                 addedEdges.emplace_back(selectedEdges[0]);
                 boost::add_edge(selectedEdges[0].first, selectedEdges[0].second, topoGraph);
-                /** line 8 **/
                 it = sharedNodesList.erase(it);
-                /** line 9 **/
                 ++erasedEdges;
 //                std::cout << "choose: " << selectedEdges[0].first << " " << selectedEdges[0].second << std::endl;
             } else {
@@ -777,25 +744,19 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
 
 //        std::cout << erasedEdges << std::endl;
 
-        /** line 10 **/
         if (erasedEdges == 0 && !sharedNodesList.empty()) {
-            /** line 11 **/
             auto it = sharedNodesList.begin();
             auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
             auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
 
-            /** line 12 **/
             // TODO: add randomness here
             addedEdges.emplace_back(nodeId1, nodeId2);
             boost::add_edge(nodeId1, nodeId2, topoGraph);
 
-            /** line 13 **/
             sharedNodesList.erase(it);
-
-            /** exhaustive version of Algorithm 1 **/
             if (recursive) {
                 auto sharedNodesListBackup = sharedNodesList;
-//                std::cout << "recursive" << std::endl;
+                std::cout << "recursive" << std::endl;
                 auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
                 boost::remove_edge(nodeId1, nodeId2, topoGraph);
                 addedEdges.pop_back();
@@ -818,7 +779,6 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
         boost::remove_edge(nodeId1, nodeId2, topoGraph);
     }
 //    std::cout << "feasible" << std::endl;
-    /** line 14 **/
     return std::make_pair(agents.size(), agents.size());
 }
 
@@ -928,12 +888,8 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheck() {
     if (!isFeasibilityType) {
         return feasibilityCheckTest(!isHeuristicCycleCheck);
     }
-//    feasibilityCheckIterationTemp = 0;
     auto heuristicResult = feasibilityCheckTest(false);
-//    feasibilityCheckIteration[0] += feasibilityCheckIterationTemp;
-//    feasibilityCheckIterationTemp = 0;
     auto exhaustiveResult = feasibilityCheckTest(true);
-//    feasibilityCheckIteration[1] += feasibilityCheckIterationTemp;
     bool heuristicSuccess = heuristicResult.first == agents.size() && heuristicResult.second == agents.size();
     bool exhaustiveSuccess = exhaustiveResult.first == agents.size() && exhaustiveResult.second == agents.size();
     if (heuristicSuccess) {
