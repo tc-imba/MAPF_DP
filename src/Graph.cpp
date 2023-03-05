@@ -177,7 +177,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
                 node.type = gridGraph[i][j];
                 node.x = i;
                 node.y = j;
-                V++;
+                node.index = V++;
             }
         }
     }

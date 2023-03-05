@@ -66,7 +66,9 @@ public:
             } else if (makeSpanType == MakeSpanType::AVERAGE) {
                 result += agent.timestep / (double) agents.size();
             }
+//            std::cerr << agent.timestep << " ";
         }
+//        std::cerr << std::endl;
         return result;
     }
 

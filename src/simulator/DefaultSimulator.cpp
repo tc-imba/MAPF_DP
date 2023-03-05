@@ -51,18 +51,27 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
 //    std::mt19937 generator(seed);
 //    std::uniform_real_distribution<double> distribution(0, 1);
 
+    if (outputFile.is_open()) {
+        outputFile << 0 << std::endl;
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            auto &node = graph.getNode(solver->solution->plans[i]->path[0].nodeId);
+            outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
+        }
+    }
+
     for (; currentTimestep < maxTimeStep; currentTimestep++) {
-        if (debug) {
-            std::cout << "begin timestep " << currentTimestep << std::endl;
+        if (outputFile.is_open()) {
+            outputFile << currentTimestep << std::endl;
         }
 
         if (debug) {
+            std::cerr << "begin timestep " << currentTimestep << std::endl;
             for (unsigned int i = 0; i < agents.size(); i++) {
-                std::cout << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+                std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
-                    std::cout << "(" << label.state << "," << label.nodeId << ")->";
+                    std::cerr << "(" << label.state << "," << label.nodeId << ")->";
                 }
-                std::cout << std::endl;
+                std::cerr << std::endl;
             }
         }
 
@@ -209,6 +218,10 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                     continue;
                 }
             }*/
+            if (outputFile.is_open()) {
+                auto &node = graph.getNode(nextLabel.nodeId);
+                outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
+            }
             if (debug) {
                 std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
                           << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;

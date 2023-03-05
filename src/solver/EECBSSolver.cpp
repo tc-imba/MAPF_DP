@@ -107,7 +107,8 @@ bool EECBSSolver::solve() {
 //    std::cout << std::endl;
 
 
-    child c(argumentsStr, std_out > stderr, std_err > stderr);
+//    child c(argumentsStr, std_out > stderr, std_err > stderr);
+    child c(argumentsStr, std_out > null, std_err > null);
     auto start = std::chrono::steady_clock::now();
     c.wait();
 
@@ -137,12 +138,17 @@ bool EECBSSolver::solveWithPrioritizedReplan() {
     savedPlans.resize(savedAgents.size());
     plannedAgentsMap.resize(savedAgents.size());
     agents.clear();
+//    std::cerr << "before: " << std::endl;
     for (size_t i = 0; i < savedAgents.size(); i++) {
         auto &agent = savedAgents[i];
         auto &path = solution->plans[i]->path;
+//        std::cerr << path.size() - agent.state << " ";
         if (agent.state + 1 >= path.size() || !agent.delayed) {
             size_t distance = std::min((size_t) agent.state, path.size() - 1);
             path.erase(path.begin(), path.begin() + distance);
+            for (size_t j = 0; j < path.size(); j++) {
+                path[j].state = j;
+            }
             savedPlans[i] = solution->plans[i];
             plannedAgentsMap[i] = savedAgents.size();
         } else {
@@ -151,26 +157,38 @@ bool EECBSSolver::solveWithPrioritizedReplan() {
             agents.push_back(savedAgents[i]);
         }
     }
+//    std::cerr << std::endl;
+//    std::cerr << "replan: " << agents.size() << std::endl;
     if (!agents.empty()) {
         if (!solve()) {
-            auto lastExecutionTime = executionTime;
             agents = std::move(savedAgents);
-            std::cerr << "prioritized replan failed, retry with full replan" << std::endl;
-            prioritizedReplan = false;
-            init();
-            auto result = solve();
-            executionTime += lastExecutionTime;
-            return result;
+            return solveRetry();
         }
     }
+//    std::cerr << "after: " << std::endl;
     agents = std::move(savedAgents);
     for (size_t i = 0; i < agents.size(); i++) {
         if (!savedPlans[i]) {
             savedPlans[i] = solution->plans[plannedAgentsMap[i]];
         }
+//        std::cerr << savedPlans[i]->path.size() << " ";
     }
+//    std::cerr << std::endl;
     solution->plans = std::move(savedPlans);
+    if (!validate()) {
+        return solveRetry();
+    }
     return true;
+}
+
+bool EECBSSolver::solveRetry() {
+    auto lastExecutionTime = executionTime;
+//    std::cerr << "prioritized replan failed, retry with full replan" << std::endl;
+    prioritizedReplan = false;
+    init();
+    auto result = solve();
+    executionTime += lastExecutionTime;
+    return result;
 }
 
 void EECBSSolver::saveObstacles(const std::string &filename) {

@@ -29,6 +29,8 @@ public:
 
     bool solveWithPrioritizedReplan() override;
 
+    bool solveRetry();
+
     void saveObstacles(const std::string &filename);
 };
 

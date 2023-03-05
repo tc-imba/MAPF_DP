@@ -98,3 +98,61 @@ bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed)
     }
     return success;
 }
+
+bool Solver::validate() {
+    std::map<unsigned int, unsigned int> last;
+    unsigned int followingConflicts = 0, cycleConflicts = 0;
+
+    for (unsigned int state = 0;; state++) {
+        int count = 0;
+        std::map<unsigned int, unsigned int> following;
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            auto &path = solution->plans[i]->path;
+            if (state < path.size()) {
+                auto it = last.find(path[state].nodeId);
+                if (it != last.end() && i != it->second) {
+                    following.emplace(i, it->second);
+                }
+            } else {
+                count++;
+            }
+        }
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            auto &path = solution->plans[i]->path;
+            if (state < path.size()) {
+                if (state > 0) {
+                    last.erase(path[state - 1].nodeId);
+                }
+                last[path[state].nodeId] = i;
+            }
+        }
+
+        followingConflicts += following.size();
+        std::set<unsigned int> cycle;
+
+        while (!following.empty()) {
+            auto it = following.begin();
+            auto src = it->first;
+            auto current = it->second;
+            following.erase(it);
+            while (true) {
+                it = following.find(current);
+                if (it != following.end()) {
+                    current = it->second;
+                    following.erase(it);
+                    if (src == current) {
+                        cycleConflicts += 1;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if (count == agents.size()) {
+            break;
+        }
+    }
+
+    return cycleConflicts == 0;
+}

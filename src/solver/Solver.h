@@ -151,6 +151,8 @@ public:
 
     virtual bool solveWithPrioritizedReplan() {return solve(); };
 
+    bool validate();
+
 };
 
 

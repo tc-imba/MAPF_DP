@@ -61,7 +61,6 @@ def print_data(data_full: DataType, data_prioritized: DataType):
         plt.tight_layout()
         plt.savefig(fname=plot_dir / f"{key}.pdf", dpi=300)
 
-    pass
 
 
 def main():

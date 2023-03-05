@@ -42,14 +42,13 @@ void OnlineSimulator::printSets(const std::string &title) {
 int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
                               unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
-    std::ofstream fout;
     executionTimeVec.clear();
     openOutputFiles();
 
-    if (fout.is_open()) {
-        fout << 0 << std::endl;
+    if (outputFile.is_open()) {
+        outputFile << 0 << std::endl;
         for (unsigned int i = 0; i < agents.size(); i++) {
-            fout << i << " " << graph.getNode(paths[i][0]).index << std::endl;
+            outputFile << i << " " << graph.getNode(paths[i][0]).index << std::endl;
         }
     }
 
@@ -69,8 +68,8 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
 
 
     for (; currentTimestep < maxTimeStep; currentTimestep++) {
-        if (fout.is_open()) {
-            fout << currentTimestep << std::endl;
+        if (outputFile.is_open()) {
+            outputFile << currentTimestep << std::endl;
         }
         if (debug) {
             std::cout << "begin timestep " << currentTimestep << std::endl;
@@ -273,8 +272,8 @@ int OnlineSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTim
                     }
                     nodeAgentMap[nextNodeId] = i;
                 } else {
-                    if (fout.is_open()) {
-                        fout << i << " " << graph.getNode(nextNodeId).index << std::endl;
+                    if (outputFile.is_open()) {
+                        outputFile << i << " " << graph.getNode(nextNodeId).index << std::endl;
                     }
                     if (debug) {
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
