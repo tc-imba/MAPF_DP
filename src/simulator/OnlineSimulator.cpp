@@ -1034,7 +1034,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckTest(bool recursive) 
     }
 
     if (firstAgentArrivingTimestep == 0) {
-        feasibilityCheckUnsettledCount += sharedNodesList.size();
+        feasibilityCheckUnsettledCount += unsettledEdgePairs.size();
     }
 
 //    return feasibilityCheckHelper(sharedNodesList, recursive);
