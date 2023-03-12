@@ -123,8 +123,7 @@ int main(int argc, const char *argv[]) {
     if (delayStart == 0) {
         delayStart = INT_MAX;
     }
-
-
+    
 //    std::cout << "window: " << window << std::endl;
 
     std::ofstream fout;

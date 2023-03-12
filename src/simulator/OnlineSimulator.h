@@ -49,9 +49,34 @@ private:
         unsigned int state;
     };
 
+    friend bool operator<(const SDGNode& lhs, const SDGNode& rhs) {
+        if (lhs.agentId == rhs.agentId) return lhs.state < rhs.state;
+        return lhs.agentId < rhs.agentId;
+    }
+
+    friend bool operator==(const SDGNode& lhs, const SDGNode& rhs) {
+        return lhs.agentId == rhs.agentId && lhs.state == rhs.state;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const SDGNode& node) {
+        return out << "(" << node.agentId << "," << node.state << ")";
+    }
+
     struct SDGEdge {
         SDGNode source, dest;
     };
+
+    friend bool operator<(const SDGEdge& lhs, const SDGEdge& rhs) {
+        return lhs.source < rhs.source;
+    }
+
+    friend bool operator==(const SDGEdge& lhs, const SDGEdge& rhs) {
+        return lhs.source == rhs.source && lhs.dest == rhs.dest;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const SDGEdge& edge) {
+        return out << edge.source << "->" << edge.dest;
+    }
 
     typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
 
@@ -62,11 +87,12 @@ private:
         // determined edges from these SDGNodes (sources) to the current SDGNode (destination)
         // this recording direction is designed for unnecessary blocking
         std::vector<SDGNode> determinedEdgeSources;
-        //
+        // contain unsettled edges from the current SDGNode (source) to some other SDGNodes (destination)
         std::vector<SDGEdgePair> unsettledEdgePairs;
     };
 
     std::vector<std::vector<SDGData>> sdgData;
+    std::set<SDGEdgePair> unsettledEdgePairsSet;
 
     std::vector<std::vector<unsigned int>> paths;
     std::vector<std::vector<std::pair<size_t, unsigned int> > > deadEndStates;
@@ -79,6 +105,17 @@ private:
     std::set<size_t> blocked, unblocked, moved, ready, unshared, keepMoving;
 
     void printSets(const std::string &title);
+
+    void printState(size_t i, unsigned int state);
+
+    void printAgent(size_t i, const std::string& message);
+
+//    unsigned int getNextNodeState(unsigned int state) const { return (state / 2 + 1) * 2; }
+
+    std::pair<unsigned int, unsigned int> getTopoEdgeBySDGEdge(const SDGEdge &edge) const {
+        return std::make_pair(pathTopoNodeIds[edge.source.agentId][edge.source.state],
+                              pathTopoNodeIds[edge.dest.agentId][edge.dest.state]);
+    };
 
     void initSharedNodes(size_t i, size_t j);
 

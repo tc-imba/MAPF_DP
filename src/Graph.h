@@ -114,11 +114,21 @@ public:
     struct done {
     };
 
+//    std::vector<unsigned int> path;
+
     explicit TopoGraphBFSVisitor(const Graph::topo_graph_t::vertex_descriptor &v) : goal(v) {
     };
 
-    void discover_vertex(const Graph::topo_graph_t::vertex_descriptor &v, const Graph::topo_graph_t &g) const {
-        if (v == goal) throw done{};
+    void discover_vertex(const Graph::topo_graph_t::vertex_descriptor &v, const Graph::topo_graph_t &g) {
+//        path.emplace_back((unsigned int) v);
+        if (v == goal) {
+//            std::cout << "path: ";
+//            for (auto &v : path) {
+//                std::cout << v << " ";
+//            }
+//            std::cout << std::endl;
+            throw done{};
+        }
     };
 
 protected:
