@@ -133,6 +133,8 @@ private:
 
     void deadEndCheck();
 
+    void singleAgentCheck();
+
     void naiveCycleCheckHelper(std::vector<size_t> &readyList, size_t length, size_t start, size_t current,
                                std::vector<bool> &check, std::vector<size_t> &maxReadyList);
 
