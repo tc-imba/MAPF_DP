@@ -8,6 +8,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/properties.hpp>
 #include <boost/graph/breadth_first_search.hpp>
+#include <Mathematics/Vector2.h>
 #include <iostream>
 
 struct Agent {
@@ -50,9 +51,10 @@ private:
     double maxDP = 0.5;
     size_t height, width;
     std::string graphFilename;
+    std::vector<gte::Vector2<int>> neighborDirections;
 
     void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
-                       double distance = 1, bool write = true);
+                       unsigned int kNeighbor = 2, bool write = true);
 
     void generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph);
 
@@ -62,9 +64,11 @@ private:
 
     bool loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
 
-    std::vector<Neighbor> getNeighbors(std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y, double maxDistance);
+    void initKNeighbor(unsigned int kNeighbor);
 
-    bool isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph, std::pair<unsigned int, unsigned int> start, std::pair<unsigned int, unsigned int> goal, double distance);
+    std::vector<Neighbor> getNeighbors(std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y);
+
+    bool isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph, gte::Vector2<int> start, gte::Vector2<int> goal, double distance);
 
 public:
 
@@ -83,7 +87,7 @@ public:
     void generateDelayProbability(size_t seed, double minDP, double maxDP);
 
     void generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
-                             const std::string &filename = "", size_t seed = 0, double distance = 1);
+                             const std::string &filename = "", size_t seed = 0, unsigned int kNeighbor = 2);
 
     void generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, unsigned int maxY,
                            const std::string &filename = "", size_t seed = 0);

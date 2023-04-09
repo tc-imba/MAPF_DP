@@ -9,6 +9,13 @@
 #include "simulator/OnlineSimulator.h"
 #include "utils/ezOptionParser.hpp"
 
+std::string double_to_string(double data) {
+    auto result = std::to_string(data);
+    auto pos = result.length() - 1;
+    while (pos > 0 && result[pos] == '0') --pos;
+    if (result[pos] == '.') --pos;
+    return result.substr(0, pos + 1);
+}
 
 int main(int argc, const char *argv[]) {
     ez::ezOptionParser optionParser;
@@ -35,7 +42,8 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 1, 0, "Time Output Filename", "-o", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
-    optionParser.add("../cmake-build-relwithdebinfo/EECBS", false, 1, 0, "Solver binary (for EECBS)", "--solver-binary");
+    optionParser.add("../cmake-build-relwithdebinfo/EECBS", false, 1, 0, "Solver binary (for EECBS)",
+                     "--solver-binary");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit, deprecated)", "-w", "--window", validWindowSize);
@@ -72,8 +80,8 @@ int main(int argc, const char *argv[]) {
     auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Delay Start", "-p", "--delay-start", validDelayStart);
 
-    auto validMaxEdgeDistance = new ez::ezOptionValidator("d", "ge", "1");
-    optionParser.add("1", false, 1, 0, "Max Edge Length", "--max-edge-length", validMaxEdgeDistance);
+    auto validKNeighbor = new ez::ezOptionValidator("u4", "ge", "2");
+    optionParser.add("2", false, 1, 0, "Max Edge Length", "--k-neighbor", validKNeighbor);
 
 
     optionParser.parse(argc, argv);
@@ -85,8 +93,8 @@ int main(int argc, const char *argv[]) {
     }
 
     std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
-    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
-    double minDP, maxDP, delayRatio, maxEdgeLength;
+    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles, kNeighbor;
+    double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
@@ -109,7 +117,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--delay-ratio")->getDouble(delayRatio);
     optionParser.get("--delay-interval")->getULong(delayInterval);
     optionParser.get("--delay-start")->getULong(delayStart);
-    optionParser.get("--max-edge-length")->getDouble(maxEdgeLength);
+    optionParser.get("--k-neighbor")->getULong(kNeighbor);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
@@ -128,7 +136,7 @@ int main(int argc, const char *argv[]) {
     if (delayStart == 0) {
         delayStart = INT_MAX;
     }
-    
+
 //    std::cout << "window: " << window << std::endl;
 
     std::ofstream fout;
@@ -159,8 +167,8 @@ int main(int argc, const char *argv[]) {
     std::string filename;
     if (mapType == "random") {
         filename = "random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) +
-                   "-" + std::to_string(mapSeed) + "-" + std::to_string(maxEdgeLength);
-        graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, maxEdgeLength);
+                   "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
+        graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {
         filename = "warehouse-" + std::to_string(maxX) + "-" + std::to_string(maxY);
         graph.generateWareHouse(deliveryWidth, maxX, maxY, filename, mapSeed);
@@ -186,7 +194,7 @@ int main(int argc, const char *argv[]) {
         agents = graph.generateWarehouseAgents(agentNum, agentSeed, true);
     } else if (mapType == "hardcoded") {
         agents = graph.generateHardCodedAgents(agentNum);
-    }else if (mapType == "dot") {
+    } else if (mapType == "dot") {
         agents = graph.generateRandomAgents(agentNum, agentSeed);
     }
 
@@ -308,7 +316,8 @@ int main(int argc, const char *argv[]) {
             if (delayInterval == INT_MAX) {
                 out << count << "," << finished;
             } else {
-                out << simulator->averageMakeSpan(MakeSpanType::MAXIMUM) << "," << simulator->averageMakeSpan(MakeSpanType::AVERAGE);
+                out << simulator->averageMakeSpan(MakeSpanType::MAXIMUM) << ","
+                    << simulator->averageMakeSpan(MakeSpanType::AVERAGE);
             }
             out << "," << elapsed_seconds.count() << ",";
             simulator->print(out);

@@ -138,51 +138,58 @@ bool Graph::loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::
     return true;
 }
 
-std::vector<Graph::Neighbor> Graph::getNeighbors(
-        std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y, double maxDistance) {
-    std::vector<Neighbor> result;
-    unsigned int intDistance = ceil(maxDistance);
-//    unsigned int xMin = std::max(intDistance, x) - intDistance;
-    unsigned int xMin = x;
-    unsigned int xMax = std::min(x + intDistance, (unsigned int) width - 1);
-//    unsigned int yMin = std::max(intDistance, y) - intDistance;
-    unsigned int yMin = y;
-    unsigned int yMax = std::min(y + intDistance, (unsigned int) height - 1);
+void Graph::initKNeighbor(unsigned int kNeighbor) {
+    std::vector<gte::Vector2<int>> N = {{0, 1},
+                                        {1, 0}};
 
-    for (unsigned int j = yMin; j <= yMax; j++) {
-        for (unsigned int i = xMin; i <= xMax; i++) {
-            if (i == x && j == y) continue;
-            double xDiff = (double) i - (double) x;
-            double yDiff = (double) j - (double) y;
-            double distance = sqrt(xDiff * xDiff + yDiff * yDiff);
-            if (distance > maxDistance) continue;
-//            std::cout << x << " " << y << " " << i << " " << j << " " << distance << std::endl;
-            if (isPathConflictWithObstacle(gridGraph, {x, y}, {i, j}, distance)) continue;
-            result.push_back({i, j, distance});
+    for (unsigned int n = 2; n < kNeighbor; n++) {
+        std::vector<gte::Vector2<int>> temp(N.size() * 2 - 1);
+        temp[0] = N[0];
+        for (unsigned int j = 1; j < N.size(); j++) {
+            temp[2 * j] = N[j];
+            temp[2 * j - 1] = N[j - 1] + N[j];
         }
+        temp.swap(N);
     }
+    neighborDirections.swap(N);
+/*    for (auto &p: neighborDirections) {
+        std::cout << p[0] << " " << p[1] << std::endl;
+    }*/
+}
 
+
+std::vector<Graph::Neighbor> Graph::getNeighbors(
+        std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y) {
+    std::vector<Neighbor> result;
+    gte::Vector2<int> start{(int) x, (int) y};
+    for (const auto &direction: neighborDirections) {
+        auto goal = start + direction;
+        if (goal[0] < 0 || goal[0] >= height || goal[1] < 0 || goal[1] >= width) continue;
+        auto diff = goal - start;
+        double distance = sqrt(diff[0] * diff[0] + diff[1] * diff[1]);
+        if (isPathConflictWithObstacle(gridGraph, start, goal, distance)) continue;
+        result.push_back({(unsigned int) goal[0], (unsigned int) goal[1], distance});
+    }
     return result;
 }
 
 bool Graph::isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph,
-                                       std::pair<unsigned int, unsigned int> start,
-                                       std::pair<unsigned int, unsigned int> goal,
+                                       gte::Vector2<int> start,
+                                       gte::Vector2<int> goal,
                                        double distance) {
-    double xDiff = (double) goal.first - (double) start.first;
-    double yDiff = (double) goal.second - (double) start.second;
-    gte::Circle2<double> agentCircle({(double) start.first, (double) start.second}, sqrt(2) / 4);
-    gte::Vector2<double> agentVelocity = {xDiff / distance, yDiff / distance};
+    auto diff = goal - start;
+    gte::Circle2<double> agentCircle({(double) start[0], (double) start[1]}, sqrt(2) / 4);
+    gte::Vector2<double> agentVelocity = {diff[0] / distance, diff[1] / distance};
 
     gte::OrientedBox2<double> obstacleBox;
     obstacleBox.extent = {0.5, 0.5};
     gte::Vector2<double> obstacleVelocity = {0, 0};
     gte::FIQuery<double, gte::OrientedBox2<double>, gte::Circle2<double>> mQuery;
 
-    unsigned int xMin = std::min(start.first, goal.first);
-    unsigned int xMax = std::max(start.first, goal.first);
-    unsigned int yMin = std::min(start.second, goal.second);
-    unsigned int yMax = std::max(start.second, goal.second);
+    unsigned int xMin = std::min(start[0], goal[0]);
+    unsigned int xMax = std::max(start[0], goal[0]);
+    unsigned int yMin = std::min(start[1], goal[1]);
+    unsigned int yMax = std::max(start[1], goal[1]);
 
     for (unsigned int i = xMin; i <= xMax; i++) {
         for (unsigned int j = yMin; j <= yMax; j++) {
@@ -216,7 +223,7 @@ void Graph::generateDelayProbability(size_t seed, double minDP, double maxDP) {
 
 void
 Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
-                     double distance, bool write) {
+                     unsigned int kNeighbor, bool write) {
 
 //    std::ofstream gridFileOut;
 //    if (!filename.empty()) gridFileOut.open(filename + ".grid");
@@ -250,11 +257,12 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
         }
     }
 
+    initKNeighbor(kNeighbor);
     unsigned int E = 0;
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
             if (gridGraph[i][j] != '@') {
-                auto neighbors = getNeighbors(gridGraph, i, j, distance);
+                auto neighbors = getNeighbors(gridGraph, i, j);
                 for (auto &neighbor: neighbors) {
 //                    std::cout << i << " " << j << " " << neighbor.x << " " << neighbor.y << " " << neighbor.length
 //                              << std::endl;
@@ -343,7 +351,7 @@ void Graph::initDelayProbability(double minDP, double maxDP) {
 
 
 void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
-                                const std::string &filename, size_t seed, double distance) {
+                                const std::string &filename, size_t seed, unsigned int kNeighbor) {
     assert(obstacles <= height * width);
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
     graphFilename = filename;
@@ -372,7 +380,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
         std::cerr << "save grid graph to " << filename << ".map" << std::endl;
         saveGridGraph(gridGraph, filename);
     }
-    generateGraph(gridGraph, filename, seed, distance);
+    generateGraph(gridGraph, filename, seed, kNeighbor);
 }
 
 
