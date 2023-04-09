@@ -13,34 +13,13 @@
 struct Agent {
     unsigned int start, goal, current;
     unsigned int state;
-    unsigned int timestep;
-    unsigned int waitingTimestep;
+    double timestep;
+    double arrivingTimestep;
     bool blocked;
     bool delayed;
 };
 
 class Graph {
-private:
-    std::vector<std::vector<double>> distances;
-    std::vector<std::vector<unsigned int>> gridGraphIds;
-    unsigned int nodeNum;
-    unsigned int edgeNum;
-    double minDP = 0;
-    double maxDP = 0.5;
-    size_t height, width;
-    std::string graphFilename;
-
-    void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
-                       bool write = true);
-
-    void generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph);
-
-    bool isConnected();
-
-    void saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
-
-    bool loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
-
 public:
     struct Node {
         size_t index;
@@ -55,6 +34,39 @@ public:
         double dp;
         double _distance;
     };
+
+    struct Neighbor {
+        unsigned int x;
+        unsigned int y;
+        double length;
+    };
+
+private:
+    std::vector<std::vector<double>> distances;
+    std::vector<std::vector<unsigned int>> gridGraphIds;
+    unsigned int nodeNum;
+    unsigned int edgeNum;
+    double minDP = 0;
+    double maxDP = 0.5;
+    size_t height, width;
+    std::string graphFilename;
+
+    void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
+                       double distance = 1, bool write = true);
+
+    void generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph);
+
+    bool isConnected();
+
+    void saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
+
+    bool loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
+
+    std::vector<Neighbor> getNeighbors(std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y, double maxDistance);
+
+    bool isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph, std::pair<unsigned int, unsigned int> start, std::pair<unsigned int, unsigned int> goal, double distance);
+
+public:
 
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, Node, Edge> graph_t;
 
@@ -71,7 +83,7 @@ public:
     void generateDelayProbability(size_t seed, double minDP, double maxDP);
 
     void generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
-                             const std::string &filename = "", size_t seed = 0);
+                             const std::string &filename = "", size_t seed = 0, double distance = 1);
 
     void generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, unsigned int maxY,
                            const std::string &filename = "", size_t seed = 0);

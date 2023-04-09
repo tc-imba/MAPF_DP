@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
+int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                unsigned int delayStart, unsigned int delayInterval) {
 //    if (!success) return true;
     std::unordered_map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> nodes;
@@ -92,10 +92,10 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
             }
         }
 
-        if (currentTimestep >= delayStart && (currentTimestep - delayStart) % delayInterval == 0) {
+/*        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
             updateDelayedSet(currentTimestep);
 //            delayedSet.clear();
-        }
+        }*/
 
 /*        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
             updateDelayedSet(currentTimestep, pauseTimestep == 0);
@@ -176,7 +176,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
             const auto &nextLabel = solver->solution->plans[i]->path[state + 1];
             const auto &nextNode = nodes[nextLabel.nodeId];
 
-            // delay by agent
+/*            // delay by agent
             if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by agent"
@@ -197,7 +197,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
                 agents[i].blocked = false;
                 agents[i].delayed = true;
                 continue;
-            }
+            }*/
 
 /*            if (label.nodeId != nextLabel.nodeId) {
 //                auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
@@ -229,7 +229,7 @@ int DefaultSimulator::simulate(unsigned int &currentTimestep, unsigned int maxTi
             agents[i].blocked = true;
             agents[i].delayed = false;
             agents[i].current = nextLabel.nodeId;
-            agents[i].waitingTimestep = 0;
+//            agents[i].waitingTimestep = 0;
             ++state;
             ++nodeStates[label.nodeId];
 

@@ -10,7 +10,7 @@
 void Solver::init() {
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].current = agents[i].start;
-        agents[i].timestep = agents[i].waitingTimestep = 0;
+        agents[i].timestep = agents[i].arrivingTimestep = 0;
     }
     currentTimestep = 1;
     success = false;

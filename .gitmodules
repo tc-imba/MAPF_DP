@@ -1,3 +1,6 @@
 [submodule "EECBS"]
 	path = EECBS
 	url = https://github.com/tc-imba/EECBS.git
+[submodule "GeometricTools"]
+	path = GeometricTools
+	url = https://github.com/davideberly/GeometricTools.git

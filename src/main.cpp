@@ -4,6 +4,7 @@
 #include "Graph.h"
 #include "solver/CBSSolver.h"
 #include "solver/EECBSSolver.h"
+#include "solver/IndividualAStarSolver.h"
 #include "simulator/DefaultSimulator.h"
 #include "simulator/OnlineSimulator.h"
 #include "utils/ezOptionParser.hpp"
@@ -69,7 +70,10 @@ int main(int argc, const char *argv[]) {
     optionParser.add("1", false, 1, 0, "Delay Interval", "--delay-interval", validDelayInterval);
 
     auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Iteration Number", "-p", "--delay-start", validDelayStart);
+    optionParser.add("0", false, 1, 0, "Delay Start", "-p", "--delay-start", validDelayStart);
+
+    auto validMaxEdgeDistance = new ez::ezOptionValidator("d", "ge", "1");
+    optionParser.add("1", false, 1, 0, "Max Edge Length", "--max-edge-length", validMaxEdgeDistance);
 
 
     optionParser.parse(argc, argv);
@@ -82,7 +86,7 @@ int main(int argc, const char *argv[]) {
 
     std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles;
-    double minDP, maxDP, delayRatio;
+    double minDP, maxDP, delayRatio, maxEdgeLength;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
@@ -105,6 +109,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--delay-ratio")->getDouble(delayRatio);
     optionParser.get("--delay-interval")->getULong(delayInterval);
     optionParser.get("--delay-start")->getULong(delayStart);
+    optionParser.get("--max-edge-length")->getDouble(maxEdgeLength);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
@@ -154,8 +159,8 @@ int main(int argc, const char *argv[]) {
     std::string filename;
     if (mapType == "random") {
         filename = "random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) +
-                   "-" + std::to_string(mapSeed);
-        graph.generateRandomGraph(height, width, obstacles, filename, mapSeed);
+                   "-" + std::to_string(mapSeed) + "-" + std::to_string(maxEdgeLength);
+        graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, maxEdgeLength);
     } else if (mapType == "warehouse") {
         filename = "warehouse-" + std::to_string(maxX) + "-" + std::to_string(maxY);
         graph.generateWareHouse(deliveryWidth, maxX, maxY, filename, mapSeed);
@@ -200,6 +205,8 @@ int main(int argc, const char *argv[]) {
     } else if (solverType == "eecbs") {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile));
+    } else if (solverType == "individual") {
+        solver = std::shared_ptr<Solver>(new IndividualAStarSolver(graph, agents, makeSpanType));
     } else {
         assert(0);
     }
@@ -275,7 +282,7 @@ int main(int argc, const char *argv[]) {
 
         }*/
 
-        unsigned int currentTimestep = 1;
+        double currentTimestep = 1;
         const int maxTimestep = 300;
 //        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + maxTimestep);
 
@@ -290,7 +297,7 @@ int main(int argc, const char *argv[]) {
             onlineSimulator->isFeasibilityType = feasibilityType;
         }
         simulator->setAgents(agents);
-        currentTimestep = 1;
+        currentTimestep = 0;
         auto start = std::chrono::steady_clock::now();
         auto count = simulator->simulate(currentTimestep, currentTimestep + maxTimestep, delayStart, delayInterval);
         auto end = std::chrono::steady_clock::now();
@@ -313,29 +320,6 @@ int main(int argc, const char *argv[]) {
         }
     }
 
-
-/*    for (unsigned int i = 0; i < iteration; i++) {
-        if (objective == "maximum") {
-            solver.init(i, MakeSpanType::MAXIMUM);
-        } else if (objective == "average") {
-            solver.init(i, MakeSpanType::AVERAGE);
-        }
-        double approx = 0;
-        if (i == 0 || window < std::numeric_limits<unsigned int>::max() / 2) {
-            do {
-                solver.initCBS(window);
-                while (solver.step()) {
-
-                }
-                approx = solver.approxAverageMakeSpan(*solver.solution);
-//                std::cout << "timestep: " << solver.currentTimestep - 1 << " " << approx << std::endl;
-            } while (solver.simulate());
-        } else {
-            approx = solver.approxAverageMakeSpan(*solver.solution);
-            solver.simulate();
-        }
-        out << solver.averageMakeSpan() << "," << approx << std::endl;
-    }*/
 
     if (fout.is_open()) {
         fout.close();

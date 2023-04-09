@@ -8,6 +8,9 @@
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
 
+#include <Mathematics/IntrOrientedBox2Circle2.h>
+
+#include <cmath>
 #include <random>
 #include <iostream>
 #include <iomanip>
@@ -135,6 +138,70 @@ bool Graph::loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::
     return true;
 }
 
+std::vector<Graph::Neighbor> Graph::getNeighbors(
+        std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y, double maxDistance) {
+    std::vector<Neighbor> result;
+    unsigned int intDistance = ceil(maxDistance);
+//    unsigned int xMin = std::max(intDistance, x) - intDistance;
+    unsigned int xMin = x;
+    unsigned int xMax = std::min(x + intDistance, (unsigned int) width - 1);
+//    unsigned int yMin = std::max(intDistance, y) - intDistance;
+    unsigned int yMin = y;
+    unsigned int yMax = std::min(y + intDistance, (unsigned int) height - 1);
+
+    for (unsigned int j = yMin; j <= yMax; j++) {
+        for (unsigned int i = xMin; i <= xMax; i++) {
+            if (i == x && j == y) continue;
+            double xDiff = (double) i - (double) x;
+            double yDiff = (double) j - (double) y;
+            double distance = sqrt(xDiff * xDiff + yDiff * yDiff);
+            if (distance > maxDistance) continue;
+//            std::cout << x << " " << y << " " << i << " " << j << " " << distance << std::endl;
+            if (isPathConflictWithObstacle(gridGraph, {x, y}, {i, j}, distance)) continue;
+            result.push_back({i, j, distance});
+        }
+    }
+
+    return result;
+}
+
+bool Graph::isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph,
+                                       std::pair<unsigned int, unsigned int> start,
+                                       std::pair<unsigned int, unsigned int> goal,
+                                       double distance) {
+    double xDiff = (double) goal.first - (double) start.first;
+    double yDiff = (double) goal.second - (double) start.second;
+    gte::Circle2<double> agentCircle({(double) start.first, (double) start.second}, sqrt(2) / 4);
+    gte::Vector2<double> agentVelocity = {xDiff / distance, yDiff / distance};
+
+    gte::OrientedBox2<double> obstacleBox;
+    obstacleBox.extent = {0.5, 0.5};
+    gte::Vector2<double> obstacleVelocity = {0, 0};
+    gte::FIQuery<double, gte::OrientedBox2<double>, gte::Circle2<double>> mQuery;
+
+    unsigned int xMin = std::min(start.first, goal.first);
+    unsigned int xMax = std::max(start.first, goal.first);
+    unsigned int yMin = std::min(start.second, goal.second);
+    unsigned int yMax = std::max(start.second, goal.second);
+
+    for (unsigned int i = xMin; i <= xMax; i++) {
+        for (unsigned int j = yMin; j <= yMax; j++) {
+            if (gridGraph[i][j] != '@') continue;
+            // @TODO: add optimizations
+//            if (i == start.first && j == start.second) return true;
+//            if (i == goal.first && j == goal.second) return true;
+            obstacleBox.center = {(double) i, (double) j};
+            auto result = mQuery(obstacleBox, obstacleVelocity, agentCircle, agentVelocity);
+//            std::cout << agentVelocity[0] << " " << agentVelocity[1] << std::endl;
+//            std::cout << start.first << " " << start.second << " " << i << " " << j << " " << result.intersectionType << " " << result.contactTime << std::endl;
+            if (result.intersectionType != 0 && result.contactTime < distance) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 
 void Graph::generateDelayProbability(size_t seed, double minDP, double maxDP) {
     std::mt19937 generator(seed);
@@ -148,7 +215,8 @@ void Graph::generateDelayProbability(size_t seed, double minDP, double maxDP) {
 
 
 void
-Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed, bool write) {
+Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
+                     double distance, bool write) {
 
 //    std::ofstream gridFileOut;
 //    if (!filename.empty()) gridFileOut.open(filename + ".grid");
@@ -186,10 +254,21 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
             if (gridGraph[i][j] != '@') {
-                std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
+                auto neighbors = getNeighbors(gridGraph, i, j, distance);
+                for (auto &neighbor: neighbors) {
+//                    std::cout << i << " " << j << " " << neighbor.x << " " << neighbor.y << " " << neighbor.length
+//                              << std::endl;
+                    auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[neighbor.x][neighbor.y], g);
+                    auto &edge = g[p.first];
+                    edge.length = neighbor.length;
+                    edge.dp = 0;
+                    edge.index = E++;
+                }
+/*                std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
                                                                                 {i,     j + 1}};
                 for (auto [x, y]: neighbors) {
                     if (x < height && y < width && gridGraph[x][y] != '@') {
+                        std::cout << i << " " << j << " " << x <<  " " << y << " " << 1 << std::endl;
                         auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
                         auto &edge = g[p.first];
                         edge.length = 1;
@@ -198,7 +277,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
 //                        g[p.first].dp = distribution(generator);
 //                        E++;
                     }
-                }
+                }*/
             }
         }
     }
@@ -264,7 +343,7 @@ void Graph::initDelayProbability(double minDP, double maxDP) {
 
 
 void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
-                                const std::string &filename, size_t seed) {
+                                const std::string &filename, size_t seed, double distance) {
     assert(obstacles <= height * width);
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
     graphFilename = filename;
@@ -293,7 +372,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
         std::cerr << "save grid graph to " << filename << ".map" << std::endl;
         saveGridGraph(gridGraph, filename);
     }
-    generateGraph(gridGraph, filename, seed);
+    generateGraph(gridGraph, filename, seed, distance);
 }
 
 
@@ -359,7 +438,7 @@ void Graph::generateFileGraph(const std::string &filename) {
     } else {
         exit(-1);
     }
-    generateGraph(gridGraph, filename, 0, false);
+    generateGraph(gridGraph, filename, 0, 1, false);
 }
 
 void Graph::generateDOTGraph(const std::string &filename) {

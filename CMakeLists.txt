@@ -16,6 +16,8 @@ target_link_libraries(EECBS ${Boost_LIBRARIES})
 add_library(EECBS_Static ${SOURCE_FILES})
 target_link_libraries(EECBS_Static ${Boost_LIBRARIES})
 
+include_directories("GeometricTools/GTE")
+
 set(SOURCE_FILES
         src/solver/Solver.cpp
         src/solver/CBSSolver.cpp
@@ -25,6 +27,10 @@ set(SOURCE_FILES
         src/simulator/DefaultSimulator.h
         src/simulator/OnlineSimulator.cpp
         src/simulator/OnlineSimulator.h
+        src/simulator/Simulator.cpp
+        src/simulator/Simulator.h
+        src/solver/IndividualAStarSolver.cpp
+        src/solver/IndividualAStarSolver.h
         )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
@@ -44,4 +50,7 @@ add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp
 target_link_libraries(MAPF_Plan_Validator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
 
 #add_subdirectory(EECBS)
+
+add_executable(MAPF_test src/test.cpp)
+
 

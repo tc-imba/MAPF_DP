@@ -11,7 +11,7 @@ class OnlineSimulator : public Simulator {
 public:
     OnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
 
-    int simulate(unsigned int &currentTimestep, unsigned int maxTimeStep,
+    int simulate(double &currentTimestep, unsigned int maxTimeStep,
                  unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
     void print(std::ostream &out) const override;
@@ -27,7 +27,7 @@ public:
     size_t cycleCheckCount = 0;
     size_t cycleCheckAgents = 0;
     size_t unblockedAgents = 0;
-    size_t firstAgentArrivingTimestep = 0;
+    double firstAgentArrivingTimestep = 0;
 //    size_t feasibilityCheckIteration[2] = {0, 0};
 //    size_t feasibilityCheckIterationTemp = 0;
 

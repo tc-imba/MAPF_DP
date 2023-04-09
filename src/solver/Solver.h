@@ -57,8 +57,15 @@ struct FocalNode {
     bool visited = false;
 };
 
+struct AStarNode {
+    Label label;
+    std::shared_ptr<AStarNode> parent;
+    bool visited = false;
+};
+
 typedef std::shared_ptr<CBSNode> CBSNodePtr;
 typedef std::shared_ptr<FocalNode> FocalNodePtr;
+typedef std::shared_ptr<AStarNode> AStarNodePtr;
 
 struct LabelComp {
     bool operator()(Label const &a, Label const &b) const {
@@ -94,6 +101,14 @@ struct FocalNodePtrComp {
         if (keyB > key) return false;
         return true;
 //            return !comp(a->label, b->label);
+    }
+};
+
+struct AStarNodePtrComp {
+    constexpr static LabelComp comp = LabelComp();
+
+    bool operator()(AStarNodePtr const &a, AStarNodePtr const &b) const {
+        return !comp(a->label, b->label);
     }
 };
 
