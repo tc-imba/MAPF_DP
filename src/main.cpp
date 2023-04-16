@@ -4,6 +4,7 @@
 #include "Graph.h"
 #include "solver/CBSSolver.h"
 #include "solver/EECBSSolver.h"
+#include "solver/CCBSSolver.h"
 #include "solver/IndividualAStarSolver.h"
 #include "simulator/DefaultSimulator.h"
 #include "simulator/OnlineSimulator.h"
@@ -34,6 +35,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use only cycle check", "--only-cycle");
     optionParser.add("", false, 0, 0, "Classify feasibility types", "--feasibility-type");
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
+    optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan)", "--simulator");
@@ -42,7 +44,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 1, 0, "Time Output Filename", "-o", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
-    optionParser.add("../cmake-build-relwithdebinfo/EECBS", false, 1, 0, "Solver binary (for EECBS)",
+    optionParser.add("../cmake-build-relwithdebinfo/Continuous-CBS/CCBS", false, 1, 0, "Solver binary (for CCBS / EECBS)",
                      "--solver-binary");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
@@ -95,7 +97,7 @@ int main(int argc, const char *argv[]) {
     std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles, kNeighbor;
     double minDP, maxDP, delayRatio;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, noCache;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
@@ -126,6 +128,7 @@ int main(int argc, const char *argv[]) {
     onlyCycleCheck = optionParser.isSet("--only-cycle");
     feasibilityType = optionParser.isSet("--feasibility-type");
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
+    noCache = optionParser.isSet("--no-cache");
 
     if (window == 0) {
         window = INT_MAX;
@@ -163,6 +166,7 @@ int main(int argc, const char *argv[]) {
 //    unsigned int agents = 30;
     graph.initDelayProbability(minDP, maxDP);
     graph.debug = debug;
+//    graph.noCache = noCache;
 
     std::string filename;
     if (mapType == "random") {
@@ -213,6 +217,9 @@ int main(int argc, const char *argv[]) {
     } else if (solverType == "eecbs") {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile));
+    } else if (solverType == "ccbs") {
+//        if (solverBinaryFile.empty()) exit(-1);
+        solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile));
     } else if (solverType == "individual") {
         solver = std::shared_ptr<Solver>(new IndividualAStarSolver(graph, agents, makeSpanType));
     } else {
@@ -224,7 +231,14 @@ int main(int argc, const char *argv[]) {
     solver->useDP = useDP;
     solver->allConstraint = allConstraint;
     solver->init();
-    if (!solver->solveWithCache(filename, agentSeed)) {
+    bool result;
+    if (noCache) {
+        result = solver->solve();
+    } else {
+        result = solver->solveWithCache(filename, agentSeed);
+    }
+
+    if (!result) {
         exit(-1);
     }
 

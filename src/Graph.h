@@ -51,6 +51,7 @@ private:
     double maxDP = 0.5;
     size_t height, width;
     std::string graphFilename;
+    unsigned int kNeighbor;
     std::vector<gte::Vector2<int>> neighborDirections;
 
     void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
@@ -64,6 +65,8 @@ private:
 
     bool loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
 
+    void saveXMLGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename);
+
     void initKNeighbor(unsigned int kNeighbor);
 
     std::vector<Neighbor> getNeighbors(std::vector<std::vector<char>> &gridGraph, unsigned int x, unsigned int y);
@@ -71,7 +74,6 @@ private:
     bool isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph, gte::Vector2<int> start, gte::Vector2<int> goal, double distance);
 
 public:
-
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, Node, Edge> graph_t;
 
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> topo_graph_t;
@@ -79,6 +81,7 @@ public:
 
     graph_t g;
     bool debug = false;
+    bool noCache = false;
 
     Graph();
 
@@ -106,11 +109,15 @@ public:
 
     const Node &getNode(unsigned int nodeId);
 
+    const Edge *getEdgePtr(unsigned int nodeId1, unsigned int nodeId2);
+
     const Edge &getEdge(unsigned int nodeId1, unsigned int nodeId2);
 
     [[nodiscard]] auto getNodeNum() const { return nodeNum; }
 
     [[nodiscard]] auto getEdgeNum() const { return edgeNum; }
+
+    [[nodiscard]] auto getKNeighbor() const { return kNeighbor; }
 
     [[nodiscard]] auto getFileName() const { return graphFilename; }
 
@@ -121,6 +128,8 @@ public:
     std::vector<Agent> generateHardCodedAgents(unsigned int agentNum);
 
     void saveAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
+
+    void saveAgentsXML(const std::string &filename, const std::vector<Agent> &agents);
 
     unsigned int getNodeIdByGridPos(unsigned int x, unsigned int y);
 };

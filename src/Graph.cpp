@@ -3,10 +3,13 @@
 //
 
 #include "Graph.h"
+#include "../Continuous-CBS/tinyxml2.h"
+
 //#include "solver/CBSSolver.h"
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <Mathematics/IntrOrientedBox2Circle2.h>
 
@@ -138,7 +141,47 @@ bool Graph::loadGridGraph(std::vector<std::vector<char>> &gridGraph, const std::
     return true;
 }
 
+void Graph::saveXMLGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename) {
+    if (filename.empty()) return;
+    auto fullFileName = filename + ".xml";
+    tinyxml2::XMLDocument doc;
+
+    doc.InsertEndChild(doc.NewDeclaration());
+    auto root = doc.NewElement("root");
+    doc.InsertEndChild(root);
+    auto map = doc.NewElement("map");
+    root->InsertEndChild(map);
+
+    auto width_elem = doc.NewElement("width");
+    map->InsertEndChild(width_elem);
+    width_elem->SetText((unsigned int) width);
+    auto height_elem = doc.NewElement("height");
+    map->InsertEndChild(height_elem);
+    height_elem->SetText((unsigned int) height);
+
+    auto grid = doc.NewElement("grid");
+    map->InsertEndChild(grid);
+
+    for (unsigned int i = 0; i < height; i++) {
+        auto row = doc.NewElement("row");
+        grid->InsertEndChild(row);
+        std::vector<std::string> rowData;
+        for (unsigned int j = 0; j < width; j++) {
+            rowData.emplace_back(gridGraph[i][j] == '.' ? "0" : "1");
+        }
+        auto rowText = boost::algorithm::join(rowData, " ");
+        row->SetText(rowText.c_str());
+    }
+
+//    tinyxml2::XMLPrinter printer;
+//    doc.Print( &printer );
+//    std::cout << printer.CStr();
+
+    doc.SaveFile(fullFileName.c_str());
+}
+
 void Graph::initKNeighbor(unsigned int kNeighbor) {
+    this->kNeighbor = kNeighbor;
     std::vector<gte::Vector2<int>> N = {{0, 1},
                                         {1, 0}};
 
@@ -151,7 +194,20 @@ void Graph::initKNeighbor(unsigned int kNeighbor) {
         }
         temp.swap(N);
     }
-    neighborDirections.swap(N);
+    neighborDirections.reserve(4 * N.size());
+    for (int kx: {-1, 1}) {
+        for (int ky: {-1, 1}) {
+            for (auto &p: N) {
+                neighborDirections.emplace_back(gte::Vector2<int>{p[0] * kx, p[1] * ky});
+            }
+        }
+    }
+    std::sort(neighborDirections.begin(), neighborDirections.end());
+    neighborDirections.erase(std::unique(neighborDirections.begin(), neighborDirections.end()),
+                             neighborDirections.end());
+    neighborDirections.shrink_to_fit();
+
+//    neighborDirections.swap(N);
 /*    for (auto &p: neighborDirections) {
         std::cout << p[0] << " " << p[1] << std::endl;
     }*/
@@ -234,6 +290,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
 
     height = gridGraph.size();
     width = gridGraph[0].size();
+    initKNeighbor(kNeighbor);
 
 //    std::mt19937 generator(seed);
 //    std::uniform_real_distribution<double> distribution(0, 0.5);
@@ -257,7 +314,6 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
         }
     }
 
-    initKNeighbor(kNeighbor);
     unsigned int E = 0;
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
@@ -266,6 +322,8 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
                 for (auto &neighbor: neighbors) {
 //                    std::cout << i << " " << j << " " << neighbor.x << " " << neighbor.y << " " << neighbor.length
 //                              << std::endl;
+                    // ignore duplicate edges
+                    if (getEdgePtr(gridGraphIds[neighbor.x][neighbor.y], gridGraphIds[i][j])) continue;
                     auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[neighbor.x][neighbor.y], g);
                     auto &edge = g[p.first];
                     edge.length = neighbor.length;
@@ -356,7 +414,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
     graphFilename = filename;
 
-    if (loadGridGraph(gridGraph, filename)) {
+    if (!noCache && loadGridGraph(gridGraph, filename)) {
         std::cerr << "load grid graph from " << filename << ".map" << std::endl;
     } else {
         std::vector<unsigned int> v(height * width);
@@ -380,6 +438,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
         std::cerr << "save grid graph to " << filename << ".map" << std::endl;
         saveGridGraph(gridGraph, filename);
     }
+    saveXMLGraph(gridGraph, filename);
     generateGraph(gridGraph, filename, seed, kNeighbor);
 }
 
@@ -489,15 +548,21 @@ const Graph::Node &Graph::getNode(unsigned int nodeId) {
 }
 
 
-const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
+const Graph::Edge *Graph::getEdgePtr(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
     auto neighborEdges = boost::out_edges(nodeId1, g);
     for (auto edge: boost::make_iterator_range(neighborEdges)) {
         unsigned int neighborNodeId = edge.m_target;
         if (neighborNodeId == nodeId2) {
-            return g[edge];
+            return &g[edge];
         }
     }
+    return nullptr;
+}
+
+const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
+    auto ptr = getEdgePtr(nodeId1, nodeId2);
+    if (ptr) return *ptr;
     std::cerr << "can not find edge from " << nodeId1 << " to " << nodeId2 << std::endl;
     assert(0);
     exit(-1);
@@ -657,6 +722,30 @@ void Graph::saveAgents(const std::string &mapName, const std::string &filename, 
     }
 
     agentFileOut.close();
+}
+
+void Graph::saveAgentsXML(const std::string &filename, const std::vector<Agent> &agents) {
+    if (filename.empty()) return;
+    auto fullFileName = filename + ".xml";
+    tinyxml2::XMLDocument doc;
+
+    doc.InsertEndChild(doc.NewDeclaration());
+    auto root = doc.NewElement("root");
+    doc.InsertEndChild(root);
+    for (size_t i = 0; i < agents.size(); i++) {
+        auto agent = root->GetDocument()->NewElement("agent");
+        agent->SetAttribute("start_i", g[agents[i].start].x);
+        agent->SetAttribute("start_j", g[agents[i].start].y);
+        agent->SetAttribute("goal_i", g[agents[i].goal].x);
+        agent->SetAttribute("goal_j", g[agents[i].goal].y);
+        root->InsertEndChild(agent);
+    }
+
+//    tinyxml2::XMLPrinter printer;
+//    doc.Print( &printer );
+//    std::cout << printer.CStr();
+
+    doc.SaveFile(fullFileName.c_str());
 }
 
 unsigned int Graph::getNodeIdByGridPos(unsigned int x, unsigned int y) {

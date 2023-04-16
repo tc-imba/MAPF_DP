@@ -22,6 +22,7 @@ set(SOURCE_FILES
         src/solver/Solver.cpp
         src/solver/CBSSolver.cpp
         src/solver/EECBSSolver.cpp
+        src/solver/CCBSSolver.cpp
         src/Graph.cpp
         src/simulator/DefaultSimulator.cpp
         src/simulator/DefaultSimulator.h
@@ -31,14 +32,15 @@ set(SOURCE_FILES
         src/simulator/Simulator.h
         src/solver/IndividualAStarSolver.cpp
         src/solver/IndividualAStarSolver.h
+        Continuous-CBS/tinyxml2.cpp
         )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
 IF (WIN32)
     target_link_libraries(MAPF_DP EECBS_Static ws2_32)
-ELSE()
+ELSE ()
     target_link_libraries(MAPF_DP EECBS_Static)
-ENDIF()
+ENDIF ()
 
 add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp)
 target_link_libraries(MAPF_Map_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
@@ -49,8 +51,7 @@ target_link_libraries(MAPF_Task_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SY
 add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp)
 target_link_libraries(MAPF_Plan_Validator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
 
-#add_subdirectory(EECBS)
-
-add_executable(MAPF_test src/test.cpp)
+set(CMAKE_CXX_STANDARD 11)
+add_subdirectory(Continuous-CBS)
 
 

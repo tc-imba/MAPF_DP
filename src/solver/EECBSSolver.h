@@ -10,11 +10,7 @@
 #include <utility>
 
 class EECBSSolver : public Solver {
-private:
-    bool prioritizedReplan = false;
-    std::vector<Agent> savedAgents;
-    std::vector<std::shared_ptr<AgentPlan >> savedPlans;
-    std::vector<size_t> plannedAgentsMap;
+protected:
     std::string solverBinaryFile;
 
 public:
@@ -26,10 +22,6 @@ public:
     bool readSolution(std::ifstream &fin);
 
     bool solve() override;
-
-    bool solveWithPrioritizedReplan() override;
-
-    bool solveRetry();
 
     void saveObstacles(const std::string &filename);
 };

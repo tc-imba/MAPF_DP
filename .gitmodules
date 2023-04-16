@@ -4,3 +4,6 @@
 [submodule "GeometricTools"]
 	path = GeometricTools
 	url = https://github.com/davideberly/GeometricTools.git
+[submodule "Continuous-CBS"]
+	path = Continuous-CBS
+	url = https://github.com/PathPlanning/Continuous-CBS.git

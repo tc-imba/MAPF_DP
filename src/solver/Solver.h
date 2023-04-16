@@ -136,6 +136,12 @@ protected:
     std::vector<Agent> &agents;
     MakeSpanType makeSpanType;
 
+    // prioritized replan
+    bool prioritizedReplan = false;
+    std::vector<Agent> savedAgents;
+    std::vector<std::shared_ptr<AgentPlan >> savedPlans;
+    std::vector<size_t> plannedAgentsMap;
+
 public:
     bool success = false;
     bool debug = false;
@@ -164,7 +170,9 @@ public:
 
     bool solveWithCache(const std::string &directory, unsigned int agentSeed);
 
-    virtual bool solveWithPrioritizedReplan() {return solve(); };
+    virtual bool solveWithPrioritizedReplan();
+
+    bool solveRetry();
 
     bool validate();
 
