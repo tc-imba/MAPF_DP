@@ -28,6 +28,7 @@ protected:
     std::vector<boost::icl::interval_set<double> > delayedIntervals;
     double maxDelayTimestep = 0;
     std::vector<std::pair<bool, double> > executionTimeVec;
+    std::set<double> arrivingTimestepSet;
 
 private:
     void updateDelayedIntervals(double start, double length);
@@ -46,6 +47,8 @@ public:
 
 //    size_t delayInterval = 1;
     double delayRatio = 0.2;
+    double firstAgentArrivingTimestep = 0;
+    double executionTime = 0;
 
     Simulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed)
             : graph(graph), agents(agents), seed(seed) {}
@@ -97,6 +100,12 @@ public:
             timeOutputFile.close();
         }
     }
+
+    virtual void printState(size_t i, unsigned int state) = 0;
+
+    void printAgent(size_t i, const std::string& message);
+
+    void advanceTimestep(double &currentTimestep);
 
     double replan();
 

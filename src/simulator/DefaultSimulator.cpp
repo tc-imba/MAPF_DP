@@ -14,6 +14,7 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
     std::unordered_map<unsigned int, int> nodeStates;
     std::vector<unsigned int> savedStart(agents.size());
 
+    initDelayedIntervals();
     openOutputFiles();
 
     for (unsigned int i = 0; i < agents.size(); i++) {
@@ -59,13 +60,17 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
         }
     }
 
-    for (; currentTimestep < maxTimeStep; currentTimestep++) {
+
+    while (currentTimestep < maxTimeStep) {
         if (outputFile.is_open()) {
             outputFile << currentTimestep << std::endl;
         }
 
         if (debug) {
             std::cerr << "begin timestep " << currentTimestep << std::endl;
+
+        }
+/*        if (debug) {
             for (unsigned int i = 0; i < agents.size(); i++) {
                 std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
@@ -73,7 +78,7 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                 }
                 std::cerr << std::endl;
             }
-        }
+        }*/
 
         if (refresh) {
             refresh = false;
@@ -105,6 +110,8 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
             updateDelayedSet(currentTimestep);
         }
         updateDelayedSet(currentTimestep);*/
+
+
         // advance the state of the agents if the next state shares nodeId with current state
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
@@ -113,8 +120,7 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                 const auto &nextLabel = solver->solution->plans[i]->path[state + 1];
                 if (label.nodeId == nextLabel.nodeId) {
                     if (debug) {
-                        std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
-                                  << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
+                        printAgent(i, "same node");
                     }
                     ++nodeStates[label.nodeId];
                     ++state;
@@ -123,13 +129,61 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
         }
 
         int count = 0;
-        std::vector<unsigned int> unblocked;
+        std::set<unsigned int> unblocked;
 
+        double newCurrentTimestep = currentTimestep;
         for (unsigned int i = 0; i < agents.size(); i++) {
+            auto &state = agents[i].state;
+            const auto &label = solver->solution->plans[i]->path[state];
+            if (state + 1 < solver->solution->plans[i]->path.size() && !agents[i].blocked &&
+                agents[i].arrivingTimestep <= currentTimestep) {
+                // unblocked -> blocked (moved)
+                newCurrentTimestep = std::max(newCurrentTimestep, agents[i].arrivingTimestep);
+                const auto &nextLabel = solver->solution->plans[i]->path[state + 1];
+                auto currentNodeId = label.nodeId;
+                auto nextNodeId = nextLabel.nodeId;
+
+                if (outputFile.is_open()) {
+                    outputFile << i << " " << graph.getNode(nextNodeId).index << std::endl;
+                }
+                if (debug) {
+                    printAgent(i, "");
+                }
+//                nodeAgentMap.erase(currentNodeId);
+                agents[i].current = nextNodeId;
+                agents[i].timestep = agents[i].arrivingTimestep;
+                agents[i].blocked = true;
+                ++state;
+                ++nodeStates[label.nodeId];
+            }
+            if (state + 1 < solver->solution->plans[i]->path.size()) {
+                const auto &nextLabel = solver->solution->plans[i]->path[state + 1];
+                const auto &nextNode = nodes[nextLabel.nodeId];
+                auto nextNodeState = nodeStates[nextLabel.nodeId];
+                assert(nextNodeState < nextNode.size());
+                auto next = nextNode[nextNodeState];
+                if (next.first == nextLabel.state && next.second == i) {
+                    unblocked.emplace(i);
+                } else {
+                    // must be blocked
+                    if (!agents[i].blocked) {
+                        std::cerr << "error" << std::endl;
+                        exit(-1);
+                    }
+                }
+
+            }
+        }
+        currentTimestep = newCurrentTimestep;
+        if (debug) {
+            std::cout << "expanded timestep " << currentTimestep << std::endl;
+        }
+
+/*        for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
             if (state + 1 >= solver->solution->plans[i]->path.size()) {
                 if (debug) {
-                    std::cout << "agent " << i << ": completed" << std::endl;
+                    printAgent(i, "completed");
                 }
                 agents[i].blocked = true;
                 agents[i].delayed = false;
@@ -168,14 +222,41 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
             if (debug) {
                 std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << std::endl;
             }
-        }
+        }*/
 
-        for (auto i: unblocked) {
+        for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
+            if (state + 1 >= solver->solution->plans[i]->path.size()) {
+                ++count;
+                if (firstAgentArrivingTimestep == 0) {
+                    firstAgentArrivingTimestep = agents[i].arrivingTimestep;
+                }
+                if (debug) {
+                    printAgent(i, "completed");
+                }
+                continue;
+            }
+
+            if (unblocked.find(i) == unblocked.end()) {
+                if (debug) {
+                    printAgent(i, "blocked");
+                }
+                continue;
+            }
+
             const auto &label = solver->solution->plans[i]->path[state];
             const auto &nextLabel = solver->solution->plans[i]->path[state + 1];
             const auto &nextNode = nodes[nextLabel.nodeId];
+            auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
 
+            if (agents[i].blocked) {
+                // blocked -> unblocked
+                agents[i].blocked = false;
+                agents[i].arrivingTimestep = getAgentArrivingTime(currentTimestep, delayInterval, i, edge);
+                arrivingTimestepSet.insert(agents[i].arrivingTimestep);
+            } else {
+                // already unblocked, do nothing
+            }
 /*            // delay by agent
             if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
                 if (debug) {
@@ -218,15 +299,16 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                     continue;
                 }
             }*/
-            if (outputFile.is_open()) {
+/*            if (outputFile.is_open()) {
                 auto &node = graph.getNode(nextLabel.nodeId);
                 outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
-            }
+            }*/
             if (debug) {
-                std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
-                          << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
+                printAgent(i, "unblocked");
             }
-            agents[i].blocked = true;
+
+
+/*            agents[i].blocked = true;
             agents[i].delayed = false;
             agents[i].current = nextLabel.nodeId;
 //            agents[i].waitingTimestep = 0;
@@ -238,16 +320,17 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                     firstAgentArrivingTimestep = currentTimestep;
                 }
                 ++count;
-            }
+            }*/
 
+        }
+
+        if (count >= agents.size()) {
+            break;
         }
 
 
 //        std::cout << count << std::endl;
 
-        if (count >= agents.size()) {
-            break;
-        }
 
         if (replanMode) {
             auto currentExecutionTime = replan();
@@ -262,6 +345,8 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
             executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
             refresh = true;
         }
+
+        advanceTimestep(currentTimestep);
 
     }
 
@@ -292,4 +377,9 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
 void DefaultSimulator::print(std::ostream &out) const {
     out << executionTime << ","
         << firstAgentArrivingTimestep;
+}
+
+void DefaultSimulator::printState(size_t i, unsigned int state) {
+    auto currentNodeId = solver->solution->plans[i]->path[state].nodeId;
+    std::cout << "(" << state << "," << currentNodeId << ")";
 }

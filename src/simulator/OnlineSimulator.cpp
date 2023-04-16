@@ -49,18 +49,6 @@ void OnlineSimulator::printState(size_t i, unsigned int state) {
     std::cout << ")";
 }
 
-void OnlineSimulator::printAgent(size_t i, const std::string &message) {
-    auto state = agents[i].state;
-    std::cout << "agent " << i << ": ";
-    printState(i, state);
-    if (message.empty()) {
-        std::cout << " -> ";
-    } else {
-        std::cout << " " << message << " ";
-    }
-    printState(i, state + 1);
-    std::cout << std::endl;
-}
 
 int OnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                               unsigned int delayStart, unsigned int delayInterval) {
@@ -83,7 +71,7 @@ int OnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
         }
     }
 
-    std::uniform_real_distribution<double> distribution(0, 1);
+//    std::uniform_real_distribution<double> distribution(0, 1);
 
     if (debug) {
         for (unsigned int i = 0; i < agents.size(); i++) {
@@ -96,8 +84,6 @@ int OnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
 //        nodeStates[agents[i].start] = 0;
         }
     }
-
-    std::set<double> arrivingTimestepSet;
 
     while (currentTimestep < maxTimeStep) {
         if (outputFile.is_open()) {
@@ -346,6 +332,8 @@ int OnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                         std::cerr << "error: collision " << i << " " << it->second << " " << nextNodeId << std::endl;
                         exit(-1);
                     }
+
+                    agents[i].arrivingTimestep = getAgentArrivingTime(currentTimestep, delayInterval, i, edge);
                     if (debug) {
                         printAgent(i, "");
 //                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
@@ -354,8 +342,6 @@ int OnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                     ++state;
                     nodeAgentMap[nextNodeId] = i;
                     updateSharedNode(currentNodeId, i, state);
-
-                    agents[i].arrivingTimestep = getAgentArrivingTime(currentTimestep, delayInterval, i, edge);
                     arrivingTimestepSet.insert(agents[i].arrivingTimestep);
                 }
             }
@@ -444,18 +430,7 @@ int OnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
             break;
         }
 
-        // advance timestep
-        // find the first timestep larger than (not equal to) current timestep
-        auto it = arrivingTimestepSet.upper_bound(currentTimestep);
-        if (it == arrivingTimestepSet.end()) {
-            currentTimestep += 1;
-//            std::cerr << "warning: no arriving timestep!" << std::endl;
-        } else {
-            currentTimestep = *it;
-            // actually the erase is optional
-            arrivingTimestepSet.erase(arrivingTimestepSet.begin(), ++it);
-        }
-
+        advanceTimestep(currentTimestep);
 
     }
 
@@ -1213,7 +1188,7 @@ std::pair<size_t, size_t> OnlineSimulator::feasibilityCheckHelper(
                 auto sharedNodesListBackup = unsettledEdgePairs;
 //                std::cout << "recursive" << std::endl;
                 auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
-                if (firstAgentArrivingTimestep) {
+                if (firstAgentArrivingTimestep == 0) {
                     feasibilityCheckRecursionCount++;
                 }
                 boost::remove_edge(nodeId1, nodeId2, topoGraph);

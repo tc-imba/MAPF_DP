@@ -21,13 +21,11 @@ public:
     bool isOnlyCycleCheck = false;
     bool isFeasibilityType = false;
 
-    double executionTime = 0;
     size_t feasibilityCheckCount = 0;
     size_t feasibilityCheckTypes[4] = {0, 0, 0, 0};
     size_t cycleCheckCount = 0;
     size_t cycleCheckAgents = 0;
     size_t unblockedAgents = 0;
-    double firstAgentArrivingTimestep = 0;
 //    size_t feasibilityCheckIteration[2] = {0, 0};
 //    size_t feasibilityCheckIterationTemp = 0;
 
@@ -106,9 +104,7 @@ private:
 
     void printSets(const std::string &title);
 
-    void printState(size_t i, unsigned int state);
-
-    void printAgent(size_t i, const std::string& message);
+    void printState(size_t i, unsigned int state) override;
 
 //    unsigned int getNextNodeState(unsigned int state) const { return (state / 2 + 1) * 2; }
 
