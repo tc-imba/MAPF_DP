@@ -340,6 +340,7 @@ int main(int argc, const char *argv[]) {
             finished++;
         } else {
             std::cerr << count << " " << agentNum << std::endl;
+            exit(-1);
         }
     }
 

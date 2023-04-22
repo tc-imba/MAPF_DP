@@ -643,11 +643,11 @@ std::vector<Agent> Graph::generateRandomAgents(unsigned int agentNum, size_t see
             std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
                       << " (" << getHeuristic(v1[j], v2[j]) << ") failed" << std::endl;
         }*/
-        i++;
         if (debug) {
             std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
                       << " (" << getHeuristic(v1[j], v2[j]) << ")" << std::endl;
         }
+        i++;
     }
 
     if (agents.size() != i) {

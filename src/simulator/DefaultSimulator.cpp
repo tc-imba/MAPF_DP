@@ -68,9 +68,9 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
 
         if (debug) {
             std::cerr << "begin timestep " << currentTimestep << std::endl;
-
         }
-/*        if (debug) {
+
+        if (debug) {
             for (unsigned int i = 0; i < agents.size(); i++) {
                 std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
@@ -78,7 +78,7 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                 }
                 std::cerr << std::endl;
             }
-        }*/
+        }
 
         if (refresh) {
             refresh = false;
@@ -153,6 +153,7 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                 agents[i].current = nextNodeId;
                 agents[i].timestep = agents[i].arrivingTimestep;
                 agents[i].blocked = true;
+                agents[i].delayed = false;
                 ++state;
                 ++nodeStates[label.nodeId];
             }
@@ -253,6 +254,9 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
                 // blocked -> unblocked
                 agents[i].blocked = false;
                 agents[i].arrivingTimestep = getAgentArrivingTime(currentTimestep, delayInterval, i, edge);
+                if (agents[i].arrivingTimestep - currentTimestep > edge.length) {
+                    agents[i].delayed = true;
+                }
                 arrivingTimestepSet.insert(agents[i].arrivingTimestep);
             } else {
                 // already unblocked, do nothing
@@ -328,11 +332,12 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
             break;
         }
 
-
 //        std::cout << count << std::endl;
 
+        advanceTimestep(currentTimestep);
 
         if (replanMode) {
+//            std::cout << "replan: " << currentTimestep << std::endl;
             auto currentExecutionTime = replan();
             if (currentExecutionTime < 0) {
                 currentTimestep = maxTimeStep + 100;
@@ -345,9 +350,6 @@ int DefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep
             executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
             refresh = true;
         }
-
-        advanceTimestep(currentTimestep);
-
     }
 
 //    std::cout << "window " << window << ": " << averageMakeSpan() << std::endl;

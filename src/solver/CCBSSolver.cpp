@@ -60,6 +60,10 @@ bool CCBSSolver::readSolution(const std::string &filename) {
             plan->path.back().heuristic = totalTime - plan->path.back().estimatedTime;
             sectionElem = sectionElem->NextSiblingElement();
         }
+        // empty path
+        if (plan->path.empty()) {
+            plan->add(agents[i].goal);
+        }
     }
 
     solution = node;
@@ -72,7 +76,7 @@ bool CCBSSolver::solve() {
     using namespace boost::filesystem;
     using namespace boost::process;
 
-    executionTime = 0;
+    executionTime = -1;
 
     path ph = path("ccbs_results") / unique_path();
     create_directories(ph);
@@ -103,12 +107,12 @@ bool CCBSSolver::solve() {
 //    std::cout << argumentsStr << std::endl;
 
     child c(argumentsStr, std_out > null, std_err > null, start_dir(ph));
-    auto start = std::chrono::steady_clock::now();
+//    auto start = std::chrono::steady_clock::now();
     c.wait();
 
-    auto end = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end - start;
-    executionTime = elapsed_seconds.count();
+//    auto end = std::chrono::steady_clock::now();
+//    std::chrono::duration<double> elapsed_seconds = end - start;
+//    executionTime = elapsed_seconds.count();
 
     success = readSolution(outputFileName);
 

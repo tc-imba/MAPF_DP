@@ -135,6 +135,7 @@ void Simulator::updateDelayedSet(unsigned int timestep) {
 int Simulator::countCompletedAgents() {
     int count = 0;
     for (unsigned int i = 0; i < agents.size(); i++) {
+//        std::cout << i << " " << agents[i].current << " " << agents[i].goal << std::endl;
         if (agents[i].current == agents[i].goal) {
             count++;
         }
@@ -200,7 +201,7 @@ double Simulator::replan() {
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (debug) {
             std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current
-                      << std::endl;
+                      << ", goal " << agents[i].goal << std::endl;
         }
         auto &path = solver->solution->plans[i]->path;
         if (agents[i].state + 1 >= path.size()) {
@@ -247,9 +248,10 @@ double Simulator::replan() {
         agents[i].state = 0;
         agents[i].current = savedAgents[i].current;
         agents[i].timestep = savedAgents[i].timestep;
+        agents[i].arrivingTimestep = savedAgents[i].arrivingTimestep;
         if (debug) {
             std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current
-                      << std::endl;
+                      << ", goal " << agents[i].goal << std::endl;
         }
         auto &path = solver->solution->plans[i]->path;
         for (auto &label: path) {
