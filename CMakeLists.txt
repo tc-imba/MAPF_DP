@@ -42,13 +42,13 @@ ELSE ()
     target_link_libraries(MAPF_DP EECBS_Static)
 ENDIF ()
 
-add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp)
+add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
 target_link_libraries(MAPF_Map_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
 
-add_executable(MAPF_Task_Generator src/generator/TaskGenerator.cpp src/Graph.cpp)
+add_executable(MAPF_Task_Generator src/generator/TaskGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
 target_link_libraries(MAPF_Task_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
 
-add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp)
+add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
 target_link_libraries(MAPF_Plan_Validator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
 
 set(CMAKE_CXX_STANDARD 11)
