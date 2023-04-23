@@ -147,7 +147,7 @@ int main(int argc, const char *argv[]) {
     if (!outputFileName.empty()) {
         fout.open(outputFileName, std::ios_base::app);
         fout.rdbuf()->pubsetbuf(buf.get(), 4096);
-        std::cerr << outputFileName << std::endl;
+        std::cerr << "redirect output to "<< outputFileName << std::endl;
     }
     std::ostream &out = fout.is_open() ? fout : std::cout;
 
