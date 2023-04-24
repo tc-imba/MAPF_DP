@@ -7,6 +7,7 @@ from pathlib import Path
 import multiprocessing
 import concurrent.futures
 import pandas as pd
+import contextvars
 
 from experiment.utils import asyncio_wrapper, validate_list
 
@@ -120,22 +121,27 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
 
     await asyncio.get_event_loop().run_in_executor(pool, run_program, args, timeout)
     EXPERIMENT_JOBS_COMPLETED += 1
-    print('%s completed (%d/%d)' % (output_file, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
 
+    result = 1
     if init_tests:
         try:
             with cbs_file.open() as file:
                 line = file.readline().strip()
                 if len(line) == 0:
-                    return 0
+                    raise Exception()
             with output_file.open() as file:
                 line = file.readline().strip()
                 if len(line) == 0:
-                    return 0
+                    raise Exception()
         except:
-            return 0
+            result = 0
 
-    return 1
+    if result == 1:
+        print('%s completed (%d/%d)' % (output_file, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+    else:
+        print('%s failed (%d/%d)' % (output_file, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+
+    return result
 
 
 async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, timeout):
@@ -149,17 +155,30 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
 
     async def init_map(map_seed, obstacle, k_neighbor, agent):
         completed = 0
-        current = 0
-        while completed < agent_seeds:
-            tasks = []
-            for i in range(current, current + agent_seeds - completed):
-                tasks.append(init_case(map_seed, i, obstacle, k_neighbor, agent))
-            results = await asyncio.gather(*tasks)
-            for i, result in enumerate(results):
-                if result == 1:
-                    all_tests.append((map_seed, current + i, obstacle, k_neighbor, agent))
-            current += len(results)
-            completed += sum(results)
+        _current = contextvars.ContextVar('current', default=0)
+
+        async def init_agent(current):
+            result = 0
+            while result == 0:
+                agent_seed = current.get()
+                current = current.set(agent_seed + 1)
+                result = await init_case(map_seed, agent_seed, obstacle, k_neighbor, agent)
+
+        tasks = []
+        for i in range(agent_seeds):
+            tasks.append(init_agent(_current))
+        await asyncio.gather(*tasks)
+
+        # while completed < agent_seeds:
+        #     tasks = []
+        #     for i in range(current, current + agent_seeds - completed):
+        #         tasks.append(init_case(map_seed, i, obstacle, k_neighbor, agent))
+        #     results = await asyncio.gather(*tasks)
+        #     for i, result in enumerate(results):
+        #         if result == 1:
+        #             all_tests.append((map_seed, current + i, obstacle, k_neighbor, agent))
+        #     current += len(results)
+        #     completed += sum(results)
 
     map_tasks = []
     for _map_seed in range(map_seeds):

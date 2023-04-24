@@ -99,7 +99,7 @@ bool CCBSSolver::solve() {
     saveConfig(configFileName);
 
     std::vector<std::string> arguments;
-    arguments.emplace_back(canonical(solverBinaryPath).string());
+    arguments.emplace_back(absolute(solverBinaryPath).string());
     arguments.emplace_back("map.xml");
     arguments.emplace_back("task.xml");
     arguments.emplace_back("config.xml");
