@@ -145,7 +145,10 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
 
 
 async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, timeout):
-    all_tests = []
+    # all_tests = []
+
+    test_file = result_dir / "tests.csv"
+    test_file.unlink(missing_ok=True)
 
     async def init_case(map_seed, agent_seed, obstacle, k_neighbor, agent):
         return await run("random", map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacle, agents=agent,
@@ -162,11 +165,14 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
         _current = CurrentWrapper()
 
         async def init_agent():
-            result = 0
-            while result == 0:
+            while True:
                 agent_seed = _current.current
                 _current.current += 1
                 result = await init_case(map_seed, agent_seed, obstacle, k_neighbor, agent)
+                if result == 1:
+                    with test_file.open("a") as file:
+                        file.write("%d,%d,%d,%d,%d\n" % (map_seed, agent_seed, obstacle, k_neighbor, agent))
+                    break
 
         tasks = []
         for i in range(agent_seeds):
@@ -192,10 +198,11 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
                     map_tasks.append(init_map(_map_seed, _obstacle, _k_neighbor, _agent))
     await asyncio.gather(*map_tasks)
 
-    test_file = result_dir / "tests.csv"
-    with test_file.open("w") as file:
-        for test in all_tests:
-            file.write(",".join(map(lambda x: str(x), test)) + "\n")
+    # test_file = result_dir / "tests.csv"
+    # with test_file.open("w") as file:
+    #     for test in all_tests:
+    #         file.write(",".join(map(lambda x: str(x), test)) + "\n")
+
 
 
 async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, agents, simulators, delay_ratios,
@@ -217,7 +224,7 @@ async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, ag
             for _agent in agents:
                 for _k_neighbor in k_neighbors:
                     df_temp = df[(df["map_seed"] == _map_seed) & (df["obstacle"] == _obstacle) & (
-                                df["k_neighbor"] == _k_neighbor) & (df["agent"] == _agent)]
+                            df["k_neighbor"] == _k_neighbor) & (df["agent"] == _agent)]
                     df_temp.sort_values(by="agent_seed")
                     if len(df_temp) < agent_seeds:
                         print("warning: %d %d %d %d no enough seeds" % (_map_seed, _obstacle, _k_neighbor, _agent))
