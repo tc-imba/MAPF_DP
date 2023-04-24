@@ -154,19 +154,23 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
                          timeout=timeout, init_tests=True)
 
     async def init_map(map_seed, obstacle, k_neighbor, agent):
-        completed = 0
-        _current = contextvars.ContextVar('current', default=0)
 
-        async def init_agent(current):
+        class CurrentWrapper:
+            def __init__(self):
+                self.current = 0
+
+        _current = CurrentWrapper()
+
+        async def init_agent():
             result = 0
             while result == 0:
-                agent_seed = current.get()
-                current = current.set(agent_seed + 1)
+                agent_seed = _current.current
+                _current.current += 1
                 result = await init_case(map_seed, agent_seed, obstacle, k_neighbor, agent)
 
         tasks = []
         for i in range(agent_seeds):
-            tasks.append(init_agent(_current))
+            tasks.append(init_agent())
         await asyncio.gather(*tasks)
 
         # while completed < agent_seeds:
