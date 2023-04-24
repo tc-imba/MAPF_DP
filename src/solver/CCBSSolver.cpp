@@ -99,7 +99,7 @@ bool CCBSSolver::solve() {
     saveConfig(configFileName);
 
     std::vector<std::string> arguments;
-    arguments.emplace_back(absolute(solverBinaryPath).string());
+    arguments.emplace_back(canonical(solverBinaryPath).string());
     arguments.emplace_back("map.xml");
     arguments.emplace_back("task.xml");
     arguments.emplace_back("config.xml");
@@ -140,7 +140,7 @@ void CCBSSolver::saveConfig(const std::string &filename) {
             {"connectedness",          std::to_string(graph.getKNeighbor())},
             {"focal_weight",           "1.0"},
             {"agent_size",             "0.353553"},
-            {"timelimit",              "30"},
+            {"timelimit",              "600"},
             {"precision",              "0.0000001"},
     };
 
