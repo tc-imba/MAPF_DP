@@ -143,6 +143,17 @@ int Simulator::countCompletedAgents() {
     return count;
 }
 
+void Simulator::printExecutionTime(size_t iteration) {
+    timeOutputFile.open(timeOutputFileName, std::ios_base::app);
+    if (timeOutputFile.is_open()) {
+        timeOutputFile << iteration << " " << executionTimeVec.size() << std::endl;
+        for (auto &p : executionTimeVec) {
+            timeOutputFile << (int) p.first << " " << p.second << std::endl;
+        }
+        timeOutputFile.close();
+    }
+}
+
 void Simulator::printAgent(size_t i, const std::string &message) {
     auto state = agents[i].state;
     std::cout << "agent " << i << ": ";

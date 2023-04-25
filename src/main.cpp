@@ -6,8 +6,8 @@
 #include "solver/EECBSSolver.h"
 #include "solver/CCBSSolver.h"
 #include "solver/IndividualAStarSolver.h"
-#include "simulator/DefaultSimulator.h"
-#include "simulator/OnlineSimulator.h"
+#include "simulator/ContinuousDefaultSimulator.h"
+#include "simulator/ContinuousOnlineSimulator.h"
 #include "utils/ezOptionParser.hpp"
 
 std::string double_to_string(double data) {
@@ -249,7 +249,7 @@ int main(int argc, const char *argv[]) {
     }
 
     double approx = solver->approxAverageMakeSpan(*solver->solution);
-    std::shared_ptr<OnlineSimulator> onlineSimulator;
+    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
     std::shared_ptr<Simulator> simulator;
 
     unsigned int finished = 0;
@@ -257,12 +257,12 @@ int main(int argc, const char *argv[]) {
     for (unsigned int i = simulationSeed; finished < iteration; i++) {
         graph.generateDelayProbability(i, minDP, maxDP);
 
-        onlineSimulator = std::make_unique<OnlineSimulator>(graph, agents, i);
+        onlineSimulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
         onlineSimulator->delayRatio = delayRatio;
         onlineSimulator->delayType = delayType;
         onlineSimulator->setSolver(solver);
         if (simulatorType == "default" || simulatorType == "replan") {
-            simulator = std::make_unique<DefaultSimulator>(graph, agents, i);
+            simulator = std::make_unique<ContinuousDefaultSimulator>(graph, agents, i);
             simulator->delayRatio = delayRatio;
             simulator->delayType = delayType;
             simulator->setSolver(solver);

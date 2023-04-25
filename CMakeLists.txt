@@ -24,16 +24,16 @@ set(SOURCE_FILES
         src/solver/EECBSSolver.cpp
         src/solver/CCBSSolver.cpp
         src/Graph.cpp
-        src/simulator/DefaultSimulator.cpp
-        src/simulator/DefaultSimulator.h
-        src/simulator/OnlineSimulator.cpp
-        src/simulator/OnlineSimulator.h
+        src/simulator/ContinuousDefaultSimulator.cpp
+        src/simulator/ContinuousDefaultSimulator.h
+        src/simulator/ContinuousOnlineSimulator.cpp
+        src/simulator/ContinuousOnlineSimulator.h
         src/simulator/Simulator.cpp
         src/simulator/Simulator.h
         src/solver/IndividualAStarSolver.cpp
         src/solver/IndividualAStarSolver.h
         Continuous-CBS/tinyxml2.cpp
-        )
+        src/simulator/DiscreteSimulator.cpp src/simulator/DiscreteSimulator.h src/simulator/DefaultSimulator.cpp src/simulator/DefaultSimulator.h src/simulator/ContinuousSimulator.cpp src/simulator/ContinuousSimulator.h src/simulator/OnlineSimulator.cpp src/simulator/OnlineSimulator.h)
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
 IF (WIN32)

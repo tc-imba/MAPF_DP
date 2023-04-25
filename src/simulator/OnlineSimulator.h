@@ -1,5 +1,5 @@
 //
-// Created by liu on 7/1/2022.
+// Created by liuyh on 25/4/2023.
 //
 
 #ifndef MAPF_DP_ONLINESIMULATOR_H
@@ -7,15 +7,8 @@
 
 #include "Simulator.h"
 
-class OnlineSimulator : public Simulator {
+class OnlineSimulator : virtual public Simulator {
 public:
-    OnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
-
-    int simulate(double &currentTimestep, unsigned int maxTimeStep,
-                 unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
-
-    void print(std::ostream &out) const override;
-
     bool isHeuristicFeasibilityCheck = true;
     bool isHeuristicCycleCheck = true;
     bool isOnlyCycleCheck = false;
@@ -34,127 +27,12 @@ public:
     size_t feasibilityCheckLoopCount = 0;
     size_t feasibilityCheckRecursionCount = 0;
 
-private:
-    struct SharedNodePair {
-        size_t agentId1;
-        unsigned int state1;
-        size_t agentId2;
-        unsigned int state2;
-    };
-
-    struct SDGNode {
-        size_t agentId;
-        unsigned int state;
-    };
-
-    friend bool operator<(const SDGNode& lhs, const SDGNode& rhs) {
-        if (lhs.agentId == rhs.agentId) return lhs.state < rhs.state;
-        return lhs.agentId < rhs.agentId;
-    }
-
-    friend bool operator==(const SDGNode& lhs, const SDGNode& rhs) {
-        return lhs.agentId == rhs.agentId && lhs.state == rhs.state;
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const SDGNode& node) {
-        return out << "(" << node.agentId << "," << node.state << ")";
-    }
-
-    struct SDGEdge {
-        SDGNode source, dest;
-    };
-
-    friend bool operator<(const SDGEdge& lhs, const SDGEdge& rhs) {
-        return lhs.source < rhs.source;
-    }
-
-    friend bool operator==(const SDGEdge& lhs, const SDGEdge& rhs) {
-        return lhs.source == rhs.source && lhs.dest == rhs.dest;
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const SDGEdge& edge) {
-        return out << edge.source << "->" << edge.dest;
-    }
-
-    typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
-
-    // each SDGNode has a corresponding SDGData
-    struct SDGData {
-        // conflicts between the current SDGNode and other SDGNodes
-        std::vector<SDGNode> conflicts;
-        // determined edges from these SDGNodes (sources) to the current SDGNode (destination)
-        // this recording direction is designed for unnecessary blocking
-        std::vector<SDGNode> determinedEdgeSources;
-        // contain unsettled edges from the current SDGNode (source) to some other SDGNodes (destination)
-        std::vector<SDGEdgePair> unsettledEdgePairs;
-    };
-
-    std::vector<std::vector<SDGData>> sdgData;
-    std::set<SDGEdgePair> unsettledEdgePairsSet;
-
-    std::vector<std::vector<unsigned int>> paths;
-    std::vector<std::vector<std::pair<size_t, unsigned int> > > deadEndStates;
-    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
-
-    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
-    Graph::topo_graph_t topoGraph;
-
-    std::unordered_map<size_t, size_t> nodeAgentMap;
-    std::set<size_t> blocked, unblocked, moved, ready, unshared, keepMoving;
-
-    void printSets(const std::string &title);
+    void print(std::ostream &out) const override;
 
     void printState(size_t i, unsigned int state) override;
 
-//    unsigned int getNextNodeState(unsigned int state) const { return (state / 2 + 1) * 2; }
-
-    std::pair<unsigned int, unsigned int> getTopoEdgeBySDGEdge(const SDGEdge &edge) const {
-        return std::make_pair(pathTopoNodeIds[edge.source.agentId][edge.source.state],
-                              pathTopoNodeIds[edge.dest.agentId][edge.dest.state]);
-    };
-
-    void initSharedNodes(size_t i, size_t j);
-
-    void updateSharedNode(unsigned int nodeId, size_t agentId, unsigned int state);
-
-    void initSimulation();
-
-    void initChecks();
-
-    void unnecessaryBlockCheck();
-
-    void unsharedCheck();
-
-    void neighborCheck();
-
-    void deadEndCheck();
-
-    void singleAgentCheck();
-
-    void naiveCycleCheckHelper(std::vector<size_t> &readyList, size_t length, size_t start, size_t current,
-                               std::vector<bool> &check, std::vector<size_t> &maxReadyList);
-
-    void naiveCycleCheck();
-
-    void heuristicCycleCheck();
-
-    void cycleCheck();
-
-    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
-
-    std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<SDGEdgePair> &sharedNodesList,
-            bool recursive
-//            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
-    );
-
-    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
-
-    std::pair<size_t, size_t> feasibilityCheck();
-
-    bool generateUnsettledEdges();
-
-
+protected:
+    std::vector<std::vector<unsigned int>> paths;
 };
 
 

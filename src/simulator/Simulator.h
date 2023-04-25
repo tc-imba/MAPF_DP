@@ -7,7 +7,6 @@
 
 #include "../solver/Solver.h"
 #include <boost/icl/interval_set.hpp>
-//#include "../EECBSSolver.h"
 
 #include <random>
 #include <iostream>
@@ -90,18 +89,9 @@ public:
 
     virtual void print(std::ostream &out) const = 0;
 
-    void printExecutionTime(size_t iteration) {
-        timeOutputFile.open(timeOutputFileName, std::ios_base::app);
-        if (timeOutputFile.is_open()) {
-            timeOutputFile << iteration << " " << executionTimeVec.size() << std::endl;
-            for (auto &p : executionTimeVec) {
-                timeOutputFile << (int) p.first << " " << p.second << std::endl;
-            }
-            timeOutputFile.close();
-        }
-    }
-
     virtual void printState(size_t i, unsigned int state) = 0;
+
+    void printExecutionTime(size_t iteration);
 
     void printAgent(size_t i, const std::string& message);
 
