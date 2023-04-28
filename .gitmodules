@@ -7,3 +7,6 @@
 [submodule "Continuous-CBS"]
 	path = Continuous-CBS
 	url = https://github.com/PathPlanning/Continuous-CBS.git
+[submodule "time-independent-planning"]
+	path = time-independent-planning
+	url = https://github.com/tc-imba/time-independent-planning.git

@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 project(MAPF_DP)
 
-set(CMAKE_CXX_STANDARD 17)
 
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem graph)
 include_directories(${Boost_INCLUDE_DIRS})
 #add_definitions("-D DEBUG_CYCLE")
+
+# EECBS
 
 include_directories("EECBS/inc")
 file(GLOB SOURCE_FILES "EECBS/src/*.cpp")
@@ -16,8 +17,18 @@ target_link_libraries(EECBS ${Boost_LIBRARIES})
 add_library(EECBS_Static ${SOURCE_FILES})
 target_link_libraries(EECBS_Static ${Boost_LIBRARIES})
 
+# PIBT
+add_subdirectory(time-independent-planning/time_independent)
+
+# GeometricTools
 include_directories("GeometricTools/GTE")
 
+# Continuous-CBS
+set(CMAKE_CXX_STANDARD 11)
+add_subdirectory(Continuous-CBS)
+
+# MAPF-DP
+set(CMAKE_CXX_STANDARD 17)
 set(SOURCE_FILES
         src/solver/Solver.cpp
         src/solver/CBSSolver.cpp
@@ -51,7 +62,6 @@ target_link_libraries(MAPF_Task_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SY
 add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
 target_link_libraries(MAPF_Plan_Validator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
 
-set(CMAKE_CXX_STANDARD 11)
-add_subdirectory(Continuous-CBS)
+
 
 
