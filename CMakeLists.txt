@@ -33,7 +33,7 @@ set(SOURCE_FILES
         src/solver/IndividualAStarSolver.cpp
         src/solver/IndividualAStarSolver.h
         Continuous-CBS/tinyxml2.cpp
-        src/simulator/DiscreteSimulator.cpp src/simulator/DiscreteSimulator.h src/simulator/DefaultSimulator.cpp src/simulator/DefaultSimulator.h src/simulator/ContinuousSimulator.cpp src/simulator/ContinuousSimulator.h src/simulator/OnlineSimulator.cpp src/simulator/OnlineSimulator.h)
+        src/simulator/DiscreteSimulator.cpp src/simulator/DiscreteSimulator.h src/simulator/DefaultSimulator.cpp src/simulator/DefaultSimulator.h src/simulator/ContinuousSimulator.cpp src/simulator/ContinuousSimulator.h src/simulator/OnlineSimulator.cpp src/simulator/OnlineSimulator.h src/simulator/DiscreteDefaultSimulator.cpp src/simulator/DiscreteDefaultSimulator.h src/simulator/DiscreteOnlineSimulator.cpp src/simulator/DiscreteOnlineSimulator.h)
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
 IF (WIN32)

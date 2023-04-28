@@ -5,9 +5,13 @@
 #ifndef MAPF_DP_DISCRETESIMULATOR_H
 #define MAPF_DP_DISCRETESIMULATOR_H
 
+#include "Simulator.h"
 
-class DiscreteSimulator {
-
+class DiscreteSimulator : virtual public Simulator {
+protected:
+    std::set<unsigned int> delayedSet;
+public:
+    void updateDelayedSet(unsigned int timestep);
 };
 
 

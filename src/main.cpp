@@ -8,6 +8,7 @@
 #include "solver/IndividualAStarSolver.h"
 #include "simulator/ContinuousDefaultSimulator.h"
 #include "simulator/ContinuousOnlineSimulator.h"
+#include "simulator/DiscreteDefaultSimulator.h"
 #include "utils/ezOptionParser.hpp"
 
 std::string double_to_string(double data) {
@@ -39,11 +40,12 @@ int main(int argc, const char *argv[]) {
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan)", "--simulator");
+    optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "-o", "--simulator-output");
     optionParser.add("", false, 1, 0, "Time Output Filename", "-o", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
-    optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs", "--solver");
+    optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs / ccbs", "--solver");
     optionParser.add("../cmake-build-relwithdebinfo/Continuous-CBS/CCBS", false, 1, 0, "Solver binary (for CCBS / EECBS)",
                      "--solver-binary");
 
@@ -94,13 +96,14 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
+    std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles, kNeighbor;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, noCache;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
+    optionParser.get("--timing")->getString(timingType);
     optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--simulator-output")->getString(simulatorOutputFileName);
     optionParser.get("--time-output")->getString(timeOutputFileName);
@@ -249,24 +252,22 @@ int main(int argc, const char *argv[]) {
     }
 
     double approx = solver->approxAverageMakeSpan(*solver->solution);
-    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
+//    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
     std::shared_ptr<Simulator> simulator;
 
     unsigned int finished = 0;
 
     for (unsigned int i = simulationSeed; finished < iteration; i++) {
-        graph.generateDelayProbability(i, minDP, maxDP);
+        if (useDP) {
+            graph.generateDelayProbability(i, minDP, maxDP);
+        }
 
-        onlineSimulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
-        onlineSimulator->delayRatio = delayRatio;
-        onlineSimulator->delayType = delayType;
-        onlineSimulator->setSolver(solver);
         if (simulatorType == "default" || simulatorType == "replan") {
-            simulator = std::make_unique<ContinuousDefaultSimulator>(graph, agents, i);
-            simulator->delayRatio = delayRatio;
-            simulator->delayType = delayType;
-            simulator->setSolver(solver);
-
+            if (timingType == "continuous") {
+                simulator = std::make_unique<ContinuousDefaultSimulator>(graph, agents, i);
+            } else {
+                simulator = std::make_unique<DiscreteDefaultSimulator>(graph, agents, i);
+            }
             if (simulatorType == "replan") {
                 simulator->replanMode = true;
                 simulator->prioritizedReplan = prioritizedReplan;
@@ -278,14 +279,25 @@ int main(int argc, const char *argv[]) {
                 }
             }
         } else if (simulatorType == "online") {
-            simulator = onlineSimulator;
+            if (timingType == "continuous") {
+                simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
+            } else {
+                simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
+            }
+            auto onlineSimulator = std::dynamic_pointer_cast<OnlineSimulator>(simulator);
+            onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
+            onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
+            onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
+            onlineSimulator->isFeasibilityType = feasibilityType;
         } else {
             assert(0);
         }
+        simulator->delayRatio = delayRatio;
+        simulator->delayType = delayType;
+        simulator->setSolver(solver);
         simulator->debug = debug;
         simulator->outputFileName = simulatorOutputFileName;
         simulator->timeOutputFileName = timeOutputFileName;
-
 
 /*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
@@ -306,18 +318,10 @@ int main(int argc, const char *argv[]) {
 
         double currentTimestep = 1;
         const int maxTimestep = 300;
-//        int count = onlineSimulator->simulate(currentTimestep, currentTimestep + maxTimestep);
 
 #ifdef DEBUG_CYCLE
         simulator->debug = true;
 #endif
-
-        if (simulatorType == "online") {
-            onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
-            onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
-            onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
-            onlineSimulator->isFeasibilityType = feasibilityType;
-        }
         simulator->setAgents(agents);
         currentTimestep = 0;
         auto start = std::chrono::steady_clock::now();

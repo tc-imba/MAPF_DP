@@ -11,34 +11,6 @@
 
 #include "ContinuousOnlineSimulator.h"
 
-void ContinuousOnlineSimulator::printSets(const std::string &title) {
-    if (debug) {
-        auto size = ready.size() + moved.size() + blocked.size() + unblocked.size() + unshared.size();
-        std::cout << title << " " << size << " ";
-        std::cout << "ready: ";
-        for (auto j: ready) {
-            std::cout << j << " ";
-        }
-        std::cout << "moved: ";
-        for (auto j: moved) {
-            std::cout << j << " ";
-        }
-        std::cout << "blocked: ";
-        for (auto j: blocked) {
-            std::cout << j << " ";
-        }
-        std::cout << "unblocked: ";
-        for (auto j: unblocked) {
-            std::cout << j << " ";
-        }
-        std::cout << "unshared: ";
-        for (auto j: unshared) {
-            std::cout << j << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
 
 int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                               unsigned int delayStart, unsigned int delayInterval) {
