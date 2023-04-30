@@ -106,7 +106,7 @@ bool EECBSSolver::solve() {
     }
 //    std::cout << std::endl;
 
-
+//    std::cout << argumentsStr << std::endl;
 //    child c(argumentsStr, std_out > stderr, std_err > stderr);
     child c(argumentsStr, std_out > null, std_err > null);
     auto start = std::chrono::steady_clock::now();
@@ -123,7 +123,7 @@ bool EECBSSolver::solve() {
     fin.close();
 
 //    if (success) {
-        remove_all(ph);
+//        remove_all(ph);
 //    }
     prioritizedReplan = false;
 

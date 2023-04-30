@@ -6,8 +6,6 @@
 #include <boost/algorithm/string_regex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/process.hpp>
-//#include <fstream>
-
 #include "../../Continuous-CBS/tinyxml2.h"
 #include "CCBSSolver.h"
 
@@ -78,7 +76,6 @@ bool CCBSSolver::solve() {
 
     executionTime = -1;
 
-    path solverBinaryPath = path(solverBinaryFile);
     path ph = path("ccbs_results") / unique_path();
     create_directories(ph);
     path taskFile = ph / "task";
@@ -99,7 +96,7 @@ bool CCBSSolver::solve() {
     saveConfig(configFileName);
 
     std::vector<std::string> arguments;
-    arguments.emplace_back(absolute(solverBinaryPath).string());
+    arguments.emplace_back(solverBinaryFile);
     arguments.emplace_back("map.xml");
     arguments.emplace_back("task.xml");
     arguments.emplace_back("config.xml");

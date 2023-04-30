@@ -155,6 +155,8 @@ public:
 
     Solver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType);
 
+    virtual ~Solver() = default;
+
     virtual std::string getSolverName() = 0;
 
     static size_t

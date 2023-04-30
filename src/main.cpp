@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
-//#include <boost/interprocess/sync/named_mutex.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/dll.hpp>
 #include "Graph.h"
 #include "solver/CBSSolver.h"
 #include "solver/EECBSSolver.h"
@@ -9,6 +10,8 @@
 #include "simulator/ContinuousDefaultSimulator.h"
 #include "simulator/ContinuousOnlineSimulator.h"
 #include "simulator/DiscreteDefaultSimulator.h"
+#include "simulator/DiscreteOnlineSimulator.h"
+#include "simulator/DiscretePIBTSimulator.h"
 #include "utils/ezOptionParser.hpp"
 
 std::string double_to_string(double data) {
@@ -39,15 +42,14 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
-    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan)", "--simulator");
+    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt)", "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "-o", "--simulator-output");
     optionParser.add("", false, 1, 0, "Time Output Filename", "-o", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs / ccbs", "--solver");
-    optionParser.add("../cmake-build-relwithdebinfo/Continuous-CBS/CCBS", false, 1, 0, "Solver binary (for CCBS / EECBS)",
-                     "--solver-binary");
+    optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit, deprecated)", "-w", "--window", validWindowSize);
@@ -81,8 +83,8 @@ int main(int argc, const char *argv[]) {
     auto validDelayInterval = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("1", false, 1, 0, "Delay Interval", "--delay-interval", validDelayInterval);
 
-    auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("0", false, 1, 0, "Delay Start", "-p", "--delay-start", validDelayStart);
+//    auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
+    optionParser.add("0", false, 1, 0, "Delay Start", "-p", "--delay-start");
 
     auto validKNeighbor = new ez::ezOptionValidator("u4", "ge", "2");
     optionParser.add("2", false, 1, 0, "Max Edge Length", "--k-neighbor", validKNeighbor);
@@ -97,7 +99,8 @@ int main(int argc, const char *argv[]) {
     }
 
     std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
-    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayStart, delayInterval, obstacles, kNeighbor;
+    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayInterval, obstacles, kNeighbor;
+    long delayStart;
     double minDP, maxDP, delayRatio;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, noCache;
     optionParser.get("--map")->getString(mapType);
@@ -121,7 +124,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--delay")->getString(delayType);
     optionParser.get("--delay-ratio")->getDouble(delayRatio);
     optionParser.get("--delay-interval")->getULong(delayInterval);
-    optionParser.get("--delay-start")->getULong(delayStart);
+    optionParser.get("--delay-start")->getLong(delayStart);
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
@@ -139,10 +142,24 @@ int main(int argc, const char *argv[]) {
     if (delayInterval == 0) {
         delayInterval = INT_MAX;
     }
-    if (delayStart == 0) {
+    if (delayStart < 0) {
         delayStart = INT_MAX;
     }
-
+    if (solverBinaryFile.empty()) {
+        auto solverBinaryPath = boost::dll::program_location().parent_path();
+        if (solverType == "ccbs") {
+            solverBinaryPath = solverBinaryPath / "Continuous-CBS" / "CCBS";
+        } else if (solverType == "eecbs") {
+            solverBinaryPath = solverBinaryPath / "EECBS" / "eecbs";
+        }
+        if (!solverBinaryPath.empty()) {
+            solverBinaryFile = solverBinaryPath.string();
+        }
+    } else {
+        auto solverBinaryPath = boost::filesystem::path(solverBinaryFile);
+        solverBinaryFile = boost::filesystem::canonical(solverBinaryPath).string();
+    }
+    std::cout << solverBinaryFile << std::endl;
 //    std::cout << "window: " << window << std::endl;
 
     std::ofstream fout;
@@ -150,7 +167,7 @@ int main(int argc, const char *argv[]) {
     if (!outputFileName.empty()) {
         fout.open(outputFileName, std::ios_base::app);
         fout.rdbuf()->pubsetbuf(buf.get(), 4096);
-        std::cerr << "redirect output to "<< outputFileName << std::endl;
+        std::cerr << "redirect output to " << outputFileName << std::endl;
     }
     std::ostream &out = fout.is_open() ? fout : std::cout;
 
@@ -221,7 +238,7 @@ int main(int argc, const char *argv[]) {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile));
     } else if (solverType == "ccbs") {
-//        if (solverBinaryFile.empty()) exit(-1);
+        if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile));
     } else if (solverType == "individual") {
         solver = std::shared_ptr<Solver>(new IndividualAStarSolver(graph, agents, makeSpanType));
@@ -282,13 +299,19 @@ int main(int argc, const char *argv[]) {
             if (timingType == "continuous") {
                 simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
             } else {
-                simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
+                simulator = std::make_unique<DiscreteOnlineSimulator>(graph, agents, i);
             }
             auto onlineSimulator = std::dynamic_pointer_cast<OnlineSimulator>(simulator);
             onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
             onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
             onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
             onlineSimulator->isFeasibilityType = feasibilityType;
+        } else if (simulatorType == "pibt") {
+            if (timingType == "continuous") {
+                assert(0);
+            } else {
+                simulator = std::make_unique<DiscretePIBTSimulator>(graph, agents, i);
+            }
         } else {
             assert(0);
         }

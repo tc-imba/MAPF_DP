@@ -1,21 +1,13 @@
 cmake_minimum_required(VERSION 3.15)
 project(MAPF_DP)
-
+set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem graph)
 include_directories(${Boost_INCLUDE_DIRS})
 #add_definitions("-D DEBUG_CYCLE")
 
 # EECBS
-
-include_directories("EECBS/inc")
-file(GLOB SOURCE_FILES "EECBS/src/*.cpp")
-list(REMOVE_ITEM SOURCE_FILES "EECBS/src/main.cpp")
-
-add_executable(EECBS ${SOURCE_FILES} EECBS/src/main.cpp)
-target_link_libraries(EECBS ${Boost_LIBRARIES})
-add_library(EECBS_Static ${SOURCE_FILES})
-target_link_libraries(EECBS_Static ${Boost_LIBRARIES})
+add_subdirectory(EECBS)
 
 # PIBT
 add_subdirectory(time-independent-planning/time_independent)
@@ -29,38 +21,29 @@ add_subdirectory(Continuous-CBS)
 
 # MAPF-DP
 set(CMAKE_CXX_STANDARD 17)
+file(GLOB SIMULATOR_SOURCE_FILES "src/simulator/*.cpp")
+file(GLOB SOLVER_SOURCE_FILES "src/solver/*.cpp")
 set(SOURCE_FILES
-        src/solver/Solver.cpp
-        src/solver/CBSSolver.cpp
-        src/solver/EECBSSolver.cpp
-        src/solver/CCBSSolver.cpp
+        ${SIMULATOR_SOURCE_FILES}
+        ${SOLVER_SOURCE_FILES}
         src/Graph.cpp
-        src/simulator/ContinuousDefaultSimulator.cpp
-        src/simulator/ContinuousDefaultSimulator.h
-        src/simulator/ContinuousOnlineSimulator.cpp
-        src/simulator/ContinuousOnlineSimulator.h
-        src/simulator/Simulator.cpp
-        src/simulator/Simulator.h
-        src/solver/IndividualAStarSolver.cpp
-        src/solver/IndividualAStarSolver.h
         Continuous-CBS/tinyxml2.cpp
-        src/simulator/DiscreteSimulator.cpp src/simulator/DiscreteSimulator.h src/simulator/DefaultSimulator.cpp src/simulator/DefaultSimulator.h src/simulator/ContinuousSimulator.cpp src/simulator/ContinuousSimulator.h src/simulator/OnlineSimulator.cpp src/simulator/OnlineSimulator.h src/simulator/DiscreteDefaultSimulator.cpp src/simulator/DiscreteDefaultSimulator.h src/simulator/DiscreteOnlineSimulator.cpp src/simulator/DiscreteOnlineSimulator.h)
+)
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
+target_link_libraries(MAPF_DP ${Boost_LIBRARIES} lib-time-ind)
 IF (WIN32)
-    target_link_libraries(MAPF_DP EECBS_Static ws2_32)
-ELSE ()
-    target_link_libraries(MAPF_DP EECBS_Static)
+    target_link_libraries(MAPF_DP ws2_32)
 ENDIF ()
 
 add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
-target_link_libraries(MAPF_Map_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
+target_link_libraries(MAPF_Map_Generator ${Boost_LIBRARIES})
 
 add_executable(MAPF_Task_Generator src/generator/TaskGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
-target_link_libraries(MAPF_Task_Generator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
+target_link_libraries(MAPF_Task_Generator ${Boost_LIBRARIES})
 
 add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
-target_link_libraries(MAPF_Plan_Validator ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_GRAPH_LIBRARY})
+target_link_libraries(MAPF_Plan_Validator ${Boost_LIBRARIES})
 
 
 
