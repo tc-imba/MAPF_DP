@@ -123,7 +123,7 @@ bool EECBSSolver::solve() {
     fin.close();
 
 //    if (success) {
-//        remove_all(ph);
+        remove_all(ph);
 //    }
     prioritizedReplan = false;
 

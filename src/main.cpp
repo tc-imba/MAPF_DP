@@ -190,7 +190,7 @@ int main(int argc, const char *argv[]) {
 
     std::string filename;
     if (mapType == "random") {
-        filename = "random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) +
+        filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) +
                    "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {

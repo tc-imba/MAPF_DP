@@ -7,7 +7,7 @@ from pathlib import Path
 import multiprocessing
 import concurrent.futures
 import pandas as pd
-import contextvars
+
 
 from experiment.utils import asyncio_wrapper, validate_list
 
@@ -56,22 +56,22 @@ def run_program(args, timeout):
 
 
 async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=10,
-              obstacles=90, simulator="online", solver="ccbs", k_neighbor=2,
+              obstacles=90, simulator="online", solver="eecbs", k_neighbor=2, timing="discrete",
               delay_type="agent", delay_ratio=0.2, delay_start=0, delay_interval=0,
               naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False,
               timeout=600, init_tests=False):
     global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED
     EXPERIMENT_JOBS += 1
 
-    output_prefix = "%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
-        simulator, obstacles, k_neighbor, agents, delay_type, delay_ratio, delay_start, delay_interval,
+    output_prefix = "%s-%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
+        timing, simulator, obstacles, k_neighbor, agents, delay_type, delay_ratio, delay_start, delay_interval,
         naive_feasibility and "n" or "h",
         only_cycle and "o" or (naive_cycle and "n" or "h"),
     )
     if init_tests:
         output_prefix += "-%d-%d" % (map_seed, agent_seed)
     output_file = result_dir / (output_prefix + ".csv")
-    cbs_prefix = "random-30-30-%d-%d-%s-%d-%d-%s" % (obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
+    cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (timing, obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
     cbs_file = result_dir / (cbs_prefix + ".cbs")
 
     if init_tests:
@@ -100,6 +100,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         "--obstacles", str(obstacles),
         "--simulator", simulator,
         "--k-neighbor", str(k_neighbor),
+        "--timing", timing,
         "--delay", delay_type,
         "--delay-ratio", str(delay_ratio),
         "--delay-start", str(delay_start),
@@ -245,7 +246,7 @@ async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, ag
 @click.option("--iteration", type=int, default=10)
 @click.option("--obstacles", type=str, default="90,270", callback=validate_list(int))
 @click.option("--agents", type=str, default="10,20,30", callback=validate_list(int))
-@click.option("--simulators", type=str, default="online,default,replan", callback=validate_list(str))
+@click.option("--simulators", type=str, default="online,default,replan,pibt", callback=validate_list(str))
 @click.option("--k-neighbors", type=str, default="2,3", callback=validate_list(int))
 # @click.option("--delay-types", type=str, default="agent", callback=validate_list(str))
 @click.option("--delay-ratios", type=str, default="0.1,0.2,0.3", callback=validate_list(float))
