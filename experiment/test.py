@@ -8,7 +8,6 @@ import multiprocessing
 import concurrent.futures
 import pandas as pd
 
-
 from experiment.utils import asyncio_wrapper, validate_list
 
 project_root = Path(__file__).parent.parent
@@ -28,8 +27,8 @@ result_files = set()
 
 NAIVE_SETTINGS = [
     (False, False, False),  # online/default,cycle
-    # (False, True, False),      # feasibility,cycle
-    # (False, True, True),       # cycle
+    (False, True, False),  # feasibility,cycle
+    (False, True, True),  # cycle
     # (True, False, False),
     # (True, True, False),       # feasibility
     # (True, True, True),
@@ -71,7 +70,8 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     if init_tests:
         output_prefix += "-%d-%d" % (map_seed, agent_seed)
     output_file = result_dir / (output_prefix + ".csv")
-    cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (timing, obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
+    cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (
+    timing, obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
     cbs_file = result_dir / (cbs_prefix + ".cbs")
 
     if init_tests:
@@ -205,15 +205,16 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
     #         file.write(",".join(map(lambda x: str(x), test)) + "\n")
 
 
-
 async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, agents, simulators, delay_ratios,
                    delay_intervals, timeout):
-    async def init_case(map_seed, agent_seed, obstacle, k_neighbor, agent, simulator, delay_ratio, delay_interval):
+    async def init_case(map_seed, agent_seed, obstacle, k_neighbor, agent, simulator, delay_ratio, delay_interval,
+                        naive_feasibility, naive_cycle, only_cycle):
         return await run("random", feasibility_type=False, iteration=iteration,
                          map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacle, agents=agent,
                          k_neighbor=k_neighbor, simulator=simulator, delay_type="agent",
-                         delay_start=1, delay_ratio=delay_ratio, delay_interval=delay_interval,
-                         naive_feasibility=False, naive_cycle=False, only_cycle=False, timeout=timeout)
+                         delay_start=0, delay_ratio=delay_ratio, delay_interval=delay_interval,
+                         naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle,
+                         timeout=timeout)
 
     test_file = result_dir / "tests.csv"
     df = pd.read_csv(test_file, header=None)
@@ -234,9 +235,15 @@ async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, ag
                         for _delay_ratio in delay_ratios:
                             for _delay_interval in delay_intervals:
                                 for _simulator in simulators:
-                                    tasks.append(
-                                        init_case(_map_seed, _agent_seed, _obstacle, _k_neighbor, _agent,
-                                                  _simulator, _delay_ratio, _delay_interval))
+                                    if _simulator != "online":
+                                        naive_settings = [(False, False, False)]
+                                    else:
+                                        naive_settings = NAIVE_SETTINGS
+                                    for (_naive_feasibility, _naive_cycle, _only_cycle) in naive_settings:
+                                        tasks.append(
+                                            init_case(_map_seed, _agent_seed, _obstacle, _k_neighbor, _agent,
+                                                      _simulator, _delay_ratio, _delay_interval,
+                                                      _naive_feasibility, _naive_cycle, _only_cycle))
     await asyncio.gather(*tasks)
 
 
@@ -247,7 +254,7 @@ async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, ag
 @click.option("--obstacles", type=str, default="90,270", callback=validate_list(int))
 @click.option("--agents", type=str, default="10,20,30", callback=validate_list(int))
 @click.option("--simulators", type=str, default="online,default,replan,pibt", callback=validate_list(str))
-@click.option("--k-neighbors", type=str, default="2,3", callback=validate_list(int))
+@click.option("--k-neighbors", type=str, default="2", callback=validate_list(int))
 # @click.option("--delay-types", type=str, default="agent", callback=validate_list(str))
 @click.option("--delay-ratios", type=str, default="0.1,0.2,0.3", callback=validate_list(float))
 @click.option("--delay-intervals", type=str, default="1,10,20", callback=validate_list(int))

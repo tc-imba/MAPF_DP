@@ -1,3 +1,7 @@
 cmake-build-*
 result*
 .idea
+experiment/__pycache__
+plot
+test_result
+compare_plots
