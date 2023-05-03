@@ -19,11 +19,13 @@ else:
 result_dir = project_root / "result"
 result_dir.mkdir(parents=True, exist_ok=True)
 
-workers = multiprocessing.cpu_count()
+# workers = multiprocessing.cpu_count()
+workers = 1
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
 EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
 result_files = set()
+completed = set()
 
 NAIVE_SETTINGS = [
     (False, False, False),  # online/default,cycle
@@ -67,11 +69,17 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         naive_feasibility and "n" or "h",
         only_cycle and "o" or (naive_cycle and "n" or "h"),
     )
+    full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
     if init_tests:
-        output_prefix += "-%d-%d" % (map_seed, agent_seed)
+        output_prefix = full_prefix
+    elif full_prefix in completed:
+        EXPERIMENT_JOBS_COMPLETED += 1
+        print('%s skipped (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        return 1
     output_file = result_dir / (output_prefix + ".csv")
+
     cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (
-    timing, obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
+        timing, obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
     cbs_file = result_dir / (cbs_prefix + ".cbs")
 
     if init_tests:
@@ -79,6 +87,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
 
     if output_prefix not in result_files:
         result_files.add(output_prefix)
+        # if output_file.exists():
         output_file.unlink(missing_ok=True)
 
     # generate arguments
@@ -138,9 +147,13 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
             result = 0
 
     if result == 1:
-        print('%s completed (%d/%d)' % (output_file, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        print('%s completed (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        completed.add(full_prefix)
+        completed_file = result_dir / "completed.csv"
+        with completed_file.open("a") as f:
+            f.write("%s\n" % full_prefix)
     else:
-        print('%s failed (%d/%d)' % (output_file, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        print('%s failed (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
 
     return result
 
@@ -219,6 +232,12 @@ async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, ag
     test_file = result_dir / "tests.csv"
     df = pd.read_csv(test_file, header=None)
     df.columns = ["map_seed", "agent_seed", "obstacle", "k_neighbor", "agent"]
+
+    completed_file = result_dir / "completed.csv"
+    if completed_file.exists():
+        with completed_file.open("r") as f:
+            for line in f.readlines():
+                completed.add(line.strip())
 
     tasks = []
     for _map_seed in range(map_seeds):
