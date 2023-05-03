@@ -19,8 +19,8 @@ else:
 result_dir = project_root / "result"
 result_dir.mkdir(parents=True, exist_ok=True)
 
-# workers = multiprocessing.cpu_count()
-workers = 1
+workers = multiprocessing.cpu_count()
+# workers = 1
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
 EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
