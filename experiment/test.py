@@ -7,17 +7,21 @@ from pathlib import Path
 import multiprocessing
 import concurrent.futures
 import pandas as pd
+import dataclasses
 
-from experiment.utils import asyncio_wrapper, validate_list
+from experiment.app import app, AppArguments
+from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 
-project_root = Path(__file__).parent.parent
-program = project_root / "cmake-build-relwithdebinfo"
-if platform.system() == "Windows":
-    program = program / "MAPF_DP.exe"
-else:
-    program = program / "MAPF_DP"
-result_dir = project_root / "result"
-result_dir.mkdir(parents=True, exist_ok=True)
+
+@dataclasses.dataclass
+class TestArguments(AppArguments):
+    map_seeds: int
+    agent_seeds: int
+    iteration: int
+    timeout: int
+    program: Path
+    result_dir: Path
+
 
 workers = multiprocessing.cpu_count()
 # workers = 1
@@ -37,10 +41,10 @@ NAIVE_SETTINGS = [
 ]
 
 
-def run_program(args, timeout):
+def run_program(program_args, timeout):
     p = None
     try:
-        p = subprocess.run([program.as_posix(), *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+        p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         # print(program.as_posix(), ' '.join(args))
         # print(p.args)
         # print(p.returncode)
@@ -56,19 +60,19 @@ def run_program(args, timeout):
         pass
 
 
-async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35, iteration=10,
-              obstacles=90, simulator="online", solver="eecbs", k_neighbor=2, timing="discrete",
-              delay_type="agent", delay_ratio=0.2, delay_start=0, delay_interval=0,
-              naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False,
-              timeout=600, init_tests=False):
+async def run(args: TestArguments, setup: ExperimentSetup,
+              map_type="random", objective="maximum", solver="eecbs",
+              iteration=10, map_seed=0, agent_seed=0, init_tests=False,
+              # map_type, objective="maximum",  agents=35, iteration=10,
+              # obstacles=90, simulator="online", solver="eecbs", k_neighbor=2, timing="discrete",
+              # delay_type="agent", delay_ratio=0.2, delay_start=0, delay_interval=0,
+              # naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False,
+              # timeout=600, init_tests=False
+              ):
     global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED
     EXPERIMENT_JOBS += 1
 
-    output_prefix = "%s-%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
-        timing, simulator, obstacles, k_neighbor, agents, delay_type, delay_ratio, delay_start, delay_interval,
-        naive_feasibility and "n" or "h",
-        only_cycle and "o" or (naive_cycle and "n" or "h"),
-    )
+    output_prefix = setup.get_output_prefix()
     full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
     if init_tests:
         output_prefix = full_prefix
@@ -76,11 +80,11 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         EXPERIMENT_JOBS_COMPLETED += 1
         print('%s skipped (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
         return 1
-    output_file = result_dir / (output_prefix + ".csv")
+    output_file = args.result_dir / (output_prefix + ".csv")
 
     cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (
-        timing, obstacles, map_seed, k_neighbor, agents, agent_seed, solver)
-    cbs_file = result_dir / (cbs_prefix + ".cbs")
+        setup.timing, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, solver)
+    cbs_file = args.result_dir / (cbs_prefix + ".cbs")
 
     if init_tests:
         cbs_file.unlink(missing_ok=True)
@@ -91,45 +95,45 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
         output_file.unlink(missing_ok=True)
 
     # generate arguments
-    if simulator == "prioritized":
+    if setup.simulator == "prioritized":
         simulator = "replan"
         prioritized_replan = True
     else:
         prioritized_replan = False
 
-    args = [
-        # program,
+    program_args = [
+        args.program.as_posix(),
         "--map", map_type,
         "--objective", objective,
         "--map-seed", str(map_seed),
         "--agent-seed", str(agent_seed),
-        "--agents", str(agents),
+        "--agents", str(setup.agents),
         "--iteration", str(iteration),
         "--solver", solver,
-        "--obstacles", str(obstacles),
-        "--simulator", simulator,
-        "--k-neighbor", str(k_neighbor),
-        "--timing", timing,
-        "--delay", delay_type,
-        "--delay-ratio", str(delay_ratio),
-        "--delay-start", str(delay_start),
-        "--delay-interval", str(delay_interval),
+        "--obstacles", str(setup.obstacles),
+        "--simulator", setup.simulator,
+        "--k-neighbor", str(setup.k_neighbor),
+        "--timing", setup.timing,
+        "--delay", setup.delay_type,
+        "--delay-ratio", str(setup.delay_ratio),
+        "--delay-start", str(setup.delay_start),
+        "--delay-interval", str(setup.delay_interval),
         "--output", output_file.as_posix(),
     ]
     if map_type == "hardcoded":
-        args.append("--all")
-    if naive_feasibility:
-        args.append("--naive-feasibility")
-    if naive_cycle:
-        args.append("--naive-cycle")
-    if only_cycle:
-        args.append("--only-cycle")
-    if feasibility_type:
-        args.append("--feasibility-type")
+        program_args.append("--all")
+    if setup.feasibility != "h":
+        program_args.append("--naive-feasibility")
+    if setup.cycle != "h":
+        program_args.append("--naive-cycle")
+    if setup.cycle == "o":
+        program_args.append("--only-cycle")
+    # if feasibility_type:
+    #     args.append("--feasibility-type")
     if prioritized_replan:
-        args.append("--prioritized-replan")
+        program_args.append("--prioritized-replan")
 
-    await asyncio.get_event_loop().run_in_executor(pool, run_program, args, timeout)
+    await asyncio.get_event_loop().run_in_executor(pool, run_program, program_args, args.timeout)
     EXPERIMENT_JOBS_COMPLETED += 1
 
     result = 1
@@ -149,7 +153,7 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     if result == 1:
         print('%s completed (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
         completed.add(full_prefix)
-        completed_file = result_dir / "completed.csv"
+        completed_file = args.result_dir / "completed.csv"
         with completed_file.open("a") as f:
             f.write("%s\n" % full_prefix)
     else:
@@ -158,17 +162,20 @@ async def run(map_type, objective="maximum", map_seed=0, agent_seed=0, agents=35
     return result
 
 
-async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, timeout):
+async def do_init_tests(args: TestArguments):
     # all_tests = []
 
-    test_file = result_dir / "tests.csv"
+    test_file = args.result_dir / "tests.csv"
     test_file.unlink(missing_ok=True)
 
-    async def init_case(map_seed, agent_seed, obstacle, k_neighbor, agent):
-        return await run("random", map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacle, agents=agent,
-                         simulator="default", k_neighbor=k_neighbor, iteration=1,
-                         delay_type="agent", delay_ratio=0, delay_start=0, delay_interval=0,
-                         timeout=timeout, init_tests=True)
+    async def init_case(map_seed, agent_seed, obstacles, k_neighbor, agents):
+        setup = ExperimentSetup(
+            timing="discrete", simulator="default", obstacles=obstacles,
+            k_neighbor=k_neighbor, agents=agents, delay_type="agent",
+            delay_ratio=0, delay_start=0, delay_interval=0,
+            feasibility="h", cycle="h",
+        )
+        return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, iteration=1, init_tests=True)
 
     async def init_map(map_seed, obstacle, k_neighbor, agent):
 
@@ -189,7 +196,7 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
                     break
 
         tasks = []
-        for i in range(agent_seeds):
+        for i in range(args.agent_seeds):
             tasks.append(init_agent())
         await asyncio.gather(*tasks)
 
@@ -205,10 +212,10 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
         #     completed += sum(results)
 
     map_tasks = []
-    for _map_seed in range(map_seeds):
-        for _obstacle in obstacles:
-            for _agent in agents:
-                for _k_neighbor in k_neighbors:
+    for _map_seed in range(args.map_seeds):
+        for _obstacle in args.obstacles:
+            for _agent in args.agents:
+                for _k_neighbor in args.k_neighbors:
                     map_tasks.append(init_map(_map_seed, _obstacle, _k_neighbor, _agent))
     await asyncio.gather(*map_tasks)
 
@@ -218,42 +225,55 @@ async def do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, 
     #         file.write(",".join(map(lambda x: str(x), test)) + "\n")
 
 
-async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, agents, simulators, delay_ratios,
-                   delay_intervals, timeout):
-    async def init_case(map_seed, agent_seed, obstacle, k_neighbor, agent, simulator, delay_ratio, delay_interval,
+async def do_tests(args: TestArguments):
+    async def init_case(map_seed, agent_seed, obstacles, k_neighbor, agents, simulator, delay_ratio, delay_interval,
                         naive_feasibility, naive_cycle, only_cycle):
-        return await run("random", feasibility_type=False, iteration=iteration,
-                         map_seed=map_seed, agent_seed=agent_seed, obstacles=obstacle, agents=agent,
-                         k_neighbor=k_neighbor, simulator=simulator, delay_type="agent",
-                         delay_start=0, delay_ratio=delay_ratio, delay_interval=delay_interval,
-                         naive_feasibility=naive_feasibility, naive_cycle=naive_cycle, only_cycle=only_cycle,
-                         timeout=timeout)
+        if not naive_feasibility:
+            feasibility = "h"
+        else:
+            feasibility = "n"
+        if not naive_cycle:
+            cycle = "h"
+        else:
+            if only_cycle:
+                cycle = "o"
+            else:
+                cycle = "n"
 
-    test_file = result_dir / "tests.csv"
+        setup = ExperimentSetup(
+            timing="discrete", simulator=simulator, obstacles=obstacles,
+            k_neighbor=k_neighbor, agents=agents, delay_type="agent",
+            delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
+            feasibility=feasibility, cycle=cycle,
+        )
+        return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, iteration=args.iteration,
+                         init_tests=False)
+
+    test_file = args.result_dir / "tests.csv"
     df = pd.read_csv(test_file, header=None)
     df.columns = ["map_seed", "agent_seed", "obstacle", "k_neighbor", "agent"]
 
-    completed_file = result_dir / "completed.csv"
+    completed_file = args.result_dir / "completed.csv"
     if completed_file.exists():
         with completed_file.open("r") as f:
             for line in f.readlines():
                 completed.add(line.strip())
 
     tasks = []
-    for _map_seed in range(map_seeds):
-        for _obstacle in obstacles:
-            for _agent in agents:
-                for _k_neighbor in k_neighbors:
+    for _map_seed in range(args.map_seeds):
+        for _obstacle in args.obstacles:
+            for _agent in args.agents:
+                for _k_neighbor in args.k_neighbors:
                     df_temp = df[(df["map_seed"] == _map_seed) & (df["obstacle"] == _obstacle) & (
                             df["k_neighbor"] == _k_neighbor) & (df["agent"] == _agent)]
                     df_temp.sort_values(by="agent_seed")
-                    if len(df_temp) < agent_seeds:
+                    if len(df_temp) < args.agent_seeds:
                         print("warning: %d %d %d %d no enough seeds" % (_map_seed, _obstacle, _k_neighbor, _agent))
-                    for i in range(min(len(df_temp), agent_seeds)):
+                    for i in range(min(len(df_temp), args.agent_seeds)):
                         _agent_seed = df_temp["agent_seed"].iloc[i]
-                        for _delay_ratio in delay_ratios:
-                            for _delay_interval in delay_intervals:
-                                for _simulator in simulators:
+                        for _delay_ratio in args.delay_ratios:
+                            for _delay_interval in args.delay_intervals:
+                                for _simulator in args.simulators:
                                     if _simulator != "online":
                                         naive_settings = [(False, False, False)]
                                     else:
@@ -266,28 +286,38 @@ async def do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, ag
     await asyncio.gather(*tasks)
 
 
-@click.command()
+@app.command("test")
 @click.option("--map-seeds", type=int, default=10)
 @click.option("--agent-seeds", type=int, default=10)
 @click.option("--iteration", type=int, default=10)
-@click.option("--obstacles", type=str, default="90,270", callback=validate_list(int))
-@click.option("--agents", type=str, default="10,20,30", callback=validate_list(int))
-@click.option("--simulators", type=str, default="online,default,replan,pibt", callback=validate_list(str))
-@click.option("--k-neighbors", type=str, default="2", callback=validate_list(int))
-# @click.option("--delay-types", type=str, default="agent", callback=validate_list(str))
-@click.option("--delay-ratios", type=str, default="0.1,0.2,0.3", callback=validate_list(float))
-@click.option("--delay-intervals", type=str, default="1,10,20", callback=validate_list(int))
 @click.option("-t", "--timeout", type=int, default=600)
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
+@click.pass_context
 @asyncio_wrapper
-async def main(map_seeds, agent_seeds, iteration, obstacles, agents, k_neighbors,
-               simulators, delay_ratios, delay_intervals, timeout, init_tests):
-    os.chdir(result_dir)
-    if init_tests:
-        await do_init_tests(map_seeds, agent_seeds, obstacles, k_neighbors, agents, timeout)
+async def main(ctx, map_seeds, agent_seeds, iteration, timeout, init_tests):
+    program = project_root / "cmake-build-relwithdebinfo"
+    if platform.system() == "Windows":
+        program = program / "MAPF_DP.exe"
     else:
-        await do_tests(map_seeds, agent_seeds, iteration, obstacles, k_neighbors, agents, simulators, delay_ratios,
-                       delay_intervals, timeout)
+        program = program / "MAPF_DP"
+    result_dir = project_root / "result"
+    result_dir.mkdir(parents=True, exist_ok=True)
+    os.chdir(result_dir)
+
+    args = TestArguments(
+        **ctx.obj.__dict__,
+        map_seeds=map_seeds,
+        agent_seeds=agent_seeds,
+        iteration=iteration,
+        timeout=timeout,
+        program=program,
+        result_dir=result_dir,
+    )
+
+    if init_tests:
+        await do_init_tests(args)
+    else:
+        await do_tests(args)
 
 
 if __name__ == '__main__':

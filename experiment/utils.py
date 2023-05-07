@@ -1,5 +1,9 @@
 import asyncio
+import dataclasses
 from functools import wraps
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
 
 
 def asyncio_wrapper(f):
@@ -24,3 +28,26 @@ def validate_list(cast_func):
         return options
 
     return wrapper
+
+
+@dataclasses.dataclass
+class ExperimentSetup:
+    timing: str
+    simulator: str
+    obstacles: int
+    k_neighbor: int
+    agents: int
+    delay_type: str
+    delay_ratio: float
+    delay_start: int
+    delay_interval: int
+    feasibility: str
+    cycle: str
+
+    def get_output_prefix(self):
+        output_prefix = "%s-%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
+            self.timing, self.simulator, self.obstacles, self.k_neighbor, self.agents,
+            self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
+            self.feasibility, self.cycle
+        )
+        return output_prefix

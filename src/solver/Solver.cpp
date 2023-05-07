@@ -100,11 +100,14 @@ bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed)
 }
 
 bool Solver::validate() {
+    // nodeId -> agentId, in current state, the last agent at a node
     std::map<unsigned int, unsigned int> last;
-    unsigned int followingConflicts = 0, cycleConflicts = 0;
+    // the deadend nodes before current state
+    std::set<unsigned int> deadends;
+    unsigned int followingConflicts = 0, cycleConflicts = 0, deadendConflicts = 0;
 
     for (unsigned int state = 0;; state++) {
-        int count = 0;
+        size_t count = 0;
         std::map<unsigned int, unsigned int> following;
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &path = solution->plans[i]->path;
@@ -124,7 +127,14 @@ bool Solver::validate() {
                     last.erase(path[state - 1].nodeId);
                 }
                 last[path[state].nodeId] = i;
+                if (deadends.find(path[state].nodeId) != deadends.end()) {
+                    deadendConflicts += 1;
+                }
+                if (state == path.size() - 1) {
+                    deadends.emplace(path[state].nodeId);
+                }
             }
+
         }
 
         followingConflicts += following.size();
@@ -154,7 +164,7 @@ bool Solver::validate() {
         }
     }
 
-    return cycleConflicts == 0;
+    return cycleConflicts == 0 && deadendConflicts == 0;
 }
 
 
@@ -166,11 +176,15 @@ bool Solver::solveWithPrioritizedReplan() {
     plannedAgentsMap.resize(savedAgents.size());
     agents.clear();
 //    std::cerr << "before: " << std::endl;
+//    for (size_t i = 0; i < savedAgents.size(); i++) {
+//
+//    }
     for (size_t i = 0; i < savedAgents.size(); i++) {
         auto &agent = savedAgents[i];
         auto &path = solution->plans[i]->path;
 //        std::cerr << path.size() - agent.state << " ";
         if (agent.state + 1 >= path.size() || !agent.delayed) {
+//        if (agent.state + 1 < path.size() && !agent.delayed) {
             size_t distance = std::min((size_t) agent.state, path.size() - 1);
             path.erase(path.begin(), path.begin() + distance);
             for (size_t j = 0; j < path.size(); j++) {
@@ -186,8 +200,12 @@ bool Solver::solveWithPrioritizedReplan() {
     }
 //    std::cerr << std::endl;
 //    std::cerr << "replan: " << agents.size() << std::endl;
+//    if (agents.size() == savedAgents.size()) {
+//        prioritizedReplan = false;
+//    }
     if (!agents.empty()) {
         if (!solve()) {
+//            std::cerr << "solve failed, retry with full replan" << std::endl;
             agents = std::move(savedAgents);
             return solveRetry();
         }
@@ -203,6 +221,7 @@ bool Solver::solveWithPrioritizedReplan() {
 //    std::cerr << std::endl;
     solution->plans = std::move(savedPlans);
     if (!validate()) {
+//        std::cerr << "validate failed, retry with full replan" << std::endl;
         return solveRetry();
     }
     return true;

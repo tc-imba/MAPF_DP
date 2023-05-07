@@ -40,13 +40,8 @@ int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxT
     }
 
 
-    for (; currentTimestep < maxTimeStep; currentTimestep++) {
-        if (outputFile.is_open()) {
-            outputFile << currentTimestep << std::endl;
-        }
-        if (debug) {
-            std::cout << "begin timestep " << currentTimestep << std::endl;
-        }
+    for (; currentTimestep + 1 < maxTimeStep;) {
+
 //        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
         if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
             if (debug) {
@@ -60,6 +55,16 @@ int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxT
 //            std::cout << "breakpoint" << std::endl;
 //        }
 //
+
+        currentTimestep++;
+
+        if (outputFile.is_open()) {
+            outputFile << currentTimestep << std::endl;
+        }
+        if (debug) {
+            std::cout << "begin timestep " << currentTimestep << std::endl;
+        }
+
         auto start = std::chrono::steady_clock::now();
 
         /** Algorithm 2 **/

@@ -68,6 +68,7 @@ bool EECBSSolver::solve() {
     std::string scenFileName = scenFile.string() + ".scen";
     std::string outputFileName = (ph / "output.csv").string();
     std::string pathFileName = (ph / "path.txt").string();
+    std::string commandFilename = (ph / "command.txt").string();
 
     graph.saveAgents(mapFileName, scenFile.string(), agents);
 
@@ -96,14 +97,16 @@ bool EECBSSolver::solve() {
     }
 
     std::string argumentsStr = boost::algorithm::join(arguments, " ");
+    std::ofstream fout(commandFilename);
+    fout << argumentsStr << std::endl;
+    fout.close();
 
-
-    std::vector<char *> cstrings;
+/*    std::vector<char *> cstrings;
     cstrings.reserve(arguments.size());
     for (const auto &string: arguments) {
 //        std::cout << string << " ";
         cstrings.push_back((char *) string.c_str());
-    }
+    }*/
 //    std::cout << std::endl;
 
 //    std::cout << argumentsStr << std::endl;
@@ -122,10 +125,11 @@ bool EECBSSolver::solve() {
     success = readSolution(fin);
     fin.close();
 
-//    if (success) {
+//    if (!prioritizedReplan) {
         remove_all(ph);
 //    }
-    prioritizedReplan = false;
+//    prioritizedReplan = false;
+//    std::cerr << prioritizedReplan << " " << success << std::endl;
 
     return success;
 }

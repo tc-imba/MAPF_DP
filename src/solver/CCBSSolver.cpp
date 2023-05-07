@@ -23,7 +23,7 @@ bool CCBSSolver::readSolution(const std::string &filename) {
     auto summary = log->FirstChildElement();
     executionTime = std::strtod(summary->Attribute("time"), nullptr);
 
-//    std::cout << executionTime << std::endl;
+//    std::cerr << summary->Attribute("time") << " " << executionTime << std::endl;
 
     auto agentElem = summary;
     for (unsigned int i = 0; i < agents.size(); i++) {
@@ -117,7 +117,7 @@ bool CCBSSolver::solve() {
     if (success) {
         remove_all(ph);
     }
-    prioritizedReplan = false;
+//    prioritizedReplan = false;
     return success;
 }
 

@@ -32,7 +32,7 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
         if (debug) {
             std::cerr << "step 1, check transition" << std::endl;
         }
-        for (const auto& a: A) {
+        for (const auto &a: A) {
             if (a->getMode() != pibt::Agent::EXTENDED) {
                 unstable.push_back(a.get());
             } else {  // mode == extended
@@ -58,7 +58,7 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
 
         // register all
         pibt::States config;
-        for (const auto& a: A) config.push_back(a->getState());
+        for (const auto &a: A) config.push_back(a->getState());
         exec.push_back(config);
 
         // step 2, check termination
@@ -66,7 +66,7 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
             std::cerr << "step 2, check termination" << std::endl;
         }
         bool solved = true;
-        for (const auto& a: A) {
+        for (const auto &a: A) {
             if (a->getMode() != pibt::Agent::CONTRACTED ||
                 a->getTail() != a->getGoal()) {
                 solved = false;
@@ -105,7 +105,7 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
 
             // check again whether agents are in stable
             if (!flg_stop) {
-                for (const auto& a: A) {
+                for (const auto &a: A) {
                     if (!a->isStable()) unstable.push_back(a.get());
                 }
             }
@@ -170,7 +170,8 @@ void DiscretePIBTSimulator::initPIBTVariables() {
 
     for (size_t i = 0; i < agents.size(); i++) {
         pibt::Path path;
-        for (auto c : configs) path.push_back(c[i]);
+        for (auto c: configs) path.push_back(c[i]);
+//        std::shared_ptr<pibt::Agent> agent = std::make_shared<pibt::CausalPIBT_MAPF>(path);
         std::shared_ptr<pibt::Agent> agent = std::make_shared<pibt::CausalPIBT_MAPF>(path);
         agent->init(path.front(), path.back());
         A.emplace_back(std::move(agent));
@@ -180,7 +181,7 @@ void DiscretePIBTSimulator::initPIBTVariables() {
 }
 
 bool DiscretePIBTSimulator::checkSolved() {
-    for (const auto& a: A) {
+    for (const auto &a: A) {
         if (a->getMode() != pibt::Agent::CONTRACTED ||
             a->getTail() != a->getGoal()) {
             return false;
@@ -203,12 +204,29 @@ void DiscretePIBTSimulator::convertResult() {
         agents[i].current = nodeId;
 
         auto cost = makespan;
-        auto s = exec[cost-1][i];
+        auto s = exec[cost - 1][i];
         while (s->tail == A[i]->getGoal() && cost > 0) {
             --cost;
-            s = exec[cost-1][i];
+            s = exec[cost - 1][i];
         }
         agents[i].timestep = (double) cost;
     }
+
+    openOutputFiles();
+
+    if (outputFile.is_open()) {
+        for (size_t t = 0; t < exec.size(); t++) {
+            outputFile << t << std::endl;
+            for (size_t i = 0; i < agents.size(); i++) {
+                auto s = exec[t][i];
+                auto nodeId = graph.getNodeIdByGridPos(s->tail->pos.y, s->tail->pos.x);
+                auto &node = graph.getNode(nodeId);
+                outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
+            }
+        }
+        closeOutputFiles();
+    }
+
+
 }
 

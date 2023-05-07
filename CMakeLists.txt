@@ -10,7 +10,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_subdirectory(EECBS)
 
 # PIBT
-add_subdirectory(time-independent-planning/time_independent)
+add_subdirectory(time-independent-planning)
 
 # GeometricTools
 include_directories("GeometricTools/GTE")

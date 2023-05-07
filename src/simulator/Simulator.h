@@ -34,8 +34,6 @@ private:
 
 public:
     bool debug = false;
-    bool replanMode = false;
-    bool prioritizedReplan = false;
     std::string delayType;
     std::string outputFileName;
     std::string timeOutputFileName;
@@ -96,8 +94,6 @@ public:
     void printAgent(size_t i, const std::string& message);
 
     void advanceTimestep(double &currentTimestep);
-
-    double replan();
 
 };
 

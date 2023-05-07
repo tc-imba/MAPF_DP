@@ -57,22 +57,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
         }
     }
 
-    for (; currentTimestep < maxTimeStep; currentTimestep++) {
-        if (outputFile.is_open()) {
-            outputFile << currentTimestep << std::endl;
-        }
-
-        if (debug) {
-            std::cerr << "begin timestep " << currentTimestep << std::endl;
-            for (unsigned int i = 0; i < agents.size(); i++) {
-                std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
-                for (const auto &label: solver->solution->plans[i]->path) {
-                    std::cerr << "(" << label.state << "," << label.nodeId << ")->";
-                }
-                std::cerr << std::endl;
-            }
-        }
-
+    for (; currentTimestep + 1 < maxTimeStep; ) {
         if (refresh) {
             refresh = false;
             nodes.clear();
@@ -94,6 +79,25 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
             updateDelayedSet(currentTimestep);
 //            delayedSet.clear();
         }
+
+        currentTimestep++;
+
+        if (outputFile.is_open()) {
+            outputFile << currentTimestep << std::endl;
+        }
+
+        if (debug) {
+            std::cerr << "begin timestep " << currentTimestep << std::endl;
+            for (unsigned int i = 0; i < agents.size(); i++) {
+                std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+                for (const auto &label: solver->solution->plans[i]->path) {
+                    std::cerr << "(" << label.state << "," << label.nodeId << ")->";
+                }
+                std::cerr << std::endl;
+            }
+        }
+
+
 
 /*        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
             updateDelayedSet(currentTimestep, pauseTimestep == 0);
@@ -215,10 +219,10 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
                     continue;
                 }
             }*/
-            if (outputFile.is_open()) {
+/*            if (outputFile.is_open()) {
                 auto &node = graph.getNode(nextLabel.nodeId);
                 outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
-            }
+            }*/
             if (debug) {
                 std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
                           << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
@@ -237,6 +241,13 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
                 ++count;
             }
 
+        }
+
+        if (outputFile.is_open()) {
+            for (unsigned int i = 0; i < agents.size(); i++) {
+                auto &node = graph.getNode(agents[i].current);
+                outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
+            }
         }
 
 

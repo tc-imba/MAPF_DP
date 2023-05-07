@@ -286,8 +286,9 @@ int main(int argc, const char *argv[]) {
                 simulator = std::make_unique<DiscreteDefaultSimulator>(graph, agents, i);
             }
             if (simulatorType == "replan") {
-                simulator->replanMode = true;
-                simulator->prioritizedReplan = prioritizedReplan;
+                auto defaultSimulator = std::dynamic_pointer_cast<DefaultSimulator>(simulator);
+                defaultSimulator->replanMode = true;
+                defaultSimulator->prioritizedReplan = prioritizedReplan;
                 if (i != 0) {
                     solver->init();
                     if (!solver->solveWithCache(filename, agentSeed)) {
@@ -367,7 +368,8 @@ int main(int argc, const char *argv[]) {
             finished++;
         } else {
             std::cerr << count << " " << agentNum << std::endl;
-            exit(-1);
+            finished++;
+//            exit(-1);
         }
     }
 

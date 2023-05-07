@@ -137,7 +137,6 @@ protected:
     MakeSpanType makeSpanType;
 
     // prioritized replan
-    bool prioritizedReplan = false;
     std::vector<Agent> savedAgents;
     std::vector<std::shared_ptr<AgentPlan >> savedPlans;
     std::vector<size_t> plannedAgentsMap;
@@ -149,7 +148,8 @@ public:
     bool allConstraint = false;
     CBSNodePtr solution;
     unsigned int currentTimestep;
-    double executionTime;
+    double executionTime = 0;
+    bool prioritizedReplan = false;
 
     Solver() = delete;
 
