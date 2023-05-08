@@ -275,6 +275,7 @@ def main(ctx, output_suffix, input_suffix, category, timing):
         result_dir=project_root / f"result{input_suffix}",
         output_csv=data_dir / f"df_{timing}{output_suffix}.csv",
     )
+    click.echo(args)
 
     df = parse_data(args)
     df.to_csv(args.output_csv, index=False)

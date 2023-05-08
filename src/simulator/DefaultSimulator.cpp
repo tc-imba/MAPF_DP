@@ -7,10 +7,10 @@
 void DefaultSimulator::print(std::ostream &out) const {
     out << executionTime << ","
         << firstAgentArrivingTimestep << ","
-        << replanCount << ","
-        << replanBeforeArrivingCount << ","
+        << partialReplanCount << ","
+        << partialReplanTime << ","
         << fullReplanCount << ","
-        << fullReplanBeforeArrivingCount;
+        << fullReplanTime;
 }
 
 void DefaultSimulator::printState(size_t i, unsigned int state) {
@@ -82,29 +82,29 @@ double DefaultSimulator::replan() {
 
     solver->init();
     bool success;
-    size_t currentReplanCount = 0, currentFullReplanCount = 0;
     if (prioritizedReplan) {
 //            success = solver->solve();
-        success = solver->solveWithPrioritizedReplan();
-        currentReplanCount++;
-        if (solver->prioritizedReplan) {
-            currentReplanCount++;
-            currentFullReplanCount++;
-        }
+        success = solver->solveWithPrioritizedReplan(prioritizedOpt);
+        partialReplanCount++;
     } else {
         success = solver->solve();
-        currentReplanCount++;
-        currentFullReplanCount++;
     }
-    solver->prioritizedReplan = false;
+    if (solver->partialExecutionTime > 0) {
+        partialReplanCount++;
+        partialReplanTime += solver->partialExecutionTime;
+    }
     if (solver->executionTime > 0) {
-        replanCount += currentReplanCount;
-        fullReplanCount += currentFullReplanCount;
-        if (firstAgentArrivingTimestep == 0) {
-            replanBeforeArrivingCount += currentReplanCount;
-            fullReplanBeforeArrivingCount += currentFullReplanCount;
-        }
+        fullReplanCount++;
+        fullReplanTime += solver->executionTime;
     }
+//    if (solver->executionTime > 0) {
+//        replanCount += currentReplanCount;
+//        fullReplanCount += currentFullReplanCount;
+//        if (firstAgentArrivingTimestep == 0) {
+//            replanBeforeArrivingCount += currentReplanCount;
+//            fullReplanBeforeArrivingCount += currentFullReplanCount;
+//        }
+//    }
     if (!success) {
         std::cerr << "solve failed" << std::endl;
         return -1;

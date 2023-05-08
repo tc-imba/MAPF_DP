@@ -95,11 +95,14 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         output_file.unlink(missing_ok=True)
 
     # generate arguments
-    if setup.simulator == "prioritized":
+    simulator = setup.simulator
+    prioritized_replan = False
+    prioritized_opt = False
+    if setup.simulator.startswith("prioritized"):
         simulator = "replan"
         prioritized_replan = True
-    else:
-        prioritized_replan = False
+        if setup.simulator == "prioritized_opt":
+            prioritized_opt = True
 
     program_args = [
         args.program.as_posix(),
@@ -111,7 +114,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         "--iteration", str(iteration),
         "--solver", solver,
         "--obstacles", str(setup.obstacles),
-        "--simulator", setup.simulator,
+        "--simulator", simulator,
         "--k-neighbor", str(setup.k_neighbor),
         "--timing", setup.timing,
         "--delay", setup.delay_type,
@@ -132,6 +135,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     #     args.append("--feasibility-type")
     if prioritized_replan:
         program_args.append("--prioritized-replan")
+    if prioritized_opt:
+        program_args.append("--prioritized-opt")
 
     await asyncio.get_event_loop().run_in_executor(pool, run_program, program_args, args.timeout)
     EXPERIMENT_JOBS_COMPLETED += 1
@@ -313,6 +318,7 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, init_tests):
         program=program,
         result_dir=result_dir,
     )
+    click.echo(args)
 
     if init_tests:
         await do_init_tests(args)

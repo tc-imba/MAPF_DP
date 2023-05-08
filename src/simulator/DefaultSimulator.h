@@ -11,10 +11,11 @@ class DefaultSimulator : virtual public Simulator {
 public:
     bool replanMode = false;
     bool prioritizedReplan = false;
-    size_t replanCount = 0;
-    size_t replanBeforeArrivingCount = 0;
+    bool prioritizedOpt = false;
+    size_t partialReplanCount = 0;
+    double partialReplanTime = 0;
     size_t fullReplanCount = 0;
-    size_t fullReplanBeforeArrivingCount = 0;
+    double fullReplanTime = 0;
 
 
     void print(std::ostream &out) const override;

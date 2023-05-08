@@ -149,6 +149,7 @@ public:
     CBSNodePtr solution;
     unsigned int currentTimestep;
     double executionTime = 0;
+    double partialExecutionTime = 0;
     bool prioritizedReplan = false;
 
     Solver() = delete;
@@ -172,11 +173,11 @@ public:
 
     bool solveWithCache(const std::string &directory, unsigned int agentSeed);
 
-    virtual bool solveWithPrioritizedReplan();
+    virtual bool solveWithPrioritizedReplan(bool prioritizedOpt);
 
     bool solveRetry();
 
-    bool validate();
+    bool validate(unsigned int maxState);
 
 };
 

@@ -39,6 +39,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use only cycle check", "--only-cycle");
     optionParser.add("", false, 0, 0, "Classify feasibility types", "--feasibility-type");
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
+    optionParser.add("", false, 0, 0, "Use prioritized replan with optimization ", "--prioritized-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
@@ -102,7 +103,7 @@ int main(int argc, const char *argv[]) {
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayInterval, obstacles, kNeighbor;
     long delayStart;
     double minDP, maxDP, delayRatio;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, noCache;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
@@ -134,6 +135,7 @@ int main(int argc, const char *argv[]) {
     onlyCycleCheck = optionParser.isSet("--only-cycle");
     feasibilityType = optionParser.isSet("--feasibility-type");
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
+    prioritizedOpt = optionParser.isSet("--prioritized-opt");
     noCache = optionParser.isSet("--no-cache");
 
     if (window == 0) {
@@ -289,6 +291,7 @@ int main(int argc, const char *argv[]) {
                 auto defaultSimulator = std::dynamic_pointer_cast<DefaultSimulator>(simulator);
                 defaultSimulator->replanMode = true;
                 defaultSimulator->prioritizedReplan = prioritizedReplan;
+                defaultSimulator->prioritizedOpt = prioritizedOpt;
                 if (i != 0) {
                     solver->init();
                     if (!solver->solveWithCache(filename, agentSeed)) {

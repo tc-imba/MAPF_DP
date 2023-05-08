@@ -99,7 +99,7 @@ bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed)
     return success;
 }
 
-bool Solver::validate() {
+bool Solver::validate(unsigned int maxState) {
     // nodeId -> agentId, in current state, the last agent at a node
     std::map<unsigned int, unsigned int> last;
     // the deadend nodes before current state
@@ -162,13 +162,21 @@ bool Solver::validate() {
         if (count == agents.size()) {
             break;
         }
+
+        if (state >= maxState) {
+            break;
+        }
     }
+
+//    return cycleConflicts == 0;
 
     return cycleConflicts == 0 && deadendConflicts == 0;
 }
 
 
-bool Solver::solveWithPrioritizedReplan() {
+bool Solver::solveWithPrioritizedReplan(bool prioritizedOpt) {
+    partialExecutionTime = 0;
+    executionTime = 0;
     prioritizedReplan = true;
     savedAgents = std::move(agents);
     savedPlans.clear();
@@ -220,19 +228,21 @@ bool Solver::solveWithPrioritizedReplan() {
     }
 //    std::cerr << std::endl;
     solution->plans = std::move(savedPlans);
-    if (!validate()) {
+    unsigned int maxState = prioritizedOpt ? 3 : std::numeric_limits<unsigned int>::max();
+    if (!validate(maxState)) {
 //        std::cerr << "validate failed, retry with full replan" << std::endl;
         return solveRetry();
     }
+    partialExecutionTime = executionTime;
+    executionTime = 0;
+    prioritizedReplan = false;
     return true;
 }
 
 bool Solver::solveRetry() {
-    auto lastExecutionTime = executionTime;
 //    std::cerr << "prioritized replan failed, retry with full replan" << std::endl;
+    partialExecutionTime = executionTime;
     prioritizedReplan = false;
     init();
-    auto result = solve();
-    executionTime += lastExecutionTime;
-    return result;
+    return solve();
 }
