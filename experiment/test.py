@@ -9,7 +9,7 @@ import concurrent.futures
 import pandas as pd
 import dataclasses
 
-from experiment.app import app, AppArguments
+from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 
 
@@ -291,7 +291,7 @@ async def do_tests(args: TestArguments):
     await asyncio.gather(*tasks)
 
 
-@app.command("test")
+@app_command("test")
 @click.option("--map-seeds", type=int, default=10)
 @click.option("--agent-seeds", type=int, default=10)
 @click.option("--iteration", type=int, default=10)
@@ -325,6 +325,3 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, init_tests):
     else:
         await do_tests(args)
 
-
-if __name__ == '__main__':
-    main()

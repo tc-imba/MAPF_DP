@@ -6,7 +6,7 @@ import pandas as pd
 import os
 from typing import Optional, Dict, Any
 from pathlib import Path
-from experiment.app import app, AppArguments
+from experiment.app import app_command, AppArguments
 from experiment.utils import project_root, ExperimentSetup
 
 
@@ -82,7 +82,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         soc = npy.mean(df['soc'])
         soc_lower, soc_upper = get_confidence_interval(df['soc'])
         # dirty fix, remove in the future
-        if setup.simulator != "pibt":
+        if setup.simulator == "default" or setup.simulator == "online":
             soc += 1
             soc_lower += 1
             soc_upper += 1
@@ -251,7 +251,7 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
     return main_df
 
 
-@app.command("parse")
+@app_command("parse")
 @click.option('-o', '--output-suffix', default='')
 @click.option('-i', '--input-suffix', default='')
 @click.option('--category', is_flag=True, default=False)
@@ -288,6 +288,3 @@ def main(ctx, output_suffix, input_suffix, category, timing):
 
     # click.echo(args)
 
-
-if __name__ == '__main__':
-    main()
