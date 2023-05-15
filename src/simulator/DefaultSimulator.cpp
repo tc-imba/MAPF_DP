@@ -127,5 +127,5 @@ double DefaultSimulator::replan() {
         path.insert(path.begin(), Label{agents[i].current, 0, 0, 0});
     }
 //    std::cerr << solver->executionTime << std::endl;
-    return solver->executionTime;
+    return solver->partialExecutionTime + solver->executionTime;
 }

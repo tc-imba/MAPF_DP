@@ -19,6 +19,7 @@ class TestArguments(AppArguments):
     agent_seeds: int
     iteration: int
     timeout: int
+    suboptimality: float
     program: Path
     result_dir: Path
 
@@ -33,8 +34,8 @@ completed = set()
 
 NAIVE_SETTINGS = [
     (False, False, False),  # online/default,cycle
-    (False, True, False),  # feasibility,cycle
-    (False, True, True),  # cycle
+    # (False, True, False),  # feasibility,cycle
+    # (False, True, True),  # cycle
     # (True, False, False),
     # (True, True, False),       # feasibility
     # (True, True, True),
@@ -122,6 +123,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         "--delay-start", str(setup.delay_start),
         "--delay-interval", str(setup.delay_interval),
         "--output", output_file.as_posix(),
+        "--suboptimality", str(args.suboptimality),
     ]
     if map_type == "hardcoded":
         program_args.append("--all")
@@ -296,10 +298,11 @@ async def do_tests(args: TestArguments):
 @click.option("--agent-seeds", type=int, default=10)
 @click.option("--iteration", type=int, default=10)
 @click.option("-t", "--timeout", type=int, default=600)
+@click.option("--suboptimality", type=float, default=1)
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
 @click.pass_context
 @asyncio_wrapper
-async def main(ctx, map_seeds, agent_seeds, iteration, timeout, init_tests):
+async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, init_tests):
     program = project_root / "cmake-build-relwithdebinfo"
     if platform.system() == "Windows":
         program = program / "MAPF_DP.exe"
@@ -315,6 +318,7 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, init_tests):
         agent_seeds=agent_seeds,
         iteration=iteration,
         timeout=timeout,
+        suboptimality=suboptimality,
         program=program,
         result_dir=result_dir,
     )

@@ -90,6 +90,9 @@ int main(int argc, const char *argv[]) {
     auto validKNeighbor = new ez::ezOptionValidator("u4", "ge", "2");
     optionParser.add("2", false, 1, 0, "Max Edge Length", "--k-neighbor", validKNeighbor);
 
+    auto validSuboptimality = new ez::ezOptionValidator("d", "ge", "1");
+    optionParser.add("1", false, 1, 0, "Suboptimality of CBS", "--suboptimality", validSuboptimality);
+
 
     optionParser.parse(argc, argv);
     if (optionParser.isSet("-h")) {
@@ -102,7 +105,7 @@ int main(int argc, const char *argv[]) {
     std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayInterval, obstacles, kNeighbor;
     long delayStart;
-    double minDP, maxDP, delayRatio;
+    double minDP, maxDP, delayRatio, suboptimality;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--objective")->getString(objective);
@@ -127,6 +130,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--delay-interval")->getULong(delayInterval);
     optionParser.get("--delay-start")->getLong(delayStart);
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
+    optionParser.get("--suboptimality")->getDouble(suboptimality);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
@@ -238,7 +242,7 @@ int main(int argc, const char *argv[]) {
         solver = std::shared_ptr<Solver>(new CBSSolver(graph, agents, makeSpanType, window));
     } else if (solverType == "eecbs") {
         if (solverBinaryFile.empty()) exit(-1);
-        solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile));
+        solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile, suboptimality));
     } else if (solverType == "ccbs") {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile));
@@ -270,7 +274,7 @@ int main(int argc, const char *argv[]) {
         tempFile.close();
     }
 
-    double approx = solver->approxAverageMakeSpan(*solver->solution);
+//    double approx = solver->approxAverageMakeSpan(*solver->solution);
 //    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
     std::shared_ptr<Simulator> simulator;
 

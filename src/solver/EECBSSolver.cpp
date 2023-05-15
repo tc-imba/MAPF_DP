@@ -22,7 +22,7 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
     node->parent = nullptr;
     node->depth = 0;
 
-    for (int i = 0; i < agents.size(); i++) {
+    for (size_t i = 0; i < agents.size(); i++) {
         node->plans[i] = std::make_shared<AgentPlan>();
         std::string line;
         if (!std::getline(fin, line)) return false;
@@ -44,7 +44,7 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
             if (nodeId == std::numeric_limits<unsigned int>::max()) return false;
             node->plans[i]->add(nodeId);
         }
-        for (int j = 0; j < node->plans[i]->path.size(); j++) {
+        for (size_t j = 0; j < node->plans[i]->path.size(); j++) {
             node->plans[i]->path[j].estimatedTime = j;
             node->plans[i]->path[j].heuristic = node->plans[i]->path.size() - j - 1;
         }
@@ -87,7 +87,7 @@ bool EECBSSolver::solve() {
     arguments.emplace_back("-t");
     arguments.emplace_back("60");
     arguments.emplace_back("--suboptimality");
-    arguments.emplace_back("1");
+    arguments.emplace_back(std::to_string(suboptimality));
 
     if (prioritizedReplan) {
         std::string obstaclesFileName = scenFile.string() + ".obs";
@@ -126,7 +126,7 @@ bool EECBSSolver::solve() {
     fin.close();
 
 //    if (!prioritizedReplan) {
-        remove_all(ph);
+//        remove_all(ph);
 //    }
 //    prioritizedReplan = false;
 //    std::cerr << prioritizedReplan << " " << success << std::endl;
@@ -141,7 +141,7 @@ void EECBSSolver::saveObstacles(const std::string &filename) {
     for (size_t i = 0; i < savedAgents.size(); i++) {
         if (savedPlans[i]) {
             auto &path = savedPlans[i]->path;
-            for (int j = 0; j < path.size(); j++) {
+            for (size_t j = 0; j < path.size(); j++) {
                 auto &node = graph.getNode(path[j].nodeId);
                 auto tmax = (j == path.size() - 1) ? INT_MAX / 2 : j + 1;
                 result.emplace_back(node.x, node.y, j, tmax);
