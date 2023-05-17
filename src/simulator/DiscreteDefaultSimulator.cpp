@@ -75,10 +75,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
             }
         }
 
-        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
-            updateDelayedSet(currentTimestep);
-//            delayedSet.clear();
-        }
+        updateDelayedSet(currentTimestep, delayStart, delayInterval);
 
         currentTimestep++;
 

@@ -21,10 +21,7 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
         if (debug) {
             std::cerr << "begin timestep " << currentTimestep << std::endl;
         }
-        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
-            updateDelayedSet(currentTimestep);
-//            delayedSet.clear();
-        }
+        updateDelayedSet(currentTimestep, delayStart, delayInterval);
 
         pibt::Agents unstable;
 

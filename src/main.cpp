@@ -103,8 +103,8 @@ int main(int argc, const char *argv[]) {
     }
 
     std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
-    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, delayInterval, obstacles, kNeighbor;
-    long delayStart;
+    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
+    long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
     optionParser.get("--map")->getString(mapType);
@@ -127,7 +127,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--max")->getDouble(maxDP);
     optionParser.get("--delay")->getString(delayType);
     optionParser.get("--delay-ratio")->getDouble(delayRatio);
-    optionParser.get("--delay-interval")->getULong(delayInterval);
+    optionParser.get("--delay-interval")->getLong(delayInterval);
     optionParser.get("--delay-start")->getLong(delayStart);
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
     optionParser.get("--suboptimality")->getDouble(suboptimality);
@@ -145,7 +145,7 @@ int main(int argc, const char *argv[]) {
     if (window == 0) {
         window = INT_MAX;
     }
-    if (delayInterval == 0) {
+    if (delayInterval < 0) {
         delayInterval = INT_MAX;
     }
     if (delayStart < 0) {

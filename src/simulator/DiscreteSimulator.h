@@ -11,7 +11,7 @@ class DiscreteSimulator : virtual public Simulator {
 protected:
     std::set<unsigned int> delayedSet;
 public:
-    void updateDelayedSet(unsigned int timestep);
+    void updateDelayedSet(unsigned int currentTimestep, unsigned int delayStart, unsigned int delayInterval);
 };
 
 

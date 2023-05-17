@@ -43,13 +43,7 @@ int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxT
     for (; currentTimestep + 1 < maxTimeStep;) {
 
 //        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
-        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
-            if (debug) {
-                std::cout << "update delayed set" << std::endl;
-            }
-            updateDelayedSet(currentTimestep);
-//            delayedSet.clear();
-        }
+        updateDelayedSet(currentTimestep, delayStart, delayInterval);
 
 //        if (pauseTimestep > 0 && currentTimestep == 2) {
 //            std::cout << "breakpoint" << std::endl;
