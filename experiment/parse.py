@@ -69,7 +69,7 @@ def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.D
     try:
         if setup.simulator == "online":
             header_names = header_names_base + header_names_online
-        elif setup.simulator in ("replan", "prioritized", "prioritized_opt"):
+        elif setup.simulator in ("default", "replan", "prioritized", "prioritized_opt"):
             header_names = header_names_base + header_names_replan
         else:
             header_names = header_names_base
@@ -96,10 +96,10 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         soc = npy.mean(df['soc'])
         soc_lower, soc_upper = get_confidence_interval(df['soc'])
         # dirty fix, remove in the future
-        if setup.simulator == "default" or setup.simulator == "online":
-            soc += 1
-            soc_lower += 1
-            soc_upper += 1
+        # if setup.simulator == "default" or setup.simulator == "online":
+        #     soc += 1
+        #     soc_lower += 1
+        #     soc_upper += 1
         total_time = npy.mean(df['total_time'])
         execution_time = 0
         first_agent_arriving = 0

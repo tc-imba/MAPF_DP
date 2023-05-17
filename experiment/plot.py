@@ -297,6 +297,10 @@ def main(ctx):
 
     df_discrete = pd.read_csv(data_dir / "df_discrete.csv")
     for agents in args.agents:
-        # plot_simulator(args, df_discrete, agents)
-        plot_replan(args, df_discrete, agents)
+        plot_simulator(args, df_discrete, agents)
+        # plot_replan(args, df_discrete, agents)
         # plot_cycle(args, df_discrete, agents)
+
+
+if __name__ == '__main__':
+    main()
