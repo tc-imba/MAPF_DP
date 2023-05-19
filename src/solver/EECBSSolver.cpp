@@ -126,7 +126,7 @@ bool EECBSSolver::solve() {
     fin.close();
 
 //    if (!prioritizedReplan) {
-//        remove_all(ph);
+        remove_all(ph);
 //    }
 //    prioritizedReplan = false;
 //    std::cerr << prioritizedReplan << " " << success << std::endl;
