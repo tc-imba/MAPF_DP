@@ -168,6 +168,8 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
             }
         }
 
+        bool needReplan = false;
+
         for (auto i: unblocked) {
             auto &state = agents[i].state;
             const auto &label = solver->solution->plans[i]->path[state];
@@ -182,6 +184,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
                 }
                 agents[i].blocked = false;
                 agents[i].delayed = true;
+                needReplan = true;
                 continue;
             }
 
@@ -194,6 +197,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
                 }
                 agents[i].blocked = false;
                 agents[i].delayed = true;
+                needReplan = true;
                 continue;
             }
 
@@ -254,7 +258,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
             break;
         }
 
-        if (replanMode) {
+        if (replanMode && needReplan) {
             auto currentExecutionTime = replan();
             if (currentExecutionTime < 0) {
                 currentTimestep = maxTimeStep + 100;

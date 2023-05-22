@@ -41,7 +41,7 @@ header_names_replan = [
 column_names = [
     "timing", "simulator", "obstacles", "agents",
     "delay_start", "delay_interval", "delay_ratio", "delay_type",
-    "makespan", "soc", "total_time", "feasibility", "cycle",
+    "makespan", "soc", "total_time", "makespan_time", "feasibility", "cycle",
     "execution_time", "first_agent_arriving",
     "cycle_count", "cycle_agents", "unblocked_agents", "feasibility_count",
     "feasibility_type_a", "feasibility_type_b", "feasibility_type_c",
@@ -50,8 +50,11 @@ column_names = [
     'average_feasibility_topo', 'average_feasibility_recursion',
     "makespan_lower", "makespan_upper", "soc_lower", "soc_upper",
     "average_timestep_time_lower", "average_timestep_time_upper",
+    "makespan_time_lower", "makespan_time_upper",
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
+    "data_points",
 ]
+# feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
 feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
 
 
@@ -91,16 +94,19 @@ def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.D
 
 def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     try:
+        data_points = len(df)
         makespan = npy.mean(df['makespan'])
         makespan_lower, makespan_upper = get_confidence_interval(df['makespan'])
         soc = npy.mean(df['soc'])
         soc_lower, soc_upper = get_confidence_interval(df['soc'])
         # dirty fix, remove in the future
-        # if setup.simulator == "default" or setup.simulator == "online":
+        # if (setup.simulator == "default" or setup.simulator == "online") and setup.delay_interval > 0 and (setup.obstacles != 180 or not (setup.obstacles == 270 and setup.delay_interval == 20 and setup.cycle == "o")):
         #     soc += 1
         #     soc_lower += 1
         #     soc_upper += 1
         total_time = npy.mean(df['total_time'])
+        makespan_time = npy.mean(df['total_time'] / df['makespan'])
+        makespan_time_lower, makespan_time_upper = get_confidence_interval(df['total_time'] / df['makespan'])
         execution_time = 0
         first_agent_arriving = 0
         cycle_count = 0
@@ -190,6 +196,9 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         "soc_lower": soc_lower,
         "soc_upper": soc_upper,
         "total_time": total_time,
+        "makespan_time": makespan_time,
+        "makespan_time_lower": makespan_time_lower,
+        "makespan_time_upper": makespan_time_upper,
         "feasibility": setup.feasibility == "n" and "exhaustive" or "heuristic",
         "cycle": setup.cycle == "n" and "semi-naive" or (
                 setup.cycle == "o" and "naive" or "proposed"),
@@ -215,6 +224,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         'partial_replan_time': partial_replan_time,
         'full_replan_count': full_replan_count,
         'full_replan_time': full_replan_time,
+        'data_points': data_points,
     }
     return row
 
@@ -240,49 +250,59 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
     ))
     for case in tqdm(cases):
         delay_type, obstacles, agents, k_neighbor, delay_interval, delay_ratio = case
-        for feasibility, cycle in feasibility_cycle_enums:
-            raw_dfs = {}
-            setups = {}
+        simulator_feasibility_cycle = []
+        for simulator in args.simulators:
+            if simulator == "online":
+                for feasibility, cycle in feasibility_cycle_enums:
+                    simulator_feasibility_cycle.append((simulator, feasibility, cycle))
+            else:
+                simulator_feasibility_cycle.append((simulator, "h", "h"))
 
-            for simulator in args.simulators:
-                if simulator == "online":
-                    _feasibility = feasibility
-                    _cycle = cycle
-                else:
-                    _feasibility = "h"
-                    _cycle = "h"
+        raw_dfs = {}
+        setups = {}
 
-                setup = ExperimentSetup(
-                    timing=args.timing, simulator=simulator, obstacles=obstacles,
-                    k_neighbor=k_neighbor, agents=agents, delay_type=delay_type,
-                    delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
-                    feasibility=_feasibility, cycle=_cycle,
-                )
-                setups[simulator] = setup
-                df = parse_raw_csv(args, setup)
-                if df is not None:
-                    raw_dfs[simulator] = df
+        for simulator, feasibility, cycle in simulator_feasibility_cycle:
+            # for simulator in args.simulators:
+            # if simulator == "online":
+            #     _feasibility = feasibility
+            #     _cycle = cycle
+            # else:
+            #     _feasibility = "h"
+            #     _cycle = "h"
+            label = f"{simulator}-{feasibility}-{cycle}"
+            setup = ExperimentSetup(
+                timing=args.timing, simulator=simulator, obstacles=obstacles,
+                k_neighbor=k_neighbor, agents=agents, delay_type=delay_type,
+                delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
+                feasibility=feasibility, cycle=cycle,
+            )
+            setups[label] = setup
+            df = parse_raw_csv(args, setup)
+            if df is not None:
+                raw_dfs[label] = df
 
-            if len(raw_dfs) != len(args.simulators):
-                continue
+        # if delay_interval == 20 and obstacles == 270:
+        #     print(raw_dfs)
 
-            base_df = raw_dfs[args.simulators[0]]
-            for simulator in args.simulators[1:]:
-                target_df = raw_dfs[simulator]
-                base_df = base_df[['map', 'agent', 'iteration']]
-                base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
+        # if len(raw_dfs) != len(args.simulators):
+        #     continue
+
+        parsed_labels = list(raw_dfs.keys())
+        print(parsed_labels)
+
+        base_df = raw_dfs[parsed_labels[0]]
+        for label in parsed_labels[1:]:
+            target_df = raw_dfs[label]
             base_df = base_df[['map', 'agent', 'iteration']]
+            base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
+        base_df = base_df[['map', 'agent', 'iteration']]
 
-            for simulator in args.simulators:
-                if (simulator != "online") and (feasibility != "h" or cycle != "h"):
-                    continue
-                if simulator not in raw_dfs:
-                    continue
-                df = raw_dfs[simulator]
-                df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
-                row = parse_merged_df(setups[simulator], df)
-                if row is not None:
-                    rows.append(row)
+        for label in parsed_labels:
+            df = raw_dfs[label]
+            df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+            row = parse_merged_df(setups[label], df)
+            if row is not None:
+                rows.append(row)
 
     main_df = pd.DataFrame(data=rows, columns=column_names)
     return main_df

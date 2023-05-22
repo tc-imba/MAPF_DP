@@ -5,15 +5,22 @@ import click
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from matplotlib.ticker import ScalarFormatter, LogLocator
+from matplotlib.ticker import ScalarFormatter, LogLocator, LogFormatter
 import numpy as np
 from tqdm import tqdm
 
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 
-obstacles_color = ["#5BB8D7", "#57A86B", "#A8A857"]
-obstacles_marker = ["o", "s", "^"]
+LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129"]
+LINE_MARKERS = ["o", "s", "^", "+"]
+
+
+def format_log(x, pos=None):
+    x = float(x)
+    if x.is_integer():
+        return str(int(x))
+    return str(x)
 
 
 @dataclasses.dataclass
@@ -65,6 +72,9 @@ class PlotSettings:
             self.y_label = '\n Makespan'
         elif self.y_field == "soc":
             self.y_label = '\n Sum of Costs'
+        elif self.y_field == "makespan_time":
+            self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
+            self.y_log = True
         else:
             assert False
 
@@ -74,7 +84,7 @@ class PlotSettings:
         if self.subplot_type == "delay-ratio":
             self.subplot_field = "delay_ratio"
             self.subplot_keys = self.args.delay_ratios
-        elif self.subplot_type == "obstacle":
+        elif self.subplot_type == "obstacles":
             self.subplot_field = "obstacles"
             self.subplot_keys = self.args.obstacles
         else:
@@ -83,8 +93,8 @@ class PlotSettings:
     def get_subplot_key(self, subplot_key):
         if self.subplot_type == "delay-ratio":
             subplot_key = int(subplot_key)
-        elif self.subplot_type == "obstacle":
-            subplot_key = f"{int(subplot_key * 100)}%-agents-paused"
+        elif self.subplot_type == "obstacles":
+            subplot_key = f"{int(subplot_key * 100)}%"
         else:
             assert False
         return subplot_key
@@ -117,8 +127,8 @@ class PlotSettings:
 
         if self.subplot_type == "delay-ratio":
             label += "-obstacles"
-        elif self.subplot_type == "obstacle":
-            label += "-agents-paused"
+        elif self.subplot_type == "obstacles":
+            label = "-".join(label.split('-')[:-1])
 
         if self.plot_type == "simulator":
             if simulator == "default":
@@ -164,6 +174,10 @@ class PlotSettings:
             y = np.array(df["soc"] * df["agents"])
             y_lower = y - np.array(df["soc_lower"] * df["agents"])
             y_upper = np.array(df["soc_upper"] * df["agents"]) - y
+        elif self.y_field == "makespan_time":
+            y = np.array(df["makespan_time"] * 1000)
+            y_lower = y - np.array(df["makespan_time_lower"] * 1000)
+            y_upper = np.array(df["makespan_time_upper"] * 1000) - y
         else:
             assert False
         return x, y, y_lower, y_upper
@@ -187,37 +201,50 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             line_settings = settings.get_line_settings(indexes)
             if not xticks:
                 for _, row in df2.iterrows():
-                    xticks.append(f"{int(row[settings.x_field])}")
+                    xticks.append(int(row[settings.x_field]))
             x, y, y_lower, y_upper = settings.get_line_values(df2)
 
             # print(plot_type, simulator, linestyle, i, j)
-            line_settings.color = obstacles_color[j % len(settings.args.obstacles)]
-            line_settings.marker = obstacles_marker[j % len(settings.args.obstacles)]
+            if settings.subplot_type == "obstacles":
+                max_lines = len(settings.args.delay_intervals)
+            else:
+                max_lines = len(settings.args.obstacles)
+
+            if settings.plot_type == "simulator" and settings.y_field in ("time", "makespan_time"):
+                line_index = j + 1
+            else:
+                line_index = j
+            line_settings.color = LINE_COLORS[line_index % max_lines]
+            line_settings.marker = LINE_MARKERS[line_index % max_lines]
 
             if y_lower is None or y_upper is None:
-                ax.plot(x, y,
+                ax.plot(xticks, y,
                         linestyle=line_settings.linestyle, color=line_settings.color,
                         marker=line_settings.marker, label=line_settings.label,
                         linewidth=1.5, markersize=2.5)
             else:
-                ax.errorbar(x, y, yerr=[y_lower, y_upper],
+                ax.errorbar(xticks, y, yerr=[y_lower, y_upper],
                             linestyle=line_settings.linestyle, color=line_settings.color,
                             marker=line_settings.marker, label=line_settings.label,
                             linewidth=1.5, markersize=2.5, capsize=3)
-
-        ax.set_xticks(np.arange(len(xticks)))
-        ax.set_xticklabels(xticks)
+        ax.set_xticks(xticks)
+        # ax.set_xticks(np.arange(len(xticks)))
+        # ax.set_xticklabels(xticks)
         ax.set_xlabel(settings.x_label)
         if settings.subplot_type == "delay-ratio":
             ax.set_title(f"{int(key * 100)}% of agents blocked")
-        elif settings.subplot_type == "obstacle":
+        elif settings.subplot_type == "obstacles":
             ax.set_title(f"{int(key)} obstacles")
         if settings.y_log:
             ax.set_yscale("log")
-            plt.tick_params(axis='y', which='minor')
-            ax.yaxis.set_minor_locator(LogLocator(base=10, subs=[2.0, 5.0]))
-            ax.yaxis.set_minor_formatter(ScalarFormatter())
-            ax.yaxis.set_major_formatter(ScalarFormatter())
+            # ax.set_ylim(bottom=1)
+            ax.tick_params(axis='y', which='minor')
+            ax.yaxis.set_minor_locator(LogLocator(base=10, subs=[1.0, 0.3], numticks=20))
+            ax.yaxis.set_minor_formatter(format_log)
+            ax.yaxis.set_major_formatter(format_log)
+
+            # ax.yaxis.set_minor_formatter(LogFormatter(labelOnlyBase=False))
+            # ax.yaxis.set_major_formatter(LogFormatter(labelOnlyBase=True))
 
     # plt.ylabel(ylabel)
     ax = axes[0]
@@ -227,7 +254,9 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         # ax = axes[0]
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
-        if len(handles) % 3 == 0:
+        if settings.subplot_type == "obstacles":
+            ncol = 4
+        elif len(handles) % 3 == 0:
             ncol = 3
             # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
             # labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
@@ -245,23 +274,29 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 
 
 def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int):
-    df = data[(((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
-            data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") | (data["simulator"] == "prioritized"))
-              & (data["agents"] == agents)]
+    df = data[
+        (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
+                data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") | (
+                 data["simulator"] == "prioritized"))
+        & (data["agents"] == agents)]
     df2 = df[df["simulator"] != "default"]
-    groupby = ["simulator", "cycle", "obstacles"]
+    groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
-    subplot_type = "delay-ratio"
+    subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  y_field="time", groupby=groupby, legend=True)
     plot(df2, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 y_field="makespan_time", groupby=groupby, legend=True)
+    plot(df2, plot_settings)
 
 
 def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
-    df = data[((data["simulator"] == "replan") | (data["simulator"] == "prioritized") | (data["simulator"] == "prioritized_opt")) & (data["agents"] == agents)]
+    df = data[((data["simulator"] == "replan") | (data["simulator"] == "prioritized") | (
+            data["simulator"] == "prioritized_opt")) & (data["agents"] == agents)]
     groupby = ["simulator", "obstacles"]
     plot_type = "replan"
     subplot_type = "delay-ratio"
@@ -275,15 +310,19 @@ def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
 
 def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
     df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents)]
-    groupby = ["cycle", "obstacles"]
+    groupby = ["cycle", "delay_ratio"]
     plot_type = "cycle"
-    subplot_type = "delay-ratio"
+    subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  y_field="time", groupby=groupby, legend=True)
     plot(df, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 y_field="makespan_time", groupby=groupby, legend=True)
+    plot(df, plot_settings)
+
 
 @app_command("plot")
 @click.pass_context
@@ -299,7 +338,7 @@ def main(ctx):
     for agents in args.agents:
         plot_simulator(args, df_discrete, agents)
         # plot_replan(args, df_discrete, agents)
-        # plot_cycle(args, df_discrete, agents)
+        plot_cycle(args, df_discrete, agents)
 
 
 if __name__ == '__main__':
