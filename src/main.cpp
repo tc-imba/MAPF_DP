@@ -371,7 +371,7 @@ int main(int argc, const char *argv[]) {
             out << "," << elapsed_seconds.count() << ",";
             simulator->print(out);
             out << std::endl;
-            simulator->printExecutionTime(i);
+            simulator->printExecutionTime(mapSeed, agentSeed, i);
             finished++;
         } else {
             std::cerr << count << " " << agentNum << std::endl;

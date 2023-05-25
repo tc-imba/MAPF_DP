@@ -29,7 +29,8 @@ workers = multiprocessing.cpu_count()
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
 EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
-result_files = set()
+defined_output_prefixes = set()
+running_output_prefixes = set()
 completed = set()
 
 NAIVE_SETTINGS = [
@@ -82,6 +83,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         print('%s skipped (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
         return 1
     output_file = args.result_dir / (output_prefix + ".csv")
+    output_time_file = args.result_dir / (output_prefix + ".time")
 
     cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (
         setup.timing, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, solver)
@@ -90,10 +92,11 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if init_tests:
         cbs_file.unlink(missing_ok=True)
 
-    if output_prefix not in result_files:
-        result_files.add(output_prefix)
+    if output_prefix not in defined_output_prefixes:
+        defined_output_prefixes.add(output_prefix)
         # if output_file.exists():
         output_file.unlink(missing_ok=True)
+        output_time_file.unlink(missing_ok=True)
 
     # generate arguments
     simulator = setup.simulator
@@ -123,6 +126,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         "--delay-start", str(setup.delay_start),
         "--delay-interval", str(setup.delay_interval),
         "--output", output_file.as_posix(),
+        "--time-output", output_time_file.as_posix(),
         "--suboptimality", str(args.suboptimality),
     ]
     if map_type == "hardcoded":
@@ -140,7 +144,13 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if prioritized_opt:
         program_args.append("--prioritized-opt")
 
+    # naive file lock
+    while output_prefix in running_output_prefixes:
+        await asyncio.sleep(0.5)
+    running_output_prefixes.add(output_prefix)
     await asyncio.get_event_loop().run_in_executor(pool, run_program, program_args, args.timeout)
+    running_output_prefixes.remove(output_prefix)
+
     EXPERIMENT_JOBS_COMPLETED += 1
 
     result = 1

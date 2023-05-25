@@ -39,7 +39,7 @@ int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxT
         }
     }
 
-
+    executionTimeStart = std::chrono::steady_clock::now();
     for (; currentTimestep + 1 < maxTimeStep;) {
 
 //        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
@@ -285,7 +285,9 @@ int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxT
         if (count >= agents.size()) {
             break;
         }
+        saveExecutionTime();
     }
+    saveExecutionTime();
 
 /*    bool unfinish = false;
     for (unsigned int i = 0; i < agents.size(); i++) {

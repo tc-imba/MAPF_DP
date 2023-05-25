@@ -133,7 +133,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         first_agent_arriving = npy.mean(df['first_agent_arriving'])
         timestep_time = npy.ma.masked_invalid(
             df['execution_time'] / df['first_agent_arriving'])
-        average_timestep_time = timestep_time.mean() or None
+        average_timestep_time = timestep_time.mean() or 0
         average_timestep_time_lower, average_timestep_time_upper = \
             get_confidence_interval(timestep_time)
 
@@ -288,7 +288,7 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
         #     continue
 
         parsed_labels = list(raw_dfs.keys())
-        print(parsed_labels)
+        # print(parsed_labels)
 
         base_df = raw_dfs[parsed_labels[0]]
         for label in parsed_labels[1:]:

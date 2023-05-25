@@ -12,7 +12,7 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
-
+#include <chrono>
 
 class Simulator {
 protected:
@@ -26,6 +26,7 @@ protected:
     std::vector<unsigned int> delayedShuffleVec;
     std::vector<boost::icl::interval_set<double> > delayedIntervals;
     double maxDelayTimestep = 0;
+    std::chrono::steady_clock::time_point executionTimeStart;
     std::vector<std::pair<bool, double> > executionTimeVec;
     std::set<double> arrivingTimestepSet;
 
@@ -89,9 +90,11 @@ public:
 
     virtual void printState(size_t i, unsigned int state) = 0;
 
-    void printExecutionTime(size_t iteration);
+    void printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration);
 
     void printAgent(size_t i, const std::string& message);
+
+    void saveExecutionTime();
 
     void advanceTimestep(double &currentTimestep);
 

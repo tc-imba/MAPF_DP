@@ -17,6 +17,7 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
     int num_activate = 0;
     bool flg_stop = false;
 
+    executionTimeStart = std::chrono::steady_clock::now();
     while (!flg_stop) {
         if (debug) {
             std::cerr << "begin timestep " << currentTimestep << std::endl;
@@ -115,8 +116,9 @@ int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTim
             start = end;
         }
         currentTimestep++;
+        saveExecutionTime();
     }
-
+    saveExecutionTime();
     convertResult();
     return countCompletedAgents();
 }

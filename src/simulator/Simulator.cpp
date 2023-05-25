@@ -145,10 +145,10 @@ int Simulator::countCompletedAgents() {
     return count;
 }
 
-void Simulator::printExecutionTime(size_t iteration) {
+void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration) {
     timeOutputFile.open(timeOutputFileName, std::ios_base::app);
     if (timeOutputFile.is_open()) {
-        timeOutputFile << iteration << " " << executionTimeVec.size() << std::endl;
+        timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size() << std::endl;
         for (auto &p : executionTimeVec) {
             timeOutputFile << (int) p.first << " " << p.second << std::endl;
         }
@@ -167,6 +167,13 @@ void Simulator::printAgent(size_t i, const std::string &message) {
     }
     printState(i, state + 1);
     std::cout << " " << agents[i].arrivingTimestep << std::endl;
+}
+
+void Simulator::saveExecutionTime() {
+    bool firstAgentArrived = firstAgentArrivingTimestep > 0;
+    auto now = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = now - executionTimeStart;
+    executionTimeVec.emplace_back(firstAgentArrived, elapsed_seconds.count());
 }
 
 void Simulator::advanceTimestep(double &currentTimestep) {

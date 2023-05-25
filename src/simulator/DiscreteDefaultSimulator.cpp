@@ -57,6 +57,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
         }
     }
 
+    executionTimeStart = std::chrono::steady_clock::now();
     for (; currentTimestep + 1 < maxTimeStep; ) {
         if (refresh) {
             refresh = false;
@@ -264,16 +265,15 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
                 currentTimestep = maxTimeStep + 100;
                 break;
             }
-            bool firstAgentArrived = firstAgentArrivingTimestep > 0;
-            if (!firstAgentArrived) {
+            if (firstAgentArrivingTimestep == 0) {
                 executionTime += currentExecutionTime;
             }
-            executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
             refresh = true;
         }
 
+        saveExecutionTime();
     }
-
+    saveExecutionTime();
 //    std::cout << "window " << window << ": " << averageMakeSpan() << std::endl;
 
 /*    bool unfinish = false;

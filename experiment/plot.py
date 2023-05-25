@@ -65,7 +65,7 @@ class PlotSettings:
                 self.y_label = 'Average Computation Time of Each Feasibility Check (ms)'
             elif self.plot_type == "cycle":
                 self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
-                self.y_log = True
+                # self.y_log = True
             else:
                 assert False
         elif self.y_field == "makespan":
@@ -74,7 +74,7 @@ class PlotSettings:
             self.y_label = '\n Sum of Costs'
         elif self.y_field == "makespan_time":
             self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
-            self.y_log = True
+            # self.y_log = True
         else:
             assert False
 
@@ -152,7 +152,7 @@ class PlotSettings:
         elif self.plot_type == "feasibility":
             linestyle = simulator == "heuristic" and "-" or ":"
         elif self.plot_type == "cycle":
-            linestyle = simulator == "proposed" and "-" or (simulator == "naive" and ":" or "-.")
+            linestyle = simulator == "proposed" and "-" or (simulator == "naive" and "-." or ":")
         elif self.plot_type == "category":
             linestyle = "-"
         else:
@@ -210,10 +210,11 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             else:
                 max_lines = len(settings.args.obstacles)
 
-            if settings.plot_type == "simulator" and settings.y_field in ("time", "makespan_time"):
-                line_index = j + 1
-            else:
-                line_index = j
+            # if settings.plot_type == "simulator" and settings.y_field in ("time", "makespan_time"):
+            #     line_index = j + 1
+            # else:
+            #     line_index = j
+            line_index = j
             line_settings.color = LINE_COLORS[line_index % max_lines]
             line_settings.marker = LINE_MARKERS[line_index % max_lines]
 
@@ -287,11 +288,11 @@ def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int):
                                  y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, legend=True)
-    plot(df2, plot_settings)
+                                 y_field="time", groupby=groupby, legend=False)
+    plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="makespan_time", groupby=groupby, legend=True)
-    plot(df2, plot_settings)
+                                 y_field="makespan_time", groupby=groupby, legend=False)
+    plot(df, plot_settings)
 
 
 def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
@@ -317,10 +318,10 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
                                  y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, legend=True)
+                                 y_field="time", groupby=groupby, legend=False)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="makespan_time", groupby=groupby, legend=True)
+                                 y_field="makespan_time", groupby=groupby, legend=False)
     plot(df, plot_settings)
 
 
