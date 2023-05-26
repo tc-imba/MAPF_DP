@@ -54,6 +54,9 @@ column_names = [
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
     "data_points",
 ]
+time_column_names = [
+    'map', 'agent', 'iteration', "data",
+]
 # feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
 feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
 
@@ -67,7 +70,7 @@ def get_confidence_interval(data):
 
 def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.DataFrame]:
     output_prefix = setup.get_output_prefix()
-    output_file = f"{output_prefix}.csv"
+    output_file = args.result_dir / f"{output_prefix}.csv"
     # click.echo(output_file)
     try:
         if setup.simulator == "online":
@@ -76,8 +79,7 @@ def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.D
             header_names = header_names_base + header_names_replan
         else:
             header_names = header_names_base
-        df = pd.read_csv(args.result_dir / output_file, header=None,
-                         names=header_names)
+        df = pd.read_csv(output_file, header=None, names=header_names)
         df.sort_values(by=['map', 'agent', 'iteration'], inplace=True)
         # df.to_csv(args.result_dir / "parsed" / output_file, index=False)
         if len(df) > 0 and setup.simulator == "online":
@@ -87,6 +89,35 @@ def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.D
                 df = df[~condition]
             else:
                 df = df[condition]
+        return df
+    except Exception as e:
+        return None
+
+
+def parse_raw_time(args: ParseArguments, setup: ExperimentSetup):
+    output_prefix = setup.get_output_prefix()
+    output_file = args.result_dir / f"{output_prefix}.time"
+    try:
+        rows = []
+        with output_file.open("r") as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                map_seed, agent_seed, iteration, makespan = tuple(line.strip().split(" "))
+                time_array = []
+                for i in range(int(makespan)):
+                    line = f.readline()
+                    first_agent_arrived, time = tuple(line.strip().split(" "))
+                    time_array.append((int(first_agent_arrived), float(time)))
+                row = {
+                    "map": int(map_seed),
+                    "agent": int(agent_seed),
+                    "iteration": int(iteration),
+                    "data": time_array,
+                }
+                rows.append(row)
+        df = pd.DataFrame(data=rows, columns=time_column_names)
         return df
     except Exception as e:
         return None
@@ -229,6 +260,11 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
     return row
 
 
+def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
+    print(df)
+    pass
+
+
 def parse_data(args: ParseArguments) -> pd.DataFrame:
     # if data_type == "infinite":
     #     starts_list = [1, 5, 10]
@@ -259,6 +295,7 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
                 simulator_feasibility_cycle.append((simulator, "h", "h"))
 
         raw_dfs = {}
+        time_dfs = {}
         setups = {}
 
         for simulator, feasibility, cycle in simulator_feasibility_cycle:
@@ -280,6 +317,9 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
             df = parse_raw_csv(args, setup)
             if df is not None:
                 raw_dfs[label] = df
+            time_df = parse_raw_time(args, setup)
+            if time_df is not None:
+                time_dfs[label] = time_df
 
         # if delay_interval == 20 and obstacles == 270:
         #     print(raw_dfs)
@@ -303,6 +343,12 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
             row = parse_merged_df(setups[label], df)
             if row is not None:
                 rows.append(row)
+            if label in time_dfs:
+                time_df = time_dfs[label]
+                print(time_df)
+                print(base_df)
+                time_df = time_df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+                parse_merged_time_df(setups[label], time_df)
 
     main_df = pd.DataFrame(data=rows, columns=column_names)
     return main_df

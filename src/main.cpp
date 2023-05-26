@@ -268,11 +268,11 @@ int main(int argc, const char *argv[]) {
         exit(-1);
     }
 
-    if (!timeOutputFileName.empty()) {
-        // delete old file
-        std::ofstream tempFile(timeOutputFileName);
-        tempFile.close();
-    }
+//    if (!timeOutputFileName.empty()) {
+//        // delete old file
+//        std::ofstream tempFile(timeOutputFileName);
+//        tempFile.close();
+//    }
 
 //    double approx = solver->approxAverageMakeSpan(*solver->solution);
 //    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
