@@ -1,3 +1,4 @@
+import ast
 import dataclasses
 from pathlib import Path
 from typing import List, Any
@@ -8,6 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter, LogLocator, LogFormatter
 import numpy as np
 from tqdm import tqdm
+import scipy.stats as stats
+import scipy.integrate
 
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
@@ -46,6 +49,7 @@ class PlotSettings:
     y_field: str
     groupby: List[str]
 
+    extra: str = ""
     legend: bool = True
 
     # automatically initialized
@@ -75,11 +79,19 @@ class PlotSettings:
         elif self.y_field == "makespan_time":
             self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
             # self.y_log = True
+        elif self.y_field == "cdf":
+            self.y_label = "Timesteps Completed (%)"
+        elif self.y_field == "pdf":
+            self.y_label = "Timesteps Completed (%)"
         else:
             assert False
 
-        self.x_label = 'length of each pause (k)'
-        self.x_field = 'delay_interval'
+        if self.plot_type == "cdf":
+            self.x_label = "Computation Time (s)"
+            self.x_field = ""
+        else:
+            self.x_label = 'length of each pause (k)'
+            self.x_field = 'delay_interval'
 
         if self.subplot_type == "delay-ratio":
             self.subplot_field = "delay_ratio"
@@ -130,7 +142,7 @@ class PlotSettings:
         elif self.subplot_type == "obstacles":
             label = "-".join(label.split('-')[:-1])
 
-        if self.plot_type == "simulator":
+        if self.plot_type == "simulator" or self.plot_type == "cdf":
             if simulator == "default":
                 linestyle = "dashdot"
             elif simulator == "replan":
@@ -162,6 +174,8 @@ class PlotSettings:
 
     def get_line_values(self, df: pd.DataFrame):
         x = np.arange(len(df))
+        y_lower = None
+        y_upper = None
         if self.y_field == "time":
             y = np.array(df["average_timestep_time"] * 1000)
             y_lower = y - np.array(df["average_timestep_time_lower"] * 1000)
@@ -178,13 +192,36 @@ class PlotSettings:
             y = np.array(df["makespan_time"] * 1000)
             y_lower = y - np.array(df["makespan_time_lower"] * 1000)
             y_upper = np.array(df["makespan_time_upper"] * 1000) - y
+        elif self.y_field == "cdf" or self.y_field == "pdf":
+            data = ast.literal_eval(df["data"].iloc[0])
+            data = np.array(data).transpose()
+            if self.y_field == "cdf":
+                x = data[0]
+                y = data[2] * 100
+            else:
+                n = 100000
+                x = data[0]
+                y = data[1]
+                y_int = np.dot(data[0], data[1])
+                print(y_int)
+                print(sum(y))
+                h, e = np.histogram(x, bins=100, weights=y)
+                kde = stats.gaussian_kde(x, weights=y)
+                # resamples = np.random.choice((e[:-1] + e[1:]) / 2, size=n * 5, p=h / h.sum())
+                # print(np.mean(resamples))
+                # rkde = stats.gaussian_kde(resamples)
+                x = np.linspace(x.min(), x.max())
+                y = kde.pdf(x)
+
         else:
             assert False
         return x, y, y_lower, y_upper
 
     def get_output_file(self):
+        if self.extra:
+            extra = f"-{self.extra}"
         return self.args.plot_dir / \
-            f"{self.plot_type}-{self.subplot_type}-{self.agents}-{self.y_field}.pdf"
+            f"{self.plot_type}-{self.subplot_type}-{self.agents}-{self.y_field}{extra}.pdf"
 
 
 def plot(df: pd.DataFrame, settings: PlotSettings):
@@ -197,18 +234,27 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         axes.append(ax)
         sub_df = df[df[settings.subplot_field] == key]
         xticks = []
+        xmax = 0
+        if settings.plot_type == "cdf":
+            for j, (indexes, df2) in enumerate(sub_df.groupby(settings.groupby)):
+                x, y, y_lower, y_upper = settings.get_line_values(df2)
+                xmax = max(xmax, np.max(x))
         for j, (indexes, df2) in enumerate(sub_df.groupby(settings.groupby)):
             line_settings = settings.get_line_settings(indexes)
-            if not xticks:
-                for _, row in df2.iterrows():
-                    xticks.append(int(row[settings.x_field]))
             x, y, y_lower, y_upper = settings.get_line_values(df2)
-
+            if settings.plot_type != "cdf":
+                if not xticks:
+                    for _, row in df2.iterrows():
+                        xticks.append(int(row[settings.x_field]))
+            # else:
+            #     x = np.append(x, xmax)
+            #     y = np.append(y, 100)
             # print(plot_type, simulator, linestyle, i, j)
             if settings.subplot_type == "obstacles":
                 max_lines = len(settings.args.delay_intervals)
             else:
                 max_lines = len(settings.args.obstacles)
+            max_lines = len(LINE_COLORS)
 
             # if settings.plot_type == "simulator" and settings.y_field in ("time", "makespan_time"):
             #     line_index = j + 1
@@ -218,7 +264,14 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             line_settings.color = LINE_COLORS[line_index % max_lines]
             line_settings.marker = LINE_MARKERS[line_index % max_lines]
 
-            if y_lower is None or y_upper is None:
+            if settings.plot_type == "cdf":
+                ax.plot(x, y,
+                        linestyle=line_settings.linestyle, color=line_settings.color,
+                        marker=None, label=line_settings.label,
+                        linewidth=1.5)
+
+
+            elif y_lower is None or y_upper is None:
                 ax.plot(xticks, y,
                         linestyle=line_settings.linestyle, color=line_settings.color,
                         marker=line_settings.marker, label=line_settings.label,
@@ -228,7 +281,13 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
                             linestyle=line_settings.linestyle, color=line_settings.color,
                             marker=line_settings.marker, label=line_settings.label,
                             linewidth=1.5, markersize=2.5, capsize=3)
-        ax.set_xticks(xticks)
+
+        if settings.plot_type != "cdf":
+            ax.set_xticks(xticks)
+        else:
+            ax.set_xscale("log")
+            ax.set_xlim(left=1e-7)
+            # ax.set_xlim(left=1e-7, right=xmax)
         # ax.set_xticks(np.arange(len(xticks)))
         # ax.set_xticklabels(xticks)
         ax.set_xlabel(settings.x_label)
@@ -325,6 +384,26 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot(df, plot_settings)
 
 
+def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
+    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval)]
+    groupby = ["simulator", "delay_ratio"]
+    plot_type = "cdf"
+    subplot_type = "obstacles"
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 y_field="cdf", groupby=groupby, legend=True, extra=str(delay_interval))
+    plot(df, plot_settings)
+
+
+def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
+    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) & (data["simulator"] == "replan")]
+    groupby = ["simulator", "delay_ratio"]
+    plot_type = "cdf"
+    subplot_type = "obstacles"
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 y_field="pdf", groupby=groupby, legend=True, extra=str(delay_interval))
+    plot(df, plot_settings)
+
+
 @app_command("plot")
 @click.pass_context
 def main(ctx):
@@ -336,10 +415,14 @@ def main(ctx):
     click.echo(args)
 
     df_discrete = pd.read_csv(data_dir / "df_discrete.csv")
+    df_discrete_time = pd.read_csv(data_dir / "df_discrete_time.csv")
     for agents in args.agents:
-        plot_simulator(args, df_discrete, agents)
+        # plot_simulator(args, df_discrete, agents)
         # plot_replan(args, df_discrete, agents)
-        plot_cycle(args, df_discrete, agents)
+        # plot_cycle(args, df_discrete, agents)
+        for delay_interval in args.delay_intervals:
+            plot_cdf(args, df_discrete_time, agents, delay_interval)
+            # plot_replan_pdf(args, df_discrete_time, agents, delay_interval)
 
 
 if __name__ == '__main__':

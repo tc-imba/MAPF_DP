@@ -2,6 +2,7 @@
 #include <chrono>
 #include <boost/filesystem.hpp>
 #include <boost/dll.hpp>
+#include <boost/interprocess/sync/file_lock.hpp>
 #include "Graph.h"
 #include "solver/CBSSolver.h"
 #include "solver/EECBSSolver.h"
@@ -13,6 +14,7 @@
 #include "simulator/DiscreteOnlineSimulator.h"
 #include "simulator/DiscretePIBTSimulator.h"
 #include "utils/ezOptionParser.hpp"
+
 
 std::string double_to_string(double data) {
     auto result = std::to_string(data);
@@ -176,6 +178,10 @@ int main(int argc, const char *argv[]) {
         std::cerr << "redirect output to " << outputFileName << std::endl;
     }
     std::ostream &out = fout.is_open() ? fout : std::cout;
+
+    std::string lockFileName = outputFileName + ".lock";
+    std::ofstream lockFile(lockFileName, std::ios_base::app);
+    lockFile.close();
 
 
     Graph graph;
@@ -361,6 +367,8 @@ int main(int argc, const char *argv[]) {
         std::chrono::duration<double> elapsed_seconds = end - start;
 
         if (count == agentNum) {
+            boost::interprocess::file_lock flock(lockFileName.c_str());
+            flock.lock();
             out << mapSeed << "," << agentSeed << "," << i << ",";
             if (delayInterval == INT_MAX) {
                 out << count << "," << finished;
@@ -373,6 +381,7 @@ int main(int argc, const char *argv[]) {
             out << std::endl;
             simulator->printExecutionTime(mapSeed, agentSeed, i);
             finished++;
+            flock.unlock();
         } else {
             std::cerr << count << " " << agentNum << std::endl;
             finished++;

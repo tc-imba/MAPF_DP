@@ -3,6 +3,7 @@
 //
 
 #include "Simulator.h"
+#include <iomanip>
 
 size_t Simulator::combineRandomSeed(
         unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int _seed) {
@@ -149,6 +150,7 @@ void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iter
     timeOutputFile.open(timeOutputFileName, std::ios_base::app);
     if (timeOutputFile.is_open()) {
         timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size() << std::endl;
+        timeOutputFile << std::scientific << std::setprecision(12);
         for (auto &p : executionTimeVec) {
             timeOutputFile << (int) p.first << " " << p.second << std::endl;
         }

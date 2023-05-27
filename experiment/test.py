@@ -30,7 +30,6 @@ pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
 EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
 defined_output_prefixes = set()
-running_output_prefixes = set()
 completed = set()
 
 NAIVE_SETTINGS = [
@@ -144,13 +143,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if prioritized_opt:
         program_args.append("--prioritized-opt")
 
-    # naive file lock
-    while output_prefix in running_output_prefixes:
-        await asyncio.sleep(0.5)
-    running_output_prefixes.add(output_prefix)
     await asyncio.get_event_loop().run_in_executor(pool, run_program, program_args, args.timeout)
-    running_output_prefixes.remove(output_prefix)
-
     EXPERIMENT_JOBS_COMPLETED += 1
 
     result = 1

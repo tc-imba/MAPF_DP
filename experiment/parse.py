@@ -21,6 +21,7 @@ class ParseArguments(AppArguments):
     timing: str
     result_dir: Path
     output_csv: Path
+    time_output_csv: Path
 
 
 # parsed_result_dir = os.path.join(result_dir, "parsed")
@@ -54,8 +55,13 @@ column_names = [
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
     "data_points",
 ]
+time_header_names = [
+    'map', 'agent', 'iteration', 'length', 'data',
+]
 time_column_names = [
-    'map', 'agent', 'iteration', "data",
+    "timing", "simulator", "obstacles", "agents",
+    "delay_start", "delay_interval", "delay_ratio", "delay_type",
+    "data",
 ]
 # feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
 feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
@@ -106,18 +112,23 @@ def parse_raw_time(args: ParseArguments, setup: ExperimentSetup):
                     break
                 map_seed, agent_seed, iteration, makespan = tuple(line.strip().split(" "))
                 time_array = []
+                last_time = 0
                 for i in range(int(makespan)):
                     line = f.readline()
                     first_agent_arrived, time = tuple(line.strip().split(" "))
-                    time_array.append((int(first_agent_arrived), float(time)))
+                    time_array.append((int(first_agent_arrived), float(time) - last_time))
+                    last_time = float(time)
+
                 row = {
                     "map": int(map_seed),
                     "agent": int(agent_seed),
                     "iteration": int(iteration),
+                    "length": len(time_array),
                     "data": time_array,
                 }
                 rows.append(row)
-        df = pd.DataFrame(data=rows, columns=time_column_names)
+        df = pd.DataFrame(data=rows, columns=time_header_names)
+        # print(df)
         return df
     except Exception as e:
         return None
@@ -261,8 +272,29 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
 
 
 def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
-    print(df)
-    pass
+    num_cases = len(df)
+    df = df.explode("data")
+    df["time"] = df["data"].apply(lambda x: x[1])
+    df.sort_values(by="time", inplace=True)
+
+    # df["time"] = df["time"].apply(lambda x: npy.ceil(x * 1000) / 1000)
+    df["prob"] = 1 / df["length"] / num_cases
+    df["cdf"] = df["prob"].cumsum()
+    # df = df.drop_duplicates(subset=['time'], keep='last')
+
+    df["new_data"] = df[["time", "prob", "cdf"]].apply(lambda x: tuple(x), axis=1)
+    row = {
+        "timing": setup.timing,
+        "simulator": setup.simulator,
+        "obstacles": setup.obstacles,
+        "agents": setup.agents,
+        "delay_start": setup.delay_start,
+        "delay_interval": setup.delay_interval,
+        "delay_ratio": setup.delay_ratio,
+        "delay_type": setup.delay_type,
+        "data": list(df["new_data"])
+    }
+    return row
 
 
 def parse_data(args: ParseArguments) -> pd.DataFrame:
@@ -276,6 +308,7 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
     #     assert False
 
     rows = []
+    time_rows = []
     cases = list(itertools.product(
         args.delay_types,
         args.obstacles,
@@ -343,15 +376,17 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
             row = parse_merged_df(setups[label], df)
             if row is not None:
                 rows.append(row)
-            if label in time_dfs:
-                time_df = time_dfs[label]
-                print(time_df)
-                print(base_df)
-                time_df = time_df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
-                parse_merged_time_df(setups[label], time_df)
+            if label not in time_dfs:
+                continue
+            time_df = time_dfs[label]
+            time_df = time_df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+            time_row = parse_merged_time_df(setups[label], time_df)
+            if time_row is not None:
+                time_rows.append(time_row)
 
     main_df = pd.DataFrame(data=rows, columns=column_names)
-    return main_df
+    time_df = pd.DataFrame(data=time_rows, columns=time_column_names)
+    return main_df, time_df
 
 
 @app_command("parse")
@@ -377,11 +412,13 @@ def main(ctx, output_suffix, input_suffix, category, timing):
         timing=timing,
         result_dir=project_root / f"result{input_suffix}",
         output_csv=data_dir / f"df_{timing}{output_suffix}.csv",
+        time_output_csv=data_dir / f"df_{timing}_time{output_suffix}.csv",
     )
     click.echo(args)
 
-    df = parse_data(args)
-    df.to_csv(args.output_csv, index=False)
+    main_df, time_df = parse_data(args)
+    main_df.to_csv(args.output_csv, index=False)
+    time_df.to_csv(args.time_output_csv, index=False)
 
     # df_infinite = parse_data(result_dir, "infinite", category)
     # df_periodic = parse_data(result_dir, "periodic", category)
