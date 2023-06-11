@@ -44,6 +44,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use prioritized replan with optimization ", "--prioritized-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
+    optionParser.add("", false, 1, 0, "Map file", "--map-file");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt)", "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
@@ -104,12 +105,13 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile;
+    std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
     optionParser.get("--map")->getString(mapType);
+    optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--timing")->getString(timingType);
@@ -214,14 +216,16 @@ int main(int argc, const char *argv[]) {
         agentNum = 3;
         agentSeed = 1;
     } else if (mapType == "dot") {
-        filename = "barcamap";
+        filename = mapFile;
         graph.generateDOTGraph(filename);
+    } else if (mapType == "graphml") {
+        filename = mapFile;
+        graph.generateGraphMLGraph(filename);
     }
     if (useDP) {
         graph.generateDelayProbability(mapSeed, minDP, maxDP);
     }
     graph.calculateAllPairShortestPath(filename, useDP);
-
 
     std::vector<Agent> agents;
     if (mapType == "random") {
@@ -231,6 +235,8 @@ int main(int argc, const char *argv[]) {
     } else if (mapType == "hardcoded") {
         agents = graph.generateHardCodedAgents(agentNum);
     } else if (mapType == "dot") {
+        agents = graph.generateRandomAgents(agentNum, agentSeed);
+    }  else if (mapType == "graphml") {
         agents = graph.generateRandomAgents(agentNum, agentSeed);
     }
 

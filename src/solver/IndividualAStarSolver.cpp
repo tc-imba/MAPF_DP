@@ -11,6 +11,8 @@ void IndividualAStarSolver::init() {
 }
 
 bool IndividualAStarSolver::solve() {
+//    std::cout << agents.size() << std::endl;
+
     auto node = std::make_shared<CBSNode>();
     node->constraint = {INVALID, INVALID, INVALID};
     node->plans.resize(agents.size());
@@ -18,6 +20,7 @@ bool IndividualAStarSolver::solve() {
     node->depth = 0;
 
     for (size_t i = 0; i < agents.size(); i++) {
+//        std::cout << "agent: " << i << std::endl;
         node->plans[i] = search(i);
         if (node->plans[i]->path.empty()) return false;
     }

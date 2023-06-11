@@ -9,6 +9,7 @@
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/graphml.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <Mathematics/IntrOrientedBox2Circle2.h>
@@ -536,6 +537,59 @@ void Graph::generateDOTGraph(const std::string &filename) {
     edgeNum = std::distance(edges.first, edges.second);
 
 }
+
+void Graph::generateGraphMLGraph(const std::string &filename) {
+    std::ifstream graphMLFileIn(filename + ".xml");
+    std::cerr << "load DOT graph from " << filename << ".xml" << std::endl;
+
+    g.clear();
+
+    graphml_graph_t graphml;
+    boost::dynamic_properties dp;
+    dp.property("coords", boost::get(&GraphMLNode::coords, graphml));
+    dp.property("weight", boost::get(&GraphMLEdge::weight, graphml));
+    boost::read_graphml(graphMLFileIn, graphml, dp);
+
+    unsigned int V=0,E=0;
+
+    auto nodes = boost::vertices(graphml);
+    for (auto it = nodes.first; it != nodes.second; ++it) {
+        std::vector<std::string> coordinates;
+        boost::split(coordinates, graphml[*it].coords, boost::is_any_of(","));
+        graphml[*it].x = std::strtod(coordinates[0].c_str(), nullptr);
+        graphml[*it].y = std::strtod(coordinates[1].c_str(), nullptr);
+
+        auto v = boost::add_vertex(g);
+        auto &node = g[v];
+        node.index = V++;
+        node.type = '.';
+        node.x = (unsigned int) graphml[*it].x;
+        node.y = (unsigned int) graphml[*it].y;
+    }
+
+    for (auto it = nodes.first; it != nodes.second; ++it) {
+        auto edges = boost::out_edges(g[*it].index, graphml);
+        for (auto it2 = edges.first; it2 != edges.second; ++it2) {
+            if (getEdgePtr(it2->m_source, it2->m_target)) continue;
+
+            auto &src = graphml[it2->m_source];
+            auto &dest = graphml[it2->m_target];
+            auto dx = src.x - dest.x;
+            auto dy = src.y - dest.y;
+
+            auto p = boost::add_edge(it2->m_source, it2->m_target, g);
+            auto &edge = g[p.first];
+            edge.length = std::sqrt(dx * dx + dy * dy);
+            edge.dp = 0;
+            edge.index = E++;
+        }
+    }
+
+    nodeNum = V;
+    edgeNum = E;
+
+}
+
 
 double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);

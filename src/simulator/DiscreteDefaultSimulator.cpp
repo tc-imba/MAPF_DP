@@ -53,7 +53,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
         outputFile << 0 << std::endl;
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &node = graph.getNode(solver->solution->plans[i]->path[0].nodeId);
-            outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
+            outputFile << i << " " << node.index << " " << "node" << std::endl;
         }
     }
 
@@ -248,7 +248,7 @@ int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigned int max
         if (outputFile.is_open()) {
             for (unsigned int i = 0; i < agents.size(); i++) {
                 auto &node = graph.getNode(agents[i].current);
-                outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
+                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "node" : "edge") << std::endl;
             }
         }
 

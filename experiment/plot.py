@@ -1,3 +1,8 @@
+from matplotlib import rcParams
+
+# rcParams['font.family'] = 'serif'
+# rcParams['font.sans-serif'] = ['Times']
+
 import ast
 import dataclasses
 from pathlib import Path
@@ -6,6 +11,7 @@ import click
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 from matplotlib.ticker import ScalarFormatter, LogLocator, LogFormatter
 import numpy as np
 from tqdm import tqdm
@@ -15,9 +21,18 @@ import scipy.integrate
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 
+
+#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+# rc('font',**{'family':'serif','serif':['Times']})
+# rc('text', useTex=False)
+
 LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129"]
 LINE_MARKERS = ["o", "s", "^", "+"]
 
+
+# plt.rcParams['font.family'] = 'serif'
+# plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
+plt.rcParams['pdf.fonttype'] = 42
 
 def format_log(x, pos=None):
     x = float(x)
@@ -78,11 +93,12 @@ class PlotSettings:
             self.y_label = '\n Sum of Costs'
         elif self.y_field == "makespan_time":
             self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
-            # self.y_log = True
+            if self.plot_type == "cycle":
+                self.y_log = True
         elif self.y_field == "cdf":
-            self.y_label = "Timesteps Completed (%)"
+            self.y_label = "\n Timesteps Completed (\\%)"
         elif self.y_field == "pdf":
-            self.y_label = "Timesteps Completed (%)"
+            self.y_label = "\n Timesteps Completed (\\%)"
         else:
             assert False
 
@@ -99,14 +115,17 @@ class PlotSettings:
         elif self.subplot_type == "obstacles":
             self.subplot_field = "obstacles"
             self.subplot_keys = self.args.obstacles
+        elif self.subplot_type == "delay-interval":
+            self.subplot_field = "delay_interval"
+            self.subplot_keys = self.args.delay_intervals
         else:
             assert False
 
     def get_subplot_key(self, subplot_key):
-        if self.subplot_type == "delay-ratio":
+        if self.subplot_type == "delay-ratio" or self.subplot_type == "delay-interval":
             subplot_key = int(subplot_key)
         elif self.subplot_type == "obstacles":
-            subplot_key = f"{int(subplot_key * 100)}%"
+            subplot_key = f"{int(subplot_key * 100)}\\%"
         else:
             assert False
         return subplot_key
@@ -139,7 +158,7 @@ class PlotSettings:
 
         if self.subplot_type == "delay-ratio":
             label += "-obstacles"
-        elif self.subplot_type == "obstacles":
+        elif self.subplot_type == "obstacles" or self.subplot_type == "delay-interval":
             label = "-".join(label.split('-')[:-1])
 
         if self.plot_type == "simulator" or self.plot_type == "cdf":
@@ -220,13 +239,16 @@ class PlotSettings:
     def get_output_file(self):
         if self.extra:
             extra = f"-{self.extra}"
+        else:
+            extra = ""
         return self.args.plot_dir / \
             f"{self.plot_type}-{self.subplot_type}-{self.agents}-{self.y_field}{extra}.pdf"
 
 
 def plot(df: pd.DataFrame, settings: PlotSettings):
     fig = plt.figure(figsize=(16, 3), dpi=100)
-    plt.rcParams.update({'font.size': 14, 'font.family': 'monospace'})
+    # plt.rcParams.update({'font.size': 16, 'font.family': 'cmss10', 'font.weight': 'bold'})
+    plt.rcParams.update({'font.size': 16, "text.usetex": True})
     axes = []
 
     for i, key in enumerate(settings.subplot_keys):
@@ -235,17 +257,31 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         sub_df = df[df[settings.subplot_field] == key]
         xticks = []
         xmax = 0
+        xmin = np.inf
         if settings.plot_type == "cdf":
             for j, (indexes, df2) in enumerate(sub_df.groupby(settings.groupby)):
                 x, y, y_lower, y_upper = settings.get_line_values(df2)
                 xmax = max(xmax, np.max(x))
+                simulator = indexes[0]
+                if simulator != "online":
+                    xmin = min(xmin, np.min(x))
         for j, (indexes, df2) in enumerate(sub_df.groupby(settings.groupby)):
             line_settings = settings.get_line_settings(indexes)
             x, y, y_lower, y_upper = settings.get_line_values(df2)
+
             if settings.plot_type != "cdf":
                 if not xticks:
                     for _, row in df2.iterrows():
                         xticks.append(int(row[settings.x_field]))
+            else:
+                index = np.argmax(y >= 99)
+                print(indexes, f"k={key}", x[index])
+                simulator = indexes[0]
+                if simulator == "online":
+                    index = np.argmax(x > xmin)
+                    if index > 0:
+                        x = np.concatenate(([xmin], x[index:]))
+                        y = np.concatenate(([0], y[index:]))
             # else:
             #     x = np.append(x, xmax)
             #     y = np.append(y, 100)
@@ -286,13 +322,15 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             ax.set_xticks(xticks)
         else:
             ax.set_xscale("log")
-            ax.set_xlim(left=1e-7)
+            # ax.set_xlim(left=1e-7)
             # ax.set_xlim(left=1e-7, right=xmax)
         # ax.set_xticks(np.arange(len(xticks)))
         # ax.set_xticklabels(xticks)
         ax.set_xlabel(settings.x_label)
         if settings.subplot_type == "delay-ratio":
-            ax.set_title(f"{int(key * 100)}% of agents blocked")
+            ax.set_title(f"{int(key * 100)}\\% of agents blocked")
+        elif settings.subplot_type == "delay-interval":
+            ax.set_title(f"k = {int(key)}")
         elif settings.subplot_type == "obstacles":
             ax.set_title(f"{int(key)} obstacles")
         if settings.y_log:
@@ -314,7 +352,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         # ax = axes[0]
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
-        if settings.subplot_type == "obstacles":
+        if settings.subplot_type == "obstacles" or settings.subplot_type == "delay-interval":
             ncol = 4
         elif len(handles) % 3 == 0:
             ncol = 3
@@ -384,13 +422,13 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot(df, plot_settings)
 
 
-def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
-    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval)]
-    groupby = ["simulator", "delay_ratio"]
+def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: int):
+    df = data[(data["agents"] == agents) & (data["obstacles"] == obstacles)]
+    groupby = ["simulator", "obstacles"]
     plot_type = "cdf"
-    subplot_type = "obstacles"
+    subplot_type = "delay-interval"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="cdf", groupby=groupby, legend=True, extra=str(delay_interval))
+                                 y_field="cdf", groupby=groupby, legend=True, extra=str(obstacles))
     plot(df, plot_settings)
 
 
@@ -417,12 +455,12 @@ def main(ctx):
     df_discrete = pd.read_csv(data_dir / "df_discrete.csv")
     df_discrete_time = pd.read_csv(data_dir / "df_discrete_time.csv")
     for agents in args.agents:
-        # plot_simulator(args, df_discrete, agents)
+        plot_simulator(args, df_discrete, agents)
+        plot_cycle(args, df_discrete, agents)
+        # for obstacle in args.obstacles:
+        #     plot_cdf(args, df_discrete_time, agents, obstacle)
+        #     # plot_replan_pdf(args, df_discrete_time, agents, delay_interval)
         # plot_replan(args, df_discrete, agents)
-        # plot_cycle(args, df_discrete, agents)
-        for delay_interval in args.delay_intervals:
-            plot_cdf(args, df_discrete_time, agents, delay_interval)
-            # plot_replan_pdf(args, df_discrete_time, agents, delay_interval)
 
 
 if __name__ == '__main__':

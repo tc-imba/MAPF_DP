@@ -42,6 +42,16 @@ public:
         double length;
     };
 
+    struct GraphMLNode {
+        std::string coords;
+        double x, y;
+    };
+
+    struct GraphMLEdge {
+        double weight;
+    };
+
+
 private:
     std::vector<std::vector<double>> distances;
     std::vector<std::vector<unsigned int>> gridGraphIds;
@@ -75,7 +85,7 @@ private:
 
 public:
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, Node, Edge> graph_t;
-
+    typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, GraphMLNode, GraphMLEdge> graphml_graph_t;
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> topo_graph_t;
     typedef boost::graph_traits<topo_graph_t>::vertex_descriptor topo_vertex_t;
 
@@ -100,6 +110,8 @@ public:
     void generateFileGraph(const std::string &filename);
 
     void generateDOTGraph(const std::string &filename);
+
+    void generateGraphMLGraph(const std::string &filename);
 
     void calculateAllPairShortestPath(const std::string &filename = "", bool dp = false);
 
