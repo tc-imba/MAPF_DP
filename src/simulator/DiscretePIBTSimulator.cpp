@@ -5,7 +5,7 @@
 #include "DiscretePIBTSimulator.h"
 #include <boost/filesystem.hpp>
 
-int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
+unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                     unsigned int delayStart, unsigned int delayInterval) {
     initPIBTVariables();
 

@@ -139,9 +139,11 @@ public:
 
     std::vector<Agent> generateHardCodedAgents(unsigned int agentNum);
 
-    void saveAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
+    std::vector<Agent> loadXMLAgents(unsigned int agentNum, const std::string &filename);
 
-    void saveAgentsXML(const std::string &filename, const std::vector<Agent> &agents);
+    void saveScenAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
+
+    void saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents);
 
     unsigned int getNodeIdByGridPos(unsigned int x, unsigned int y);
 };

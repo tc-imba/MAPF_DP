@@ -70,7 +70,7 @@ bool EECBSSolver::solve() {
     std::string pathFileName = (ph / "path.txt").string();
     std::string commandFilename = (ph / "command.txt").string();
 
-    graph.saveAgents(mapFileName, scenFile.string(), agents);
+    graph.saveScenAgents(mapFileName, scenFile.string(), agents);
 
     std::vector<std::string> arguments;
     arguments.emplace_back(solverBinaryFile);

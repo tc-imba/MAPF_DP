@@ -53,7 +53,7 @@ int main(int argc, const char *argv[]) {
     std::string fullFilename = (taskDirectoryPath / filename).string();
     std::cout << fullFilename << std::endl;
 
-    graph.saveAgents(mapFileName, fullFilename, generatedAgents);
+    graph.saveScenAgents(mapFileName, fullFilename, generatedAgents);
 
     return 0;
 }

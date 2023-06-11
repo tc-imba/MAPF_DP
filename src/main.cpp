@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/dll.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 #include "Graph.h"
@@ -45,6 +46,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
+    optionParser.add("", false, 1, 0, "Task file", "--task-file");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt)", "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
@@ -105,13 +107,14 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile;
+    std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
+    optionParser.get("--task-file")->getString(taskFile);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--timing")->getString(timingType);
@@ -220,6 +223,9 @@ int main(int argc, const char *argv[]) {
         graph.generateDOTGraph(filename);
     } else if (mapType == "graphml") {
         filename = mapFile;
+        if (boost::algorithm::ends_with(filename, ".xml")) {
+            filename = filename.substr(0, filename.length() - 4);
+        }
         graph.generateGraphMLGraph(filename);
     }
     if (useDP) {
@@ -228,17 +234,36 @@ int main(int argc, const char *argv[]) {
     graph.calculateAllPairShortestPath(filename, useDP);
 
     std::vector<Agent> agents;
-    if (mapType == "random") {
-        agents = graph.generateRandomAgents(agentNum, agentSeed);
-    } else if (mapType == "warehouse") {
-        agents = graph.generateWarehouseAgents(agentNum, agentSeed, true);
-    } else if (mapType == "hardcoded") {
-        agents = graph.generateHardCodedAgents(agentNum);
-    } else if (mapType == "dot") {
-        agents = graph.generateRandomAgents(agentNum, agentSeed);
-    }  else if (mapType == "graphml") {
-        agents = graph.generateRandomAgents(agentNum, agentSeed);
+    if (taskFile.empty()) {
+        if (mapType == "random") {
+            agents = graph.generateRandomAgents(agentNum, agentSeed);
+        } else if (mapType == "warehouse") {
+            agents = graph.generateWarehouseAgents(agentNum, agentSeed, true);
+        } else if (mapType == "hardcoded") {
+            agents = graph.generateHardCodedAgents(agentNum);
+        } else if (mapType == "dot") {
+            agents = graph.generateRandomAgents(agentNum, agentSeed);
+        }  else if (mapType == "graphml") {
+            agents = graph.generateRandomAgents(agentNum, agentSeed);
+        }
+    } else {
+        std::string taskFileType = "xml";
+        filename = taskFile;
+        if (boost::algorithm::ends_with(filename, ".xml")) {
+            filename = filename.substr(0, filename.length() - 4);
+        }
+        if (taskFileType == "xml") {
+            agents = graph.loadXMLAgents(agentNum, filename);
+        } else if (taskFileType == "scen") {
+            exit(0);
+//            agents = graph.loadScenAgents(agentNum, filename);
+        } else {
+            assert(0);
+        }
+        // no cache for input task file
+        noCache = true;
     }
+
 
     MakeSpanType makeSpanType = MakeSpanType::UNKNOWN;
     if (objective == "maximum") {

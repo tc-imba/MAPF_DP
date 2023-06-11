@@ -83,7 +83,7 @@ public:
 //        if (timeOutputFile.is_open()) timeOutputFile.close();
     }
 
-    virtual int simulate(double &currentTimestep, unsigned int maxTimeStep,
+    virtual unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
                          unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) = 0;
 
     virtual void print(std::ostream &out) const = 0;

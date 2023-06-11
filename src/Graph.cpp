@@ -411,9 +411,9 @@ void Graph::initDelayProbability(double minDP, double maxDP) {
 
 void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigned int obstacles,
                                 const std::string &filename, size_t seed, unsigned int kNeighbor) {
+    graphFilename = filename;
     assert(obstacles <= height * width);
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
-    graphFilename = filename;
 
     if (!noCache && loadGridGraph(gridGraph, filename)) {
         std::cerr << "load grid graph from " << filename << ".map" << std::endl;
@@ -446,7 +446,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
 
 void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, unsigned int maxY,
                               const std::string &filename, size_t seed) {
-
+    graphFilename = filename;
     std::vector<std::vector<char>> gridGraph(maxX, std::vector<char>(maxY, '.'));
 
     for (unsigned int i = 0; i < maxX; i++) {
@@ -480,6 +480,7 @@ void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, uns
 }
 
 void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
+    graphFilename = filename;
     unsigned int height = 7, width = 8;
 
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '@'));
@@ -510,6 +511,7 @@ void Graph::generateFileGraph(const std::string &filename) {
 }
 
 void Graph::generateDOTGraph(const std::string &filename) {
+    graphFilename = filename;
     std::ifstream DOTFileIn(filename + ".graph");
     std::cerr << "load DOT graph from " << filename << ".graph" << std::endl;
 
@@ -539,8 +541,9 @@ void Graph::generateDOTGraph(const std::string &filename) {
 }
 
 void Graph::generateGraphMLGraph(const std::string &filename) {
+    graphFilename = filename;
     std::ifstream graphMLFileIn(filename + ".xml");
-    std::cerr << "load DOT graph from " << filename << ".xml" << std::endl;
+    std::cerr << "load GraphML graph from " << filename << ".xml" << std::endl;
 
     g.clear();
 
@@ -760,7 +763,32 @@ std::vector<Agent> Graph::generateHardCodedAgents(unsigned int agentNum) {
     return agents;
 }
 
-void Graph::saveAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents) {
+std::vector<Agent> Graph::loadXMLAgents(unsigned int agentNum, const std::string &filename) {
+    auto fullFileName = filename + ".xml";
+    std::cerr << "load task from " << fullFileName << std::endl;
+    std::vector<Agent> agents(agentNum);
+    tinyxml2::XMLDocument doc;
+    doc.LoadFile(fullFileName.c_str());
+
+    auto root = doc.FirstChildElement("root");
+    auto agentElem = root->FirstChildElement();
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        if (!agentElem) {
+            std::cerr << "too few agents in task file" << std::endl;
+            exit(0);
+        }
+        agents[i].start = std::strtoul(agentElem->Attribute("start_id"), nullptr, 10);
+        agents[i].goal = std::strtoul(agentElem->Attribute("goal_id"), nullptr, 10);
+        if (debug) {
+            std::cout << "agent " << i << " " << agents[i].start << " -> " << agents[i].goal
+                      << " (" << getHeuristic(agents[i].start, agents[i].goal) << ")" << std::endl;
+        }
+        agentElem = agentElem->NextSiblingElement();
+    }
+    return agents;
+}
+
+void Graph::saveScenAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents) {
     std::ofstream agentFileOut;
     if (!filename.empty()) agentFileOut.open(filename + ".scen");
 
@@ -778,7 +806,7 @@ void Graph::saveAgents(const std::string &mapName, const std::string &filename, 
     agentFileOut.close();
 }
 
-void Graph::saveAgentsXML(const std::string &filename, const std::vector<Agent> &agents) {
+void Graph::saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents) {
     if (filename.empty()) return;
     auto fullFileName = filename + ".xml";
     tinyxml2::XMLDocument doc;

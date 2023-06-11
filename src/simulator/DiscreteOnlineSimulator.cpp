@@ -12,7 +12,7 @@
 #include <fstream>
 
 
-int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
+unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                       unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
     executionTimeVec.clear();

@@ -16,7 +16,7 @@ public:
     DiscretePIBTSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) :
             Simulator(graph, agents, seed) {}
 
-    int simulate(double &currentTimestep, unsigned int maxTimeStep,
+    unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
                  unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
 private:

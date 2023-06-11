@@ -6,7 +6,7 @@
 #include <iostream>
 #include <random>
 
-int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
+unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                unsigned int delayStart, unsigned int delayInterval) {
 //    if (!success) return true;
     std::unordered_map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> nodes;

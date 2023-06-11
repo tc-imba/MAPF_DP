@@ -12,7 +12,7 @@
 #include "ContinuousOnlineSimulator.h"
 
 
-int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
+unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                               unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
     executionTimeVec.clear();

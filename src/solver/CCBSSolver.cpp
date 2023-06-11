@@ -92,7 +92,7 @@ bool CCBSSolver::solve() {
 //    std::cout << outputFileName << std::endl;
 
     copy_file(srcMapFileName, mapFileName);
-    graph.saveAgentsXML(taskFile.string(), agents);
+    graph.saveXMLAgents(taskFile.string(), agents);
     saveConfig(configFileName);
 
     std::vector<std::string> arguments;
