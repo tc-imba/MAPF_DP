@@ -805,7 +805,7 @@ std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheckHelper(
                 auto sharedNodesListBackup = sharedNodesList;
 //                std::cout << "recursive" << std::endl;
                 auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
-                if (firstAgentArrivingTimestep) {
+                if (firstAgentArrivingTimestep > 0) {
                     feasibilityCheckRecursionCount++;
                 }
                 boost::remove_edge(nodeId1, nodeId2, topoGraph);

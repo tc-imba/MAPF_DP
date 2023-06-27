@@ -40,7 +40,7 @@ private:
     };
 
     friend bool operator<(const SDGEdge& lhs, const SDGEdge& rhs) {
-        return lhs.source < rhs.source;
+        return lhs.source == rhs.source ? lhs.dest < rhs.dest : lhs.source < rhs.source;
     }
 
     friend bool operator==(const SDGEdge& lhs, const SDGEdge& rhs) {
@@ -66,7 +66,8 @@ private:
 
     std::vector<std::vector<SDGData>> sdgData;
     std::set<SDGEdgePair> unsettledEdgePairsSet;
-
+    std::vector<SharedNodePair> sharedStates;
+    std::set<SDGEdge> cycleCheckAddedEdges;
 
 //    unsigned int getNextNodeState(unsigned int state) const { return (state / 2 + 1) * 2; }
 
@@ -75,9 +76,15 @@ private:
                               pathTopoNodeIds[edge.dest.agentId][edge.dest.state]);
     };
 
+    bool isEdgeInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
+
     void initSharedNodes(size_t i, size_t j);
 
-    void updateSharedNode(unsigned int nodeId, size_t agentId, unsigned int state);
+    Graph::NodeEdgeState getNodeEdgeState(size_t agentId, unsigned int state);
+
+    void initSharedStates(size_t agentId1, size_t agentId2);
+
+    std::vector<ContinuousOnlineSimulator::SDGEdge> updateSharedNode(size_t agentId, unsigned int state, bool dryRun = false);
 
     void initSimulation();
 
@@ -85,11 +92,11 @@ private:
 
     void unnecessaryBlockCheck();
 
-    void unsharedCheck();
-
-    void neighborCheck();
-
-    void deadEndCheck();
+//    void unsharedCheck();
+//
+//    void neighborCheck();
+//
+//    void deadEndCheck();
 
     void singleAgentCheck();
 

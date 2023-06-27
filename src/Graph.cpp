@@ -4,6 +4,7 @@
 
 #include "Graph.h"
 #include "../Continuous-CBS/tinyxml2.h"
+#include "utils/math.hpp"
 
 //#include "solver/CBSSolver.h"
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
@@ -13,6 +14,8 @@
 #include <boost/algorithm/string.hpp>
 
 #include <Mathematics/IntrOrientedBox2Circle2.h>
+#include <Mathematics/DistPointSegment.h>
+#include <Mathematics/DistSegmentSegment.h>
 
 #include <cmath>
 #include <random>
@@ -223,7 +226,7 @@ std::vector<Graph::Neighbor> Graph::getNeighbors(
         auto goal = start + direction;
         if (goal[0] < 0 || goal[0] >= height || goal[1] < 0 || goal[1] >= width) continue;
         auto diff = goal - start;
-        double distance = sqrt(diff[0] * diff[0] + diff[1] * diff[1]);
+        double distance = sqrt(gte::Dot(diff, diff));
         if (isPathConflictWithObstacle(gridGraph, start, goal, distance)) continue;
         result.push_back({(unsigned int) goal[0], (unsigned int) goal[1], distance});
     }
@@ -553,7 +556,7 @@ void Graph::generateGraphMLGraph(const std::string &filename) {
     dp.property("weight", boost::get(&GraphMLEdge::weight, graphml));
     boost::read_graphml(graphMLFileIn, graphml, dp);
 
-    unsigned int V=0,E=0;
+    unsigned int V = 0, E = 0;
 
     auto nodes = boost::vertices(graphml);
     for (auto it = nodes.first; it != nodes.second; ++it) {
@@ -597,6 +600,67 @@ void Graph::generateGraphMLGraph(const std::string &filename) {
 double Graph::getHeuristic(unsigned int nodeId1, unsigned int nodeId2) {
     assert(nodeId1 < nodeNum && nodeId2 < nodeNum);
     return distances[nodeId1][nodeId2];
+}
+
+bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdgeState &state2) {
+    auto getVec = [&](size_t nodeId) {
+        auto &node = getNode(nodeId);
+        return gte::Vector2<double>{(double) node.x, (double) node.y};
+    };
+    auto src1 = getVec(state1.srcNodeId);
+    auto src2 = getVec(state2.srcNodeId);
+    gte::Segment2<double> seg1, seg2;
+    double distance;
+    if (state1.isNode && state2.isNode) {
+        // node-node conflict
+        auto diff = src1 - src2;
+        distance = sqrt(gte::Dot(diff, diff));
+    } else {
+        if (!state1.isNode) {
+            auto dest1 = getVec(state1.destNodeId);
+            seg1 = {src1, dest1};
+        }
+        if (!state2.isNode) {
+            auto dest2 = getVec(state2.destNodeId);
+            seg2 = {src2, dest2};
+        }
+        if (!state1.isNode && !state2.isNode) {
+            // edge-edge conflict
+            return false;
+            gte::DCPQuery<double, gte::Segment2<double>, gte::Segment2<double>> mQuery;
+            auto result = mQuery(seg1, seg2);
+            distance = result.distance;
+        } else {
+            // node-edge conflict
+            return false;
+            gte::DCPQuery<double, gte::Vector2<double>, gte::Segment2<double>> mQuery;
+            if (!state1.isNode) {
+                auto result = mQuery(src2, seg1);
+                distance = result.distance;
+            } else {
+                auto result = mQuery(src1, seg2);
+                distance = result.distance;
+            }
+        }
+    }
+    auto agentRadiusSum = state1.agentRadius + state2.agentRadius;
+    if (is_close_no_less_than(agentRadiusSum, distance, epsilon)) {
+/*        if (debug) {
+            std::cout << "conflict: ";
+            std::cout << "(" << src1[0] << "," << src1[1] << ")";
+            if (!state1.isNode) {
+                std::cout << "->(" << seg1.p[1][0] << "," << seg1.p[1][1] << ")";
+            }
+            std::cout << " and ";
+            std::cout << "(" << src2[0] << "," << src2[1] << ")";
+            if (!state2.isNode) {
+                std::cout << "->(" << seg2.p[1][0] << "," << seg2.p[1][1] << ")";
+            }
+            std::cout << std::endl;
+        }*/
+        return true;
+    }
+    return false;
 }
 
 const Graph::Node &Graph::getNode(unsigned int nodeId) {

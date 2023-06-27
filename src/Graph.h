@@ -51,6 +51,13 @@ public:
         double weight;
     };
 
+    struct NodeEdgeState {
+        bool isNode;
+        double agentRadius;
+        unsigned int srcNodeId;
+        unsigned int destNodeId;
+    };
+
 
 private:
     std::vector<std::vector<double>> distances;
@@ -63,6 +70,7 @@ private:
     std::string graphFilename;
     unsigned int kNeighbor;
     std::vector<gte::Vector2<int>> neighborDirections;
+    double epsilon = 0.0000001;
 
     void generateGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename, size_t seed,
                        unsigned int kNeighbor = 2, bool write = true);
@@ -118,6 +126,8 @@ public:
     void calculateUnweightedAllPairShortestPath();
 
     double getHeuristic(unsigned int nodeId1, unsigned int nodeId2);
+
+    bool isConflict(const NodeEdgeState& state1, const NodeEdgeState& state2);
 
     const Node &getNode(unsigned int nodeId);
 
