@@ -46,7 +46,7 @@ NAIVE_SETTINGS = [
 def run_program(program_args, timeout):
     p = None
     try:
-        print(" ".join(program_args))
+        # print(" ".join(program_args))
         p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         # print(p.args)
         # print(p.returncode)
