@@ -67,14 +67,16 @@ void Simulator::ensureDelayedIntervals(double targetTimestep, double delayLength
 double Simulator::getAgentArrivingTime(double currentTimestep, double delayLength, unsigned int agentId,
                                        const Graph::Edge &edge) {
     double arrivingTimestep = currentTimestep;
-
+    double remainDistance = edge.length;
+    if (delayLength == 0) {
+        return arrivingTimestep + remainDistance;
+    }
     size_t intervalSetIndex = 0;
     if (delayType == "agent") {
         intervalSetIndex = agentId;
     } else if (delayType == "edge") {
         intervalSetIndex = edge.index;
     }
-    double remainDistance = edge.length;
     auto &intervalSet = delayedIntervals[intervalSetIndex];
     while (remainDistance > 0) {
         double targetTimestep = arrivingTimestep + remainDistance;
