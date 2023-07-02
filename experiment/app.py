@@ -14,19 +14,21 @@ class AppArguments:
     delay_types: List[str]
     delay_ratios: List[float]
     delay_intervals: List[int]
+    timing: str
 
 
 def experiment_base_options(f):
     @click.option("--obstacles", type=str, default="90,180,270", callback=validate_list(int))
-    @click.option("--agents", type=str, default="30", callback=validate_list(int))
-    @click.option("--simulators", type=str, default="online,default,replan,pibt", callback=validate_list(str))
+    @click.option("--agents", type=str, default="10", callback=validate_list(int))
+    @click.option("--simulators", type=str, default="online,default", callback=validate_list(str))
     @click.option("--k-neighbors", type=str, default="2", callback=validate_list(int))
     @click.option("--delay-types", type=str, default="agent", callback=validate_list(str))
     @click.option("--delay-ratios", type=str, default="0.1", callback=validate_list(float))
     @click.option("--delay-intervals", type=str, default="0,1,10,20", callback=validate_list(int))
+    @click.option("--timing", type=str, default="continuous")
     @click.pass_context
     @wraps(f)
-    def wrapper(ctx, obstacles, agents, simulators, k_neighbors, delay_types, delay_ratios, delay_intervals,
+    def wrapper(ctx, obstacles, agents, simulators, k_neighbors, delay_types, delay_ratios, delay_intervals, timing,
                 *args, **kwargs):
         ctx.obj = AppArguments(
             obstacles=obstacles,
@@ -36,6 +38,7 @@ def experiment_base_options(f):
             delay_types=delay_types,
             delay_ratios=delay_ratios,
             delay_intervals=delay_intervals,
+            timing=timing,
         )
         return f(*args, **kwargs)
 

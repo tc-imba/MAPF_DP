@@ -26,9 +26,7 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
         node->plans[i] = std::make_shared<AgentPlan>();
         std::string line;
         if (!std::getline(fin, line)) return false;
-//        std::cout << i << " " << line << std::endl;
         line = line.substr(8 + std::to_string(i).size());
-//        std::cout << i << " " << line << std::endl;
         std::vector<std::string> points;
         boost::algorithm::split_regex(points, line, boost::regex("->"));
         for (auto &point: points) {
@@ -37,7 +35,6 @@ bool EECBSSolver::readSolution(std::ifstream &fin) {
             std::vector<std::string> coordinates;
             boost::split(coordinates, point, boost::is_any_of(","));
             if (coordinates.size() != 2) return false;
-//            std::cout << coordinates[0] << " " << coordinates[1] << std::endl;
             unsigned int x = std::stoul(coordinates[0]);
             unsigned int y = std::stoul(coordinates[1]);
             auto nodeId = graph.getNodeIdByGridPos(x, y);
@@ -101,16 +98,6 @@ bool EECBSSolver::solve() {
     fout << argumentsStr << std::endl;
     fout.close();
 
-/*    std::vector<char *> cstrings;
-    cstrings.reserve(arguments.size());
-    for (const auto &string: arguments) {
-//        std::cout << string << " ";
-        cstrings.push_back((char *) string.c_str());
-    }*/
-//    std::cout << std::endl;
-
-//    std::cout << argumentsStr << std::endl;
-//    child c(argumentsStr, std_out > stderr, std_err > stderr);
     child c(argumentsStr, std_out > null, std_err > null);
     auto start = std::chrono::steady_clock::now();
     c.wait();

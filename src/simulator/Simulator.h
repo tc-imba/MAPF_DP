@@ -88,7 +88,7 @@ public:
 
     virtual void print(std::ostream &out) const = 0;
 
-    virtual void printState(size_t i, unsigned int state) = 0;
+    virtual void printState(std::ostream &os, size_t i, unsigned int state) = 0;
 
     void printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration);
 

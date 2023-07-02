@@ -13,9 +13,9 @@ void DefaultSimulator::print(std::ostream &out) const {
         << fullReplanTime;
 }
 
-void DefaultSimulator::printState(size_t i, unsigned int state) {
+void DefaultSimulator::printState(std::ostream &os, size_t i, unsigned int state) {
     auto currentNodeId = solver->solution->plans[i]->path[state].nodeId;
-    std::cout << "(" << state << "," << currentNodeId << ")";
+    os << "(" << state << "," << currentNodeId << ")";
 }
 
 double DefaultSimulator::replan() {

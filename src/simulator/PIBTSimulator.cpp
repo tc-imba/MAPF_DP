@@ -10,6 +10,6 @@ void PIBTSimulator::print(std::ostream &out) const {
         << firstAgentArrivingTimestep;
 }
 
-void PIBTSimulator::printState(size_t i, unsigned int state) {
+void PIBTSimulator::printState(std::ostream &os, size_t i, unsigned int state) {
 
 }

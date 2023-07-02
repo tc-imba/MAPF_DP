@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.15)
 project(MAPF_DP)
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
 
+# spdlog
+add_subdirectory(spdlog)
+include_directories("spdlog/include")
+
+# Boost
 find_package(Boost REQUIRED COMPONENTS program_options system filesystem graph)
 include_directories(${Boost_INCLUDE_DIRS})
-#add_definitions("-D DEBUG_CYCLE")
 
 # EECBS
 add_subdirectory(EECBS)
@@ -20,6 +24,7 @@ set(CMAKE_CXX_STANDARD 11)
 add_subdirectory(Continuous-CBS)
 
 # MAPF-DP
+add_definitions("-D SPDLOG_ACTIVE_LEVEL=1")
 set(CMAKE_CXX_STANDARD 17)
 file(GLOB SIMULATOR_SOURCE_FILES "src/simulator/*.cpp")
 file(GLOB SOLVER_SOURCE_FILES "src/solver/*.cpp")
@@ -31,7 +36,7 @@ set(SOURCE_FILES
 )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
-target_link_libraries(MAPF_DP ${Boost_LIBRARIES} lib-time-ind)
+target_link_libraries(MAPF_DP ${Boost_LIBRARIES} lib-time-ind spdlog)
 IF (WIN32)
     target_link_libraries(MAPF_DP ws2_32)
 ENDIF ()

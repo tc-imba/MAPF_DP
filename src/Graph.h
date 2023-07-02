@@ -9,6 +9,8 @@
 #include <boost/graph/properties.hpp>
 #include <boost/graph/breadth_first_search.hpp>
 #include <Mathematics/Vector2.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 #include <iostream>
 
 struct Agent {
@@ -100,6 +102,9 @@ public:
     graph_t g;
     bool debug = false;
     bool noCache = false;
+    bool nodeNodeConflict = false;
+    bool edgeEdgeConflict = false;
+    bool nodeEdgeConflict = false;
 
     Graph();
 

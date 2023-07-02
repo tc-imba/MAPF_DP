@@ -24,41 +24,42 @@ void OnlineSimulator::print(std::ostream &out) const {
 }
 
 
-void OnlineSimulator::printState(size_t i, unsigned int state) {
+void OnlineSimulator::printState(std::ostream &os, size_t i, unsigned int state) {
     auto currentNodeId = paths[i][state / 2];
-    std::cout << "(" << state << "," << currentNodeId;
+    os << "(" << state << "," << currentNodeId;
     if (state % 2 == 1) {
         auto nextNodeId = paths[i][state / 2 + 1];
-        std::cout << "-" << nextNodeId;
+        os << "-" << nextNodeId;
     }
-    std::cout << ")";
+    os << ")";
 }
 
 
 void OnlineSimulator::printSets(const std::string &title) {
     if (debug) {
+        std::ostringstream oss;
         auto size = ready.size() + moved.size() + blocked.size() + unblocked.size() + unshared.size();
-        std::cout << title << " " << size << " ";
-        std::cout << "ready: ";
+        oss << title << " " << size << " ";
+        oss << "ready: ";
         for (auto j: ready) {
-            std::cout << j << " ";
+            oss << j << " ";
         }
-        std::cout << "moved: ";
+        oss << "moved: ";
         for (auto j: moved) {
-            std::cout << j << " ";
+            oss << j << " ";
         }
-        std::cout << "blocked: ";
+        oss << "blocked: ";
         for (auto j: blocked) {
-            std::cout << j << " ";
+            oss << j << " ";
         }
-        std::cout << "unblocked: ";
+        oss << "unblocked: ";
         for (auto j: unblocked) {
-            std::cout << j << " ";
+            oss << j << " ";
         }
-        std::cout << "unshared: ";
+        oss << "unshared: ";
         for (auto j: unshared) {
-            std::cout << j << " ";
+            oss << j << " ";
         }
-        std::cout << std::endl;
+        SPDLOG_DEBUG("{}", oss.str());
     }
 }

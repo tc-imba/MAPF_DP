@@ -46,10 +46,7 @@ void Simulator::initDelayedIntervals() {
 
 void Simulator::updateDelayedIntervals(double startTimestep, double endTimestep) {
     unsigned int newSeed = combineRandomSeed(0, 0, (size_t) startTimestep, seed);
-    if (debug) {
-        std::cout << "update delayed interval [" << startTimestep << "," << endTimestep << ") with seed " << newSeed
-                  << std::endl;
-    }
+    SPDLOG_DEBUG("update delayed interval [{},{}) with seed {}", startTimestep, endTimestep, newSeed);
     std::mt19937 generator(newSeed);
     std::iota(delayedShuffleVec.begin(), delayedShuffleVec.end(), 0);
     std::shuffle(delayedShuffleVec.begin(), delayedShuffleVec.end(), generator);
@@ -159,16 +156,18 @@ void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iter
 }
 
 void Simulator::printAgent(size_t i, const std::string &message) {
+    std::ostringstream oss;
     auto state = agents[i].state;
-    std::cout << "agent " << i << ": ";
-    printState(i, state);
+    oss << "agent " << i << ": ";
+    printState(oss, i, state);
     if (message.empty()) {
-        std::cout << " -> ";
+        oss << " -> ";
     } else {
-        std::cout << " " << message << " ";
+        oss << " " << message << " ";
     }
-    printState(i, state + 1);
-    std::cout << " " << agents[i].arrivingTimestep << std::endl;
+    printState(oss, i, state + 1);
+    oss << " " << agents[i].arrivingTimestep;
+    SPDLOG_DEBUG("{}", oss.str());
 }
 
 void Simulator::saveExecutionTime() {

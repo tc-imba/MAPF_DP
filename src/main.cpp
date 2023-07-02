@@ -4,6 +4,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/dll.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <spdlog/sinks/basic_file_sink.h>
+
 #include "Graph.h"
 #include "solver/CBSSolver.h"
 #include "solver/EECBSSolver.h"
@@ -26,6 +28,7 @@ std::string double_to_string(double data) {
 }
 
 int main(int argc, const char *argv[]) {
+    spdlog::set_pattern("[%^%=8l%$] %v [%@]");
     ez::ezOptionParser optionParser;
 
     optionParser.overview = "Multi Agent Path Finding with Delay Probability";
@@ -47,12 +50,14 @@ int main(int argc, const char *argv[]) {
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
     optionParser.add("", false, 1, 0, "Task file", "--task-file");
+    optionParser.add("", false, 1, 0, "Log file", "--log-file");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt)", "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
+    optionParser.add("node-node,edge-edge,node-edge", false, 1, 0, "Conflict types", "--conflicts");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
-    optionParser.add("", false, 1, 0, "Simulator Output Filename", "-o", "--simulator-output");
-    optionParser.add("", false, 1, 0, "Time Output Filename", "-o", "--time-output");
+    optionParser.add("", false, 1, 0, "Simulator Output Filename", "--simulator-output");
+    optionParser.add("", false, 1, 0, "Time Output Filename", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs / ccbs", "--solver");
     optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
@@ -103,11 +108,11 @@ int main(int argc, const char *argv[]) {
     if (optionParser.isSet("-h")) {
         std::string usage;
         optionParser.getUsage(usage, 80, ez::ezOptionParser::ALIGN);
-        std::cout << usage;
+        std::cerr << usage;
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, timingType, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile;
+    std::string mapType, objective, simulatorType, timingType, conflictTypes, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile;
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality;
@@ -115,9 +120,11 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--task-file")->getString(taskFile);
+    optionParser.get("--log-file")->getString(logFile);
     optionParser.get("--objective")->getString(objective);
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--timing")->getString(timingType);
+    optionParser.get("--conflicts")->getString(conflictTypes);
     optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--simulator-output")->getString(simulatorOutputFileName);
     optionParser.get("--time-output")->getString(timeOutputFileName);
@@ -149,6 +156,21 @@ int main(int argc, const char *argv[]) {
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
     noCache = optionParser.isSet("--no-cache");
 
+//    spdlog::
+    std::shared_ptr<spdlog::logger> file_logger;
+    if (!logFile.empty()) {
+        try {
+            file_logger = spdlog::basic_logger_st("file_logger", logFile, true);
+            file_logger->flush_on(spdlog::level::debug);
+            spdlog::set_default_logger(file_logger);
+        } catch (const spdlog::spdlog_ex &ex) {
+            std::cerr << "Log initialization failed: " << ex.what() << std::endl;
+            exit(-1);
+        }
+    }
+    if (debug) {
+        spdlog::set_level(spdlog::level::debug);
+    }
     if (window == 0) {
         window = INT_MAX;
     }
@@ -158,6 +180,10 @@ int main(int argc, const char *argv[]) {
     if (delayStart < 0) {
         delayStart = INT_MAX;
     }
+    bool nodeNodeConflict = conflictTypes.find("node-node") != std::string::npos;
+    bool edgeEdgeConflict = conflictTypes.find("edge-edge") != std::string::npos;
+    bool nodeEdgeConflict = conflictTypes.find("node-edge") != std::string::npos;
+
     if (solverBinaryFile.empty()) {
         auto solverBinaryPath = boost::dll::program_location().parent_path();
         if (solverType == "ccbs") {
@@ -172,8 +198,7 @@ int main(int argc, const char *argv[]) {
         auto solverBinaryPath = boost::filesystem::path(solverBinaryFile);
         solverBinaryFile = boost::filesystem::canonical(solverBinaryPath).string();
     }
-    std::cout << solverBinaryFile << std::endl;
-//    std::cout << "window: " << window << std::endl;
+    SPDLOG_INFO("solver binary file: {}", solverBinaryFile);
 
     std::ofstream fout;
     auto buf = std::make_unique<char[]>(4096);
@@ -203,11 +228,15 @@ int main(int argc, const char *argv[]) {
 //    unsigned int agents = 30;
     graph.initDelayProbability(minDP, maxDP);
     graph.debug = debug;
+    graph.nodeNodeConflict = nodeNodeConflict;
+    graph.edgeEdgeConflict = edgeEdgeConflict;
+    graph.nodeEdgeConflict = nodeEdgeConflict;
 //    graph.noCache = noCache;
 
     std::string filename;
     if (mapType == "random") {
-        filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" + std::to_string(obstacles) +
+        filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" +
+                   std::to_string(obstacles) +
                    "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {
@@ -243,7 +272,7 @@ int main(int argc, const char *argv[]) {
             agents = graph.generateHardCodedAgents(agentNum);
         } else if (mapType == "dot") {
             agents = graph.generateRandomAgents(agentNum, agentSeed);
-        }  else if (mapType == "graphml") {
+        } else if (mapType == "graphml") {
             agents = graph.generateRandomAgents(agentNum, agentSeed);
         }
     } else {

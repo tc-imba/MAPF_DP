@@ -66,17 +66,18 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             outputFile << currentTimestep << std::endl;
         }
 
-        if (debug) {
-            std::cerr << "begin timestep " << currentTimestep << std::endl;
-        }
+        SPDLOG_DEBUG("begin timestep {}", currentTimestep);
 
         if (debug) {
+            std::ostringstream oss;
             for (unsigned int i = 0; i < agents.size(); i++) {
-                std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+                oss.str("");
+                oss.clear();
+                oss << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
-                    std::cerr << "(" << label.state << "," << label.nodeId << ")->";
+                    oss << "(" << label.state << "," << label.nodeId << ")->";
                 }
-                std::cerr << std::endl;
+                SPDLOG_DEBUG("{}", oss.str());
             }
         }
 
@@ -176,9 +177,7 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             }
         }
         currentTimestep = newCurrentTimestep;
-        if (debug) {
-            std::cout << "expanded timestep " << currentTimestep << std::endl;
-        }
+        SPDLOG_DEBUG("expanded timestep {}", currentTimestep);
 
 /*        for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;

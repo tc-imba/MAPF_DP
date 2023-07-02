@@ -20,6 +20,7 @@ class TestArguments(AppArguments):
     iteration: int
     timeout: int
     suboptimality: float
+    solver: str
     program: Path
     result_dir: Path
 
@@ -46,7 +47,7 @@ def run_program(program_args, timeout):
     p = None
     try:
         p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
-        # print(program.as_posix(), ' '.join(args))
+        print(program_args)
         # print(p.args)
         # print(p.returncode)
         # print(p.stderr)
@@ -62,7 +63,7 @@ def run_program(program_args, timeout):
 
 
 async def run(args: TestArguments, setup: ExperimentSetup,
-              map_type="random", objective="maximum", solver="eecbs",
+              map_type="random", objective="maximum",
               iteration=10, map_seed=0, agent_seed=0, init_tests=False,
               # map_type, objective="maximum",  agents=35, iteration=10,
               # obstacles=90, simulator="online", solver="eecbs", k_neighbor=2, timing="discrete",
@@ -85,7 +86,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     output_time_file = args.result_dir / (output_prefix + ".time")
 
     cbs_prefix = "%s-random-30-30-%d-%d-%s-%d-%d-%s" % (
-        setup.timing, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, solver)
+        setup.timing, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
     cbs_file = args.result_dir / (cbs_prefix + ".cbs")
 
     if init_tests:
@@ -115,7 +116,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         "--agent-seed", str(agent_seed),
         "--agents", str(setup.agents),
         "--iteration", str(iteration),
-        "--solver", solver,
+        "--solver", setup.solver,
         "--obstacles", str(setup.obstacles),
         "--simulator", simulator,
         "--k-neighbor", str(setup.k_neighbor),
@@ -180,7 +181,7 @@ async def do_init_tests(args: TestArguments):
 
     async def init_case(map_seed, agent_seed, obstacles, k_neighbor, agents):
         setup = ExperimentSetup(
-            timing="discrete", simulator="default", obstacles=obstacles,
+            timing=args.timing, solver=args.solver, simulator="default", obstacles=obstacles,
             k_neighbor=k_neighbor, agents=agents, delay_type="agent",
             delay_ratio=0, delay_start=0, delay_interval=0,
             feasibility="h", cycle="h",
@@ -251,7 +252,7 @@ async def do_tests(args: TestArguments):
                 cycle = "n"
 
         setup = ExperimentSetup(
-            timing="discrete", simulator=simulator, obstacles=obstacles,
+            timing=args.timing, solver=args.solver, simulator=simulator, obstacles=obstacles,
             k_neighbor=k_neighbor, agents=agents, delay_type="agent",
             delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
             feasibility=feasibility, cycle=cycle,
@@ -315,12 +316,18 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, i
     result_dir.mkdir(parents=True, exist_ok=True)
     os.chdir(result_dir)
 
+    if ctx.obj.timing == "discrete":
+        solver = "eecbs"
+    else:
+        solver = "ccbs"
+
     args = TestArguments(
         **ctx.obj.__dict__,
         map_seeds=map_seeds,
         agent_seeds=agent_seeds,
         iteration=iteration,
         timeout=timeout,
+        solver=solver,
         suboptimality=suboptimality,
         program=program,
         result_dir=result_dir,

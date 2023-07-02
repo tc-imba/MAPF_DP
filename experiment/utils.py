@@ -33,6 +33,7 @@ def validate_list(cast_func):
 @dataclasses.dataclass
 class ExperimentSetup:
     timing: str
+    solver: str
     simulator: str
     obstacles: int
     k_neighbor: int

@@ -20,7 +20,7 @@ public:
 
     void print(std::ostream &out) const override;
 
-    void printState(size_t i, unsigned int state) override;
+    void printState(std::ostream &os, size_t i, unsigned int state) override;
 
     double replan();
 };

@@ -10,3 +10,7 @@
 [submodule "time-independent-planning"]
 	path = time-independent-planning
 	url = https://github.com/tc-imba/time-independent-planning.git
+[submodule "spdlog"]
+	path = spdlog
+	url = https://github.com/gabime/spdlog.git
+    shallow = true

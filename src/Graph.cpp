@@ -33,7 +33,6 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
 
     std::ofstream distFileOut;
     if (!filename.empty()) distFileOut.open(filename + (dp ? ".dp.distance" : ".distance"));
-//    std::ostream &distOut = !distFileOut.is_open() ? std::cout : distFileOut;
 
 //    auto vertices = boost::vertices(g);
     auto edges = boost::edges(g);
@@ -56,7 +55,7 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
         }
     }
     double density = (double) E * 2 / (V) / (V - 1);
-    std::cerr << "V: " << V << " E: " << E << " density: " << density << std::endl;
+    SPDLOG_INFO("calculate all pair shortest path: V={}, E={}, density={}", V, E, density);
     if (density < 0.1) {
         boost::johnson_all_pairs_shortest_paths(g, distances,
                                                 boost::weight_map(boost::get(&Edge::_distance, g)));
@@ -177,10 +176,6 @@ void Graph::saveXMLGraph(std::vector<std::vector<char>> &gridGraph, const std::s
         row->SetText(rowText.c_str());
     }
 
-//    tinyxml2::XMLPrinter printer;
-//    doc.Print( &printer );
-//    std::cout << printer.CStr();
-
     doc.SaveFile(fullFileName.c_str());
 }
 
@@ -210,11 +205,6 @@ void Graph::initKNeighbor(unsigned int kNeighbor) {
     neighborDirections.erase(std::unique(neighborDirections.begin(), neighborDirections.end()),
                              neighborDirections.end());
     neighborDirections.shrink_to_fit();
-
-//    neighborDirections.swap(N);
-/*    for (auto &p: neighborDirections) {
-        std::cout << p[0] << " " << p[1] << std::endl;
-    }*/
 }
 
 
@@ -351,7 +341,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
             }
         }
     }
-    std::cerr << V << " " << E << std::endl;
+    SPDLOG_INFO("generate graph: V={}, E={}", V, E);
     nodeNum = V;
     edgeNum = E;
 
@@ -419,7 +409,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
     std::vector<std::vector<char>> gridGraph(height, std::vector<char>(width, '.'));
 
     if (!noCache && loadGridGraph(gridGraph, filename)) {
-        std::cerr << "load grid graph from " << filename << ".map" << std::endl;
+        SPDLOG_INFO("load grid graph from {}.map", filename);
     } else {
         std::vector<unsigned int> v(height * width);
         std::iota(v.begin(), v.end(), 0);
@@ -435,11 +425,11 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
                 currentObstacles++;
             } else {
                 gridGraph[x][y] = '.';
-                std::cerr << x << " " << y << " can't be obstacle" << std::endl;
+                SPDLOG_DEBUG("{} {} can't be obstacle", x, y);
             }
         }
         assert(currentObstacles == obstacles);
-        std::cerr << "save grid graph to " << filename << ".map" << std::endl;
+        SPDLOG_DEBUG("save grid graph to {}.map", filename);
         saveGridGraph(gridGraph, filename);
     }
     saveXMLGraph(gridGraph, filename);
@@ -506,7 +496,7 @@ void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
 void Graph::generateFileGraph(const std::string &filename) {
     std::vector<std::vector<char>> gridGraph;
     if (loadGridGraph(gridGraph, filename)) {
-        std::cerr << "load grid graph from " << filename << ".map" << std::endl;
+        SPDLOG_INFO("load grid graph from {}.map", filename);
     } else {
         exit(-1);
     }
@@ -516,7 +506,7 @@ void Graph::generateFileGraph(const std::string &filename) {
 void Graph::generateDOTGraph(const std::string &filename) {
     graphFilename = filename;
     std::ifstream DOTFileIn(filename + ".graph");
-    std::cerr << "load DOT graph from " << filename << ".graph" << std::endl;
+    SPDLOG_INFO("load DOT graph from {}.graph", filename);
 
     boost::dynamic_properties dp;
     dp.property("node_id", boost::get(&Node::index, g));
@@ -546,7 +536,7 @@ void Graph::generateDOTGraph(const std::string &filename) {
 void Graph::generateGraphMLGraph(const std::string &filename) {
     graphFilename = filename;
     std::ifstream graphMLFileIn(filename + ".xml");
-    std::cerr << "load GraphML graph from " << filename << ".xml" << std::endl;
+    SPDLOG_INFO("load GraphML graph from {}.xml", filename);
 
     g.clear();
 
@@ -613,6 +603,7 @@ bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdge
     double distance;
     if (state1.isNode && state2.isNode) {
         // node-node conflict
+        if (!nodeNodeConflict) return false;
         auto diff = src1 - src2;
         distance = sqrt(gte::Dot(diff, diff));
     } else {
@@ -626,13 +617,13 @@ bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdge
         }
         if (!state1.isNode && !state2.isNode) {
             // edge-edge conflict
-            return false;
+            if (!edgeEdgeConflict) return false;
             gte::DCPQuery<double, gte::Segment2<double>, gte::Segment2<double>> mQuery;
             auto result = mQuery(seg1, seg2);
             distance = result.distance;
         } else {
             // node-edge conflict
-            return false;
+            if (!nodeEdgeConflict) return false;
             gte::DCPQuery<double, gte::Vector2<double>, gte::Segment2<double>> mQuery;
             if (!state1.isNode) {
                 auto result = mQuery(src2, seg1);
@@ -645,19 +636,20 @@ bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdge
     }
     auto agentRadiusSum = state1.agentRadius + state2.agentRadius;
     if (is_close_no_less_than(agentRadiusSum, distance, epsilon)) {
-/*        if (debug) {
-            std::cout << "conflict: ";
-            std::cout << "(" << src1[0] << "," << src1[1] << ")";
+        if (debug) {
+            std::ostringstream oss;
+            oss << "conflict: ";
+            oss << "(" << src1[0] << "," << src1[1] << ")";
             if (!state1.isNode) {
-                std::cout << "->(" << seg1.p[1][0] << "," << seg1.p[1][1] << ")";
+                oss << "->(" << seg1.p[1][0] << "," << seg1.p[1][1] << ")";
             }
-            std::cout << " and ";
-            std::cout << "(" << src2[0] << "," << src2[1] << ")";
+            oss << " and ";
+            oss << "(" << src2[0] << "," << src2[1] << ")";
             if (!state2.isNode) {
-                std::cout << "->(" << seg2.p[1][0] << "," << seg2.p[1][1] << ")";
+                oss << "->(" << seg2.p[1][0] << "," << seg2.p[1][1] << ")";
             }
-            std::cout << std::endl;
-        }*/
+//            SPDLOG_DEBUG("{}", oss.str());
+        }
         return true;
     }
     return false;
@@ -684,7 +676,7 @@ const Graph::Edge *Graph::getEdgePtr(unsigned int nodeId1, unsigned int nodeId2)
 const Graph::Edge &Graph::getEdge(unsigned int nodeId1, unsigned int nodeId2) {
     auto ptr = getEdgePtr(nodeId1, nodeId2);
     if (ptr) return *ptr;
-    std::cerr << "can not find edge from " << nodeId1 << " to " << nodeId2 << std::endl;
+    SPDLOG_ERROR("can not find edge from {} to {}", nodeId1, nodeId2);
     assert(0);
     exit(-1);
 }
@@ -764,15 +756,12 @@ std::vector<Agent> Graph::generateRandomAgents(unsigned int agentNum, size_t see
             std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
                       << " (" << getHeuristic(v1[j], v2[j]) << ") failed" << std::endl;
         }*/
-        if (debug) {
-            std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
-                      << " (" << getHeuristic(v1[j], v2[j]) << ")" << std::endl;
-        }
+        SPDLOG_DEBUG("agent {}: {} -> {} ({})", i, v1[j], v2[j], getHeuristic(v1[j], v2[j]));
         i++;
     }
 
     if (agents.size() != i) {
-        std::cerr << agents.size() << " " << i << std::endl;
+        SPDLOG_ERROR("fail to generate random agents ({}/{})", i, agents.size());
         exit(-1);
     }
 
@@ -805,8 +794,7 @@ std::vector<Agent> Graph::generateWarehouseAgents(unsigned int agentNum, size_t 
             agents[i].start = v1[i];
             agents[i].goal = v2[i];
         }
-        std::cerr << "agent " << i << " " << v1[i] << " -> " << v2[i]
-                  << " (" << getHeuristic(v1[i], v2[i]) << ")" << std::endl;
+        SPDLOG_INFO("agent {}: {} -> {} ({})", i, v1[i], v2[i], getHeuristic(v1[i], v2[i]));
     }
     return agents;
 
@@ -829,7 +817,7 @@ std::vector<Agent> Graph::generateHardCodedAgents(unsigned int agentNum) {
 
 std::vector<Agent> Graph::loadXMLAgents(unsigned int agentNum, const std::string &filename) {
     auto fullFileName = filename + ".xml";
-    std::cerr << "load task from " << fullFileName << std::endl;
+    SPDLOG_INFO("load task from {}", fullFileName);
     std::vector<Agent> agents(agentNum);
     tinyxml2::XMLDocument doc;
     doc.LoadFile(fullFileName.c_str());
@@ -838,15 +826,12 @@ std::vector<Agent> Graph::loadXMLAgents(unsigned int agentNum, const std::string
     auto agentElem = root->FirstChildElement();
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (!agentElem) {
-            std::cerr << "too few agents in task file" << std::endl;
-            exit(0);
+            SPDLOG_ERROR("too few agents in task file");
+            exit(-1);
         }
         agents[i].start = std::strtoul(agentElem->Attribute("start_id"), nullptr, 10);
         agents[i].goal = std::strtoul(agentElem->Attribute("goal_id"), nullptr, 10);
-        if (debug) {
-            std::cout << "agent " << i << " " << agents[i].start << " -> " << agents[i].goal
-                      << " (" << getHeuristic(agents[i].start, agents[i].goal) << ")" << std::endl;
-        }
+        SPDLOG_INFO("agent {}: {} -> {} ({})", i, agents[i].start, agents[i].goal, getHeuristic(agents[i].start, agents[i].goal));
         agentElem = agentElem->NextSiblingElement();
     }
     return agents;
@@ -864,7 +849,6 @@ void Graph::saveScenAgents(const std::string &mapName, const std::string &filena
                      << g[agents[i].start].y << "\t" << g[agents[i].start].x << "\t"
                      << g[agents[i].goal].y << "\t" << g[agents[i].goal].x << "\t"
                      << distances[agents[i].start][agents[i].goal] << std::endl;
-//        std::cout << i << " " << agents[i].start << std::endl;
     }
 
     agentFileOut.close();
@@ -886,10 +870,6 @@ void Graph::saveXMLAgents(const std::string &filename, const std::vector<Agent> 
         agent->SetAttribute("goal_j", g[agents[i].goal].y);
         root->InsertEndChild(agent);
     }
-
-//    tinyxml2::XMLPrinter printer;
-//    doc.Print( &printer );
-//    std::cout << printer.CStr();
 
     doc.SaveFile(fullFileName.c_str());
 }
