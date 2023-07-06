@@ -273,6 +273,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
 
 def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     num_cases = len(df)
+    print(df)
     df = df.explode("data")
     df["time"] = df["data"].apply(lambda x: x[1])
     df.sort_values(by="time", inplace=True)
@@ -331,6 +332,11 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
         time_dfs = {}
         setups = {}
 
+        if args.timing == "discrete":
+            solver = "eecbs"
+        else:
+            solver = "ccbs"
+
         for simulator, feasibility, cycle in simulator_feasibility_cycle:
             # for simulator in args.simulators:
             # if simulator == "online":
@@ -341,7 +347,7 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
             #     _cycle = "h"
             label = f"{simulator}-{feasibility}-{cycle}"
             setup = ExperimentSetup(
-                timing=args.timing, simulator=simulator, obstacles=obstacles,
+                timing=args.timing, solver=solver, simulator=simulator, obstacles=obstacles,
                 k_neighbor=k_neighbor, agents=agents, delay_type=delay_type,
                 delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
                 feasibility=feasibility, cycle=cycle,
@@ -393,9 +399,8 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
 @click.option('-o', '--output-suffix', default='')
 @click.option('-i', '--input-suffix', default='')
 @click.option('--category', is_flag=True, default=False)
-@click.option('--timing', default='discrete')
 @click.pass_context
-def main(ctx, output_suffix, input_suffix, category, timing):
+def main(ctx, output_suffix, input_suffix, category):
     if input_suffix:
         input_suffix = '_' + input_suffix
     if output_suffix:
@@ -403,13 +408,13 @@ def main(ctx, output_suffix, input_suffix, category, timing):
 
     data_dir = project_root / "data"
     os.makedirs(data_dir, exist_ok=True)
+    timing = ctx.obj.timing
 
     args = ParseArguments(
         **ctx.obj.__dict__,
         output_suffix=output_suffix,
         input_suffix=input_suffix,
         category=category,
-        timing=timing,
         result_dir=project_root / f"result{input_suffix}",
         output_csv=data_dir / f"df_{timing}{output_suffix}.csv",
         time_output_csv=data_dir / f"df_{timing}_time{output_suffix}.csv",

@@ -32,9 +32,9 @@ void DiscreteSimulator::updateDelayedSet(unsigned int currentTimestep, unsigned 
     std::mt19937 generator(newSeed);
     std::shuffle(delayed.begin(), delayed.end(), generator);
     delayedSet.clear();
-    for (unsigned int i = 0; i < ((double) delayed.size()) * delayRatio; i++) {
+    for (unsigned int i = 0; i < (unsigned int) (((double) delayed.size()) * delayRatio); i++) {
         delayedSet.emplace(delayed[i]);
-//            std::cout << delayed[i] << " delay" << std::endl;
+//            std::cout << ((double) delayed.size()) * delayRatio << " " << delayed[i] << " delay" << std::endl;
     }
 //        }
 }
