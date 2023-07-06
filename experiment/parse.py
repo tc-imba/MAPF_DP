@@ -6,8 +6,9 @@ import scipy.stats
 import pandas as pd
 import os
 from tqdm import tqdm
+from loguru import logger
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from pathlib import Path
 from experiment.app import app_command, AppArguments
 from experiment.utils import project_root, ExperimentSetup
@@ -273,8 +274,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
 
 def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     num_cases = len(df)
-    print(df)
-    df = df.explode("data")
+    df = df.explode("data").dropna()
     df["time"] = df["data"].apply(lambda x: x[1])
     df.sort_values(by="time", inplace=True)
 
@@ -298,7 +298,7 @@ def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[D
     return row
 
 
-def parse_data(args: ParseArguments) -> pd.DataFrame:
+def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # if data_type == "infinite":
     #     starts_list = [1, 5, 10]
     #     intervals_list = [0]
@@ -367,6 +367,7 @@ def parse_data(args: ParseArguments) -> pd.DataFrame:
         #     continue
 
         parsed_labels = list(raw_dfs.keys())
+        logger.debug(parsed_labels)
         # print(parsed_labels)
 
         base_df = raw_dfs[parsed_labels[0]]
@@ -419,11 +420,13 @@ def main(ctx, output_suffix, input_suffix, category):
         output_csv=data_dir / f"df_{timing}{output_suffix}.csv",
         time_output_csv=data_dir / f"df_{timing}_time{output_suffix}.csv",
     )
-    click.echo(args)
+    logger.info(args)
 
     main_df, time_df = parse_data(args)
     main_df.to_csv(args.output_csv, index=False)
+    logger.info("write main_df to {}", args.output_csv)
     time_df.to_csv(args.time_output_csv, index=False)
+    logger.info("write time_df to {}", args.time_output_csv)
 
     # df_infinite = parse_data(result_dir, "infinite", category)
     # df_periodic = parse_data(result_dir, "periodic", category)

@@ -2,7 +2,13 @@ import click
 import dataclasses
 from typing import List
 from functools import wraps
+from loguru import logger
+from tqdm import tqdm
+
 from experiment.utils import validate_list
+
+logger.remove()
+logger.add(lambda msg: tqdm.write(msg, end=""), colorize=True)
 
 
 @dataclasses.dataclass

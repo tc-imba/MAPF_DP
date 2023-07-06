@@ -1,33 +1,40 @@
-#include <iostream>
-#include <chrono>
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/dll.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/program_options.hpp>
+#include <chrono>
+#include <iostream>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "Graph.h"
-#include "solver/CBSSolver.h"
-#include "solver/EECBSSolver.h"
-#include "solver/CCBSSolver.h"
-#include "solver/IndividualAStarSolver.h"
 #include "simulator/ContinuousDefaultSimulator.h"
 #include "simulator/ContinuousOnlineSimulator.h"
 #include "simulator/DiscreteDefaultSimulator.h"
 #include "simulator/DiscreteOnlineSimulator.h"
 #include "simulator/DiscretePIBTSimulator.h"
+#include "solver/CBSSolver.h"
+#include "solver/CCBSSolver.h"
+#include "solver/EECBSSolver.h"
+#include "solver/IndividualAStarSolver.h"
 #include "utils/ezOptionParser.hpp"
+#include "utils/config.hpp"
 
 
-std::string double_to_string(double data) {
+/*std::string double_to_string(double data) {
     auto result = std::to_string(data);
     auto pos = result.length() - 1;
     while (pos > 0 && result[pos] == '0') --pos;
     if (result[pos] == '.') --pos;
     return result.substr(0, pos + 1);
-}
+}*/
+
+
+
 
 int main(int argc, const char *argv[]) {
+    Config config(argc, argv);
+
     spdlog::set_pattern("[%^%=8l%$] %v [%@]");
     ez::ezOptionParser optionParser;
 
@@ -94,7 +101,7 @@ int main(int argc, const char *argv[]) {
     auto validDelayInterval = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("1", false, 1, 0, "Delay Interval", "--delay-interval", validDelayInterval);
 
-//    auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
+    //    auto validDelayStart = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Delay Start", "-p", "--delay-start");
 
     auto validKNeighbor = new ez::ezOptionValidator("u4", "ge", "2");
@@ -156,7 +163,7 @@ int main(int argc, const char *argv[]) {
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
     noCache = optionParser.isSet("--no-cache");
 
-//    spdlog::
+    //    spdlog::
     std::shared_ptr<spdlog::logger> file_logger;
     if (!logFile.empty()) {
         try {
@@ -217,7 +224,7 @@ int main(int argc, const char *argv[]) {
     Graph graph;
     unsigned int height = 30;
     unsigned int width = 30;
-//    unsigned int obstacles = height * width * obstacleRate;
+    //    unsigned int obstacles = height * width * obstacleRate;
 
     unsigned int deliveryWidth = 10;
     unsigned int deliveryX = 7;
@@ -225,13 +232,13 @@ int main(int argc, const char *argv[]) {
     unsigned int maxX = 3 * deliveryX + 1;
     unsigned int maxY = deliveryY * (deliveryWidth + 1) + 13;
 
-//    unsigned int agents = 30;
+    //    unsigned int agents = 30;
     graph.initDelayProbability(minDP, maxDP);
     graph.debug = debug;
     graph.nodeNodeConflict = nodeNodeConflict;
     graph.edgeEdgeConflict = edgeEdgeConflict;
     graph.nodeEdgeConflict = nodeEdgeConflict;
-//    graph.noCache = noCache;
+    //    graph.noCache = noCache;
 
     std::string filename;
     if (mapType == "random") {
@@ -285,7 +292,7 @@ int main(int argc, const char *argv[]) {
             agents = graph.loadXMLAgents(agentNum, filename);
         } else if (taskFileType == "scen") {
             exit(0);
-//            agents = graph.loadScenAgents(agentNum, filename);
+            //            agents = graph.loadScenAgents(agentNum, filename);
         } else {
             assert(0);
         }
@@ -318,7 +325,7 @@ int main(int argc, const char *argv[]) {
         assert(0);
     }
 
-//    CBSSolver solver(graph, agents);
+    //    CBSSolver solver(graph, agents);
     solver->debug = debug;
     solver->useDP = useDP;
     solver->allConstraint = allConstraint;
@@ -334,14 +341,14 @@ int main(int argc, const char *argv[]) {
         exit(-1);
     }
 
-//    if (!timeOutputFileName.empty()) {
-//        // delete old file
-//        std::ofstream tempFile(timeOutputFileName);
-//        tempFile.close();
-//    }
+    //    if (!timeOutputFileName.empty()) {
+    //        // delete old file
+    //        std::ofstream tempFile(timeOutputFileName);
+    //        tempFile.close();
+    //    }
 
-//    double approx = solver->approxAverageMakeSpan(*solver->solution);
-//    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
+    //    double approx = solver->approxAverageMakeSpan(*solver->solution);
+    //    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
     std::shared_ptr<Simulator> simulator;
 
     unsigned int finished = 0;
@@ -396,7 +403,7 @@ int main(int argc, const char *argv[]) {
         simulator->outputFileName = simulatorOutputFileName;
         simulator->timeOutputFileName = timeOutputFileName;
 
-/*        if (mapType == "hardcoded") {
+        /*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
             std::shared_ptr<AgentPlan> a0 = std::make_shared<AgentPlan>();
             std::shared_ptr<AgentPlan> a1 = std::make_shared<AgentPlan>();
@@ -445,7 +452,7 @@ int main(int argc, const char *argv[]) {
         } else {
             std::cerr << count << " " << agentNum << std::endl;
             finished++;
-//            exit(-1);
+            //            exit(-1);
         }
     }
 
