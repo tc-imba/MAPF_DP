@@ -5,7 +5,7 @@ description = ""
 authors = ["tc-imba <liuyh970615@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "mapf_dp"}]
+packages = []
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
