@@ -350,6 +350,7 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, i
         result_dir=result_dir,
     )
     logger.info(args)
+    logger.info("Running with {} workers", workers)
     # click.echo(args)
 
     kill_all_process()
