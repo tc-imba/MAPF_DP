@@ -15,6 +15,7 @@ from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 from experiment.logger import logger
 
+
 @dataclasses.dataclass
 class TestArguments(AppArguments):
     map_seeds: int
@@ -28,12 +29,12 @@ class TestArguments(AppArguments):
     pool: concurrent.futures.ProcessPoolExecutor
 
 
-
 # workers = multiprocessing.cpu_count()
 # workers = 1
 EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
 EXPERIMENT_JOBS_FAILED = 0
+TEST_FILE_COLUMNS = ["map_seed", "agent_seed", "obstacle", "k_neighbor", "agent"]
 defined_output_prefixes = set()
 completed = set()
 PBAR = tqdm(total=1)
@@ -47,12 +48,14 @@ NAIVE_SETTINGS = [
     # (True, True, True),
 ]
 
+
 def kill_all_process():
     logger.info("Kill all running MAPF_DP processes")
     for proc in psutil.process_iter():
         if proc.name() in ("MAPF_DP", "MAPF_DP.exe"):
             logger.info("Kill process {} with pid {}", proc.name(), proc.pid)
             proc.kill()
+
 
 def run_program(full_prefix, program_args, timeout):
     p = None
@@ -96,7 +99,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         output_prefix = full_prefix
     elif full_prefix in completed:
         EXPERIMENT_JOBS_COMPLETED += 1
-        logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED,EXPERIMENT_JOBS_FAILED, EXPERIMENT_JOBS)
+        logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
         PBAR.update()
         return 1
     output_file = args.result_dir / (output_prefix + ".csv")
@@ -180,7 +184,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if result == 1:
         EXPERIMENT_JOBS_COMPLETED += 1
         PBAR.update()
-        logger.info('{} completed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED, EXPERIMENT_JOBS)
+        logger.info('{} completed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
         completed.add(full_prefix)
         completed_file = args.result_dir / "completed.csv"
         with completed_file.open("a") as f:
@@ -188,8 +193,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     else:
         EXPERIMENT_JOBS_FAILED += 1
         PBAR.update(0)
-        logger.info('{} failed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED, EXPERIMENT_JOBS)
-
+        logger.info('{} failed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED + 1)
 
     return result
 
@@ -198,7 +203,18 @@ async def do_init_tests(args: TestArguments):
     # all_tests = []
     logger.info("Initialize tests")
     test_file = args.result_dir / "tests.csv"
-    test_file.unlink(missing_ok=True)
+    if test_file.exists():
+        df = pd.read_csv(test_file, header=None)
+        df.columns = TEST_FILE_COLUMNS
+        group = df.groupby(["map_seed", "obstacle", "k_neighbor", "agent"])
+        df["count"] = group["agent_seed"].transform(len)
+        idx = df.groupby(["map_seed", "obstacle", "k_neighbor", "agent"])["agent_seed"].transform(max) == df[
+            'agent_seed']
+        df = df[idx]
+    else:
+        df = pd.DataFrame(columns=TEST_FILE_COLUMNS)
+    # logger.info(df)
+    # test_file.unlink(missing_ok=True)
 
     async def init_case(map_seed, agent_seed, obstacles, k_neighbor, agents):
         setup = ExperimentSetup(
@@ -216,6 +232,23 @@ async def do_init_tests(args: TestArguments):
                 self.current = 0
 
         _current = CurrentWrapper()
+        row = df.loc[(df["map_seed"] == map_seed) & (df["obstacle"] == obstacle) &
+                     (df["k_neighbor"] == k_neighbor) & (df["agent"] == agent)]
+        if len(row) > 0:
+            row = row.iloc[0]
+            _current.current = row["agent_seed"] + 1
+            completed_seeds = min(args.agent_seeds, row["count"])
+        else:
+            completed_seeds = 0
+        if completed_seeds > 0:
+            setup = ExperimentSetup(
+                timing=args.timing, solver=args.solver, simulator="default", obstacles=obstacle,
+                k_neighbor=k_neighbor, agents=agent, delay_type="agent",
+                delay_ratio=0, delay_start=0, delay_interval=0,
+                feasibility="h", cycle="h",
+            )
+            logger.info('{} tests skipped for {}-{}-*', completed_seeds, setup.get_output_prefix(), map_seed)
+        agent_seeds = args.agent_seeds - completed_seeds
 
         async def init_agent():
             while True:
@@ -228,7 +261,7 @@ async def do_init_tests(args: TestArguments):
                     break
 
         tasks = []
-        for i in range(args.agent_seeds):
+        for i in range(agent_seeds):
             tasks.append(init_agent())
 
         await asyncio.gather(*tasks)
@@ -284,7 +317,7 @@ async def do_tests(args: TestArguments):
 
     test_file = args.result_dir / "tests.csv"
     df = pd.read_csv(test_file, header=None)
-    df.columns = ["map_seed", "agent_seed", "obstacle", "k_neighbor", "agent"]
+    df.columns = TEST_FILE_COLUMNS
 
     completed_file = args.result_dir / "completed.csv"
     if completed_file.exists():
@@ -301,7 +334,7 @@ async def do_tests(args: TestArguments):
                             df["k_neighbor"] == _k_neighbor) & (df["agent"] == _agent)]
                     df_temp.sort_values(by="agent_seed")
                     if len(df_temp) < args.agent_seeds:
-                        logger.warning("{} {} {} {} no enough seeds",_map_seed, _obstacle, _k_neighbor, _agent)
+                        logger.warning("{} {} {} {} no enough seeds", _map_seed, _obstacle, _k_neighbor, _agent)
                     for i in range(min(len(df_temp), args.agent_seeds)):
                         _agent_seed = df_temp["agent_seed"].iloc[i]
                         for _delay_ratio in args.delay_ratios:
@@ -368,6 +401,7 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, i
         await do_tests(args)
 
     PBAR.close()
+
 
 if __name__ == '__main__':
     main()
