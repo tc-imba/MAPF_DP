@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "mapf-dp"
+version = "0.1.0"
+description = ""
+authors = ["tc-imba <liuyh970615@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "mapf_dp"}]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.13"
+click = "^8.1.3"
+tqdm = "^4.65.0"
+pandas = "^2.0.3"
+scipy = "^1.11.1"
+numpy = "^1.25.0"
+matplotlib = "^3.7.2"
+loguru = "^0.7.0"
+rich = "^13.4.2"
+seaborn = "^0.12.2"
+psutil = "^5.9.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
