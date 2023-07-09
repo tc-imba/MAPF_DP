@@ -33,7 +33,7 @@
 
 
 int main(int argc, const char *argv[]) {
-    Config config(argc, argv);
+//    Config config(argc, argv);
 
     spdlog::set_pattern("[%^%=8l%$] %v [%@]");
     ez::ezOptionParser optionParser;

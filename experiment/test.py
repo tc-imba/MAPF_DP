@@ -8,10 +8,12 @@ import multiprocessing
 import concurrent.futures
 import pandas as pd
 import dataclasses
+from tqdm import tqdm
+import psutil
 
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
-
+from experiment.logger import logger
 
 @dataclasses.dataclass
 class TestArguments(AppArguments):
@@ -32,6 +34,7 @@ EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
 defined_output_prefixes = set()
 completed = set()
+PBAR = tqdm(total=1)
 
 NAIVE_SETTINGS = [
     (False, False, False),  # online/default,cycle
@@ -42,20 +45,29 @@ NAIVE_SETTINGS = [
     # (True, True, True),
 ]
 
+def kill_all_process():
+    logger.info("Kill all running MAPF_DP processes")
+    for proc in psutil.process_iter():
+        if proc.name() in ("MAPF_DP", "MAPF_DP.exe"):
+            logger.info("Kill process {} with pid {}", proc.name(), proc.pid)
+            proc.kill()
 
-def run_program(program_args, timeout):
+def run_program(full_prefix, program_args, timeout):
     p = None
     try:
-        # print(" ".join(program_args))
-        p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
-        # print(p.args)
-        # print(p.returncode)
-        # print(p.stderr)
-        # print(p.stdout)
-    except asyncio.TimeoutError:
-        print('timeout!')
+        # logger.debug(" ".join(program_args))
+        p = subprocess.Popen(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.communicate(timeout=timeout)
+        # p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+        # logger.debug(p.args)
+        # logger.debug(p.returncode)
+        # logger.debug(p.stderr)
+        # logger.debug(p.stdout)
+    except subprocess.TimeoutExpired:
+        logger.warning('{} timeout', full_prefix)
     except Exception as e:
-        print(e)
+        logger.error('{} unknown error')
+        logger.exception(e)
     try:
         p.kill()
     except:
@@ -71,8 +83,10 @@ async def run(args: TestArguments, setup: ExperimentSetup,
               # naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False,
               # timeout=600, init_tests=False
               ):
-    global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED
+    global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED, PBAR
     EXPERIMENT_JOBS += 1
+    PBAR.total = EXPERIMENT_JOBS
+    PBAR.refresh()
 
     output_prefix = setup.get_output_prefix()
     full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
@@ -80,7 +94,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         output_prefix = full_prefix
     elif full_prefix in completed:
         EXPERIMENT_JOBS_COMPLETED += 1
-        print('%s skipped (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        logger.info('{} skipped ({}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS)
         return 1
     output_file = args.result_dir / (output_prefix + ".csv")
     output_time_file = args.result_dir / (output_prefix + ".time")
@@ -144,8 +158,10 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if prioritized_opt:
         program_args.append("--prioritized-opt")
 
-    await asyncio.get_event_loop().run_in_executor(pool, run_program, program_args, args.timeout)
+    await asyncio.get_event_loop().run_in_executor(pool, run_program, full_prefix, program_args, args.timeout)
     EXPERIMENT_JOBS_COMPLETED += 1
+    PBAR.update()
+    PBAR.refresh()
 
     result = 1
     if init_tests:
@@ -162,20 +178,20 @@ async def run(args: TestArguments, setup: ExperimentSetup,
             result = 0
 
     if result == 1:
-        print('%s completed (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        logger.info('{} completed ({}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS)
         completed.add(full_prefix)
         completed_file = args.result_dir / "completed.csv"
         with completed_file.open("a") as f:
             f.write("%s\n" % full_prefix)
     else:
-        print('%s failed (%d/%d)' % (full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS))
+        logger.info('{} failed ({}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS)
 
     return result
 
 
 async def do_init_tests(args: TestArguments):
     # all_tests = []
-
+    logger.info("Initialize tests")
     test_file = args.result_dir / "tests.csv"
     test_file.unlink(missing_ok=True)
 
@@ -209,6 +225,7 @@ async def do_init_tests(args: TestArguments):
         tasks = []
         for i in range(args.agent_seeds):
             tasks.append(init_agent())
+
         await asyncio.gather(*tasks)
 
         # while completed < agent_seeds:
@@ -279,7 +296,7 @@ async def do_tests(args: TestArguments):
                             df["k_neighbor"] == _k_neighbor) & (df["agent"] == _agent)]
                     df_temp.sort_values(by="agent_seed")
                     if len(df_temp) < args.agent_seeds:
-                        print("warning: %d %d %d %d no enough seeds" % (_map_seed, _obstacle, _k_neighbor, _agent))
+                        logger.warning("{} {} {} {} no enough seeds",_map_seed, _obstacle, _k_neighbor, _agent)
                     for i in range(min(len(df_temp), args.agent_seeds)):
                         _agent_seed = df_temp["agent_seed"].iloc[i]
                         for _delay_ratio in args.delay_ratios:
@@ -332,10 +349,16 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, i
         program=program,
         result_dir=result_dir,
     )
-    click.echo(args)
+    logger.info(args)
+    # click.echo(args)
 
+    kill_all_process()
     if init_tests:
         await do_init_tests(args)
     else:
         await do_tests(args)
 
+    PBAR.close()
+
+if __name__ == '__main__':
+    main()

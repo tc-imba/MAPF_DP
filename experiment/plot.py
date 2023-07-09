@@ -242,7 +242,7 @@ class PlotSettings:
         else:
             extra = ""
         return self.args.plot_dir / \
-            f"{self.plot_type}-{self.subplot_type}-{self.agents}-{self.y_field}{extra}.pdf"
+            f"{self.args.timing}-{self.plot_type}-{self.subplot_type}-{self.agents}-{self.y_field}{extra}.pdf"
 
 
 def plot(df: pd.DataFrame, settings: PlotSettings):
@@ -452,11 +452,11 @@ def main(ctx):
     )
     click.echo(args)
 
-    df_discrete = pd.read_csv(data_dir / "df_discrete.csv")
-    df_discrete_time = pd.read_csv(data_dir / "df_discrete_time.csv")
+    df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
+    df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
     for agents in args.agents:
         plot_simulator(args, df_discrete, agents)
-        plot_cycle(args, df_discrete, agents)
+        # plot_cycle(args, df_discrete, agents)
         # for obstacle in args.obstacles:
         #     plot_cdf(args, df_discrete_time, agents, obstacle)
         #     # plot_replan_pdf(args, df_discrete_time, agents, delay_interval)
