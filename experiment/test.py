@@ -25,13 +25,15 @@ class TestArguments(AppArguments):
     solver: str
     program: Path
     result_dir: Path
+    pool: concurrent.futures.ProcessPoolExecutor
 
 
-workers = multiprocessing.cpu_count()
+
+# workers = multiprocessing.cpu_count()
 # workers = 1
-pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
 EXPERIMENT_JOBS = 0
 EXPERIMENT_JOBS_COMPLETED = 0
+EXPERIMENT_JOBS_FAILED = 0
 defined_output_prefixes = set()
 completed = set()
 PBAR = tqdm(total=1)
@@ -83,10 +85,10 @@ async def run(args: TestArguments, setup: ExperimentSetup,
               # naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False,
               # timeout=600, init_tests=False
               ):
-    global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED, PBAR
+    global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED, PBAR
     EXPERIMENT_JOBS += 1
-    PBAR.total = EXPERIMENT_JOBS
-    PBAR.refresh()
+    PBAR.total = EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED
+    PBAR.update(0)
 
     output_prefix = setup.get_output_prefix()
     full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
@@ -94,7 +96,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         output_prefix = full_prefix
     elif full_prefix in completed:
         EXPERIMENT_JOBS_COMPLETED += 1
-        logger.info('{} skipped ({}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS)
+        logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED,EXPERIMENT_JOBS_FAILED, EXPERIMENT_JOBS)
+        PBAR.update()
         return 1
     output_file = args.result_dir / (output_prefix + ".csv")
     output_time_file = args.result_dir / (output_prefix + ".time")
@@ -158,10 +161,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if prioritized_opt:
         program_args.append("--prioritized-opt")
 
-    await asyncio.get_event_loop().run_in_executor(pool, run_program, full_prefix, program_args, args.timeout)
-    EXPERIMENT_JOBS_COMPLETED += 1
-    PBAR.update()
-    PBAR.refresh()
+    await asyncio.get_event_loop().run_in_executor(args.pool, run_program, full_prefix, program_args, args.timeout)
 
     result = 1
     if init_tests:
@@ -178,13 +178,18 @@ async def run(args: TestArguments, setup: ExperimentSetup,
             result = 0
 
     if result == 1:
-        logger.info('{} completed ({}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS)
+        EXPERIMENT_JOBS_COMPLETED += 1
+        PBAR.update()
+        logger.info('{} completed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED, EXPERIMENT_JOBS)
         completed.add(full_prefix)
         completed_file = args.result_dir / "completed.csv"
         with completed_file.open("a") as f:
             f.write("%s\n" % full_prefix)
     else:
-        logger.info('{} failed ({}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS)
+        EXPERIMENT_JOBS_FAILED += 1
+        PBAR.update(0)
+        logger.info('{} failed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED, EXPERIMENT_JOBS)
+
 
     return result
 
@@ -321,9 +326,10 @@ async def do_tests(args: TestArguments):
 @click.option("-t", "--timeout", type=int, default=600)
 @click.option("--suboptimality", type=float, default=1)
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
+@click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count)
 @click.pass_context
 @asyncio_wrapper
-async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, init_tests):
+async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs):
     program = project_root / "cmake-build-relwithdebinfo"
     if platform.system() == "Windows":
         program = program / "MAPF_DP.exe"
@@ -338,6 +344,7 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, i
     else:
         solver = "ccbs"
 
+    pool = concurrent.futures.ProcessPoolExecutor(max_workers=jobs)
     args = TestArguments(
         **ctx.obj.__dict__,
         map_seeds=map_seeds,
@@ -348,9 +355,10 @@ async def main(ctx, map_seeds, agent_seeds, iteration, timeout, suboptimality, i
         suboptimality=suboptimality,
         program=program,
         result_dir=result_dir,
+        pool=pool,
     )
     logger.info(args)
-    logger.info("Running with {} workers", workers)
+    logger.info("Running with {} jobs", jobs)
     # click.echo(args)
 
     kill_all_process()
