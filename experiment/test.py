@@ -1,5 +1,7 @@
 import asyncio
 import os
+import time
+
 import click
 import subprocess
 import platform
@@ -58,6 +60,7 @@ def kill_all_process():
 
 
 def run_program(full_prefix, program_args, timeout):
+    start = time.perf_counter()
     p = None
     try:
         # logger.debug(" ".join(program_args))
@@ -77,6 +80,8 @@ def run_program(full_prefix, program_args, timeout):
         p.kill()
     except:
         pass
+    end = time.perf_counter()
+    return end - start
 
 
 async def run(args: TestArguments, setup: ExperimentSetup,
@@ -165,7 +170,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if prioritized_opt:
         program_args.append("--prioritized-opt")
 
-    await asyncio.get_event_loop().run_in_executor(args.pool, run_program, full_prefix, program_args, args.timeout)
+    elapsed_seconds = await asyncio.get_event_loop().run_in_executor(args.pool, run_program, full_prefix, program_args, args.timeout)
 
     result = 1
     if init_tests:
@@ -184,8 +189,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if result == 1:
         EXPERIMENT_JOBS_COMPLETED += 1
         PBAR.update()
-        logger.info('{} completed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
-                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
+        logger.info('{} completed ({}/{}/{}) in {} seconds', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
         completed.add(full_prefix)
         completed_file = args.result_dir / "completed.csv"
         with completed_file.open("a") as f:
@@ -193,8 +198,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     else:
         EXPERIMENT_JOBS_FAILED += 1
         PBAR.update(0)
-        logger.info('{} failed ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
-                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED + 1)
+        logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED + 1, elapsed_seconds)
 
     return result
 

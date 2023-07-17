@@ -12,6 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 #include <iostream>
+#include <iomanip>
 
 struct Agent {
     unsigned int start, goal, current;

@@ -73,7 +73,7 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             for (unsigned int i = 0; i < agents.size(); i++) {
                 oss.str("");
                 oss.clear();
-                oss << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+                oss << "agent " << i << " (" << agents[i].start << "->" << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
                     oss << "(" << label.state << "," << label.nodeId << ")->";
                 }

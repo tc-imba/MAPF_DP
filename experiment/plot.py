@@ -61,6 +61,7 @@ class PlotSettings:
     plot_type: str
     subplot_type: str
     agents: int
+    k_neighbor: int
     y_field: str
     groupby: List[str]
 
@@ -242,7 +243,7 @@ class PlotSettings:
         else:
             extra = ""
         return self.args.plot_dir / \
-            f"{self.args.timing}-{self.plot_type}-{self.subplot_type}-{self.agents}-{self.y_field}{extra}.pdf"
+            f"{self.args.timing}-{self.plot_type}-{self.subplot_type}-{self.agents}-{self.k_neighbor}-{self.y_field}{extra}.pdf"
 
 
 def plot(df: pd.DataFrame, settings: PlotSettings):
@@ -371,24 +372,24 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     plt.close()
 
 
-def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int):
+def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neighbor: int):
     df = data[
         (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
                 data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") | (
                  data["simulator"] == "prioritized"))
-        & (data["agents"] == agents)]
+        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
     df2 = df[df["simulator"] != "default"]
     groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="soc", groupby=groupby, legend=True)
+                                 k_neighbor=k_neighbor, y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, legend=False)
+                                 k_neighbor=k_neighbor, y_field="time", groupby=groupby, legend=False)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="makespan_time", groupby=groupby, legend=False)
+                                 k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=False)
     plot(df, plot_settings)
 
 
@@ -455,7 +456,8 @@ def main(ctx):
     df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
     df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
     for agents in args.agents:
-        plot_simulator(args, df_discrete, agents)
+        for k_neighbor in args.k_neighbors:
+            plot_simulator(args, df_discrete, agents, k_neighbor)
         # plot_cycle(args, df_discrete, agents)
         # for obstacle in args.obstacles:
         #     plot_cdf(args, df_discrete_time, agents, obstacle)

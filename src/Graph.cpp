@@ -635,7 +635,7 @@ bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdge
         }
     }
     auto agentRadiusSum = state1.agentRadius + state2.agentRadius;
-    if (is_close_no_less_than(agentRadiusSum, distance, epsilon)) {
+    if (!is_close_no_less_than(distance, agentRadiusSum, epsilon)) {
         if (debug) {
             std::ostringstream oss;
             oss << "conflict: ";
@@ -648,7 +648,15 @@ bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdge
             if (!state2.isNode) {
                 oss << "->(" << seg2.p[1][0] << "," << seg2.p[1][1] << ")";
             }
-//            SPDLOG_DEBUG("{}", oss.str());
+            oss << " " << distance;
+            SPDLOG_DEBUG("{}", oss.str());
+//            if (state1 % 2 == 1 && state2 % 2 == 1) {
+//                auto &node1 = graph.getNode(paths[agentId1][state1 / 2]);
+//                auto &node2 = graph.getNode(paths[agentId1][state1 / 2 + 1]);
+//                auto &node3 = graph.getNode(paths[agentId2][state2 / 2]);
+//                auto &node4 = graph.getNode(paths[agentId2][state2 / 2 + 1]);
+//                SPDLOG_DEBUG("({} {}) -- ({} {}) and ({} {}) -- ({} {})", node1.x, node1.y, node2.x, node2.y, node3.x, node3.y, node4.x, node4.y);
+//            }
         }
         return true;
     }

@@ -14,6 +14,22 @@
 
 unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                                  unsigned int delayStart, unsigned int delayInterval) {
+    if (debug) {
+        std::ostringstream oss;
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            //        if (agents[i].current == agents[i].goal) continue;
+            oss.str("");
+            oss.clear();
+            oss << "agent " << i << " (" << agents[i].start << "->" << agents[i].goal << "): ";
+            for (const auto &label: solver->solution->plans[i]->path) {
+                auto &node = graph.getNode(label.nodeId);
+                oss << "(" << label.state * 2 << "," << label.nodeId << "," << node.x << "," << node.y << ")->";
+            }
+            SPDLOG_DEBUG("{}", oss.str());
+            //        nodeStates[agents[i].start] = 0;
+        }
+    }
+
     initSimulation();
     executionTimeVec.clear();
     openOutputFiles();
@@ -35,20 +51,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 
 //    std::uniform_real_distribution<double> distribution(0, 1);
 
-    if (debug) {
-        std::ostringstream oss;
-        for (unsigned int i = 0; i < agents.size(); i++) {
-//        if (agents[i].current == agents[i].goal) continue;
-            oss.str("");
-            oss.clear();
-            oss << "agent " << i << " (" << agents[i].start << "->" << agents[i].goal << "): ";
-            for (const auto &label: solver->solution->plans[i]->path) {
-                oss << "(" << label.state << "," << label.nodeId << ")->";
-            }
-            SPDLOG_DEBUG("{}", oss.str());
-            //        nodeStates[agents[i].start] = 0;
-        }
-    }
+
 
     while (currentTimestep < maxTimeStep) {
         if (outputFile.is_open()) {
@@ -1494,7 +1497,8 @@ bool ContinuousOnlineSimulator::generateUnsettledEdges() {
                         }
                         sdgData[edge1.dest.agentId][edge1.dest.state].unsettledEdgePairs.push_back(edgePair);
                         sdgData[edge2.dest.agentId][edge2.dest.state].unsettledEdgePairs.push_back(edgePair);
-                        SPDLOG_DEBUG("generate unsettled edge pair {} {} with conflict {} {}", edge1, edge2,
+                        SPDLOG_DEBUG("generate unsettled edge pair {} {} with {}-{} conflict {} {}", edge1, edge2,
+                                     state1 % 2 == 0 ? "node" : "edge", state2 % 2 == 0 ? "node" : "edge",
                                      SDGNode{agentId1, state1}, conflict);
                     } else if (invalid == 1) {
                         // edge2 is determined edge

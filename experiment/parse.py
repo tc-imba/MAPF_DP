@@ -41,7 +41,7 @@ header_names_replan = [
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
 ]
 column_names = [
-    "timing", "simulator", "obstacles", "agents",
+    "timing", "simulator", "obstacles", "agents", "k_neighbor",
     "delay_start", "delay_interval", "delay_ratio", "delay_type",
     "makespan", "soc", "total_time", "makespan_time", "feasibility", "cycle",
     "execution_time", "first_agent_arriving",
@@ -228,6 +228,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         "simulator": setup.simulator,
         "obstacles": setup.obstacles,
         "agents": setup.agents,
+        "k_neighbor": setup.k_neighbor,
         "delay_start": setup.delay_start,
         "delay_interval": setup.delay_interval,
         "delay_ratio": setup.delay_ratio,
@@ -319,6 +320,7 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
         args.delay_ratios
     ))
     for case in tqdm(cases):
+        logger.info("Parse {}", case)
         delay_type, obstacles, agents, k_neighbor, delay_interval, delay_ratio = case
         simulator_feasibility_cycle = []
         for simulator in args.simulators:
@@ -367,8 +369,10 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
         #     continue
 
         parsed_labels = list(raw_dfs.keys())
-        logger.debug(parsed_labels)
+        # logger.debug(parsed_labels)
         # print(parsed_labels)
+        if len(parsed_labels) == 0:
+            continue
 
         base_df = raw_dfs[parsed_labels[0]]
         for label in parsed_labels[1:]:

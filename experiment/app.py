@@ -25,9 +25,9 @@ class AppArguments:
 
 def experiment_base_options(f):
     @click.option("--obstacles", type=str, default="90,180,270", callback=validate_list(int))
-    @click.option("--agents", type=str, default="10", callback=validate_list(int))
+    @click.option("--agents", type=str, default="10,20", callback=validate_list(int))
     @click.option("--simulators", type=str, default="online,default", callback=validate_list(str))
-    @click.option("--k-neighbors", type=str, default="2", callback=validate_list(int))
+    @click.option("--k-neighbors", type=str, default="2,3", callback=validate_list(int))
     @click.option("--delay-types", type=str, default="agent", callback=validate_list(str))
     @click.option("--delay-ratios", type=str, default="0.1", callback=validate_list(float))
     @click.option("--delay-intervals", type=str, default="0,1,10,20", callback=validate_list(int))

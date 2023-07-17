@@ -248,7 +248,8 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
         if (outputFile.is_open()) {
             for (unsigned int i = 0; i < agents.size(); i++) {
                 auto &node = graph.getNode(agents[i].current);
-                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "node" : "edge") << std::endl;
+                auto delayed = delayedSet.find(i) != delayedSet.end();
+                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "blocked" : "unblocked") << " " << (delayed ? "delayed" : "immediate") << std::endl;
             }
         }
 
