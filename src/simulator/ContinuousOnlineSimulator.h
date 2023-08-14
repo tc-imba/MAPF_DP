@@ -7,84 +7,20 @@
 
 #include "ContinuousSimulator.h"
 #include "OnlineSimulator.h"
+#include "../dependency_graph/NodeEdgeDependencyGraph.h"
 
 class ContinuousOnlineSimulator : public ContinuousSimulator, public OnlineSimulator {
+protected:
+    std::set<NodeEdgeDependencyGraph::SDGEdge> cycleCheckAddedEdges;
+    NodeEdgeDependencyGraph depGraph;
+
 public:
-    ContinuousOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
+    bool snapshot = false;
+
+    ContinuousOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed), depGraph(graph, agents, paths, firstAgentArrivingTimestep) {}
 
     unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
                  unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
-
-
-private:
-    struct SDGNode {
-        size_t agentId;
-        unsigned int state;
-    };
-
-    friend bool operator<(const SDGNode& lhs, const SDGNode& rhs) {
-        if (lhs.agentId == rhs.agentId) return lhs.state < rhs.state;
-        return lhs.agentId < rhs.agentId;
-    }
-
-    friend bool operator==(const SDGNode& lhs, const SDGNode& rhs) {
-        return lhs.agentId == rhs.agentId && lhs.state == rhs.state;
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const SDGNode& node) {
-        return out << "(" << node.agentId << "," << node.state << ")";
-    }
-
-    struct SDGEdge {
-        SDGNode source, dest;
-    };
-
-    friend bool operator<(const SDGEdge& lhs, const SDGEdge& rhs) {
-        return lhs.source == rhs.source ? lhs.dest < rhs.dest : lhs.source < rhs.source;
-    }
-
-    friend bool operator==(const SDGEdge& lhs, const SDGEdge& rhs) {
-        return lhs.source == rhs.source && lhs.dest == rhs.dest;
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const SDGEdge& edge) {
-        return out << edge.source << "->" << edge.dest;
-    }
-
-    typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
-
-    // each SDGNode has a corresponding SDGData
-    struct SDGData {
-        // conflicts between the current SDGNode and other SDGNodes
-        std::vector<SDGNode> conflicts;
-        // determined edges from these SDGNodes (sources) to the current SDGNode (destination)
-        // this recording direction is designed for unnecessary blocking
-        std::vector<SDGNode> determinedEdgeSources;
-        // contain unsettled edges from the current SDGNode (source) to some other SDGNodes (destination)
-        std::vector<SDGEdgePair> unsettledEdgePairs;
-    };
-
-    std::vector<std::vector<SDGData>> sdgData;
-    std::set<SDGEdgePair> unsettledEdgePairsSet;
-    std::vector<SharedNodePair> sharedStates;
-    std::set<SDGEdge> cycleCheckAddedEdges;
-
-//    unsigned int getNextNodeState(unsigned int state) const { return (state / 2 + 1) * 2; }
-
-    std::pair<unsigned int, unsigned int> getTopoEdgeBySDGEdge(const SDGEdge &edge) const {
-        return std::make_pair(pathTopoNodeIds[edge.source.agentId][edge.source.state],
-                              pathTopoNodeIds[edge.dest.agentId][edge.dest.state]);
-    };
-
-    bool isEdgeInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
-
-    void initSharedNodes(size_t i, size_t j);
-
-    Graph::NodeEdgeState getNodeEdgeState(size_t agentId, unsigned int state);
-
-    void initSharedStates(size_t agentId1, size_t agentId2);
-
-    std::vector<ContinuousOnlineSimulator::SDGEdge> updateSharedNode(size_t agentId, unsigned int state, bool dryRun = false);
 
     void initSimulation();
 
@@ -109,20 +45,7 @@ private:
 
     void cycleCheck();
 
-    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
-
-    std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<SDGEdgePair> &sharedNodesList,
-            bool recursive
-//            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
-    );
-
-    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
-
     std::pair<size_t, size_t> feasibilityCheck();
-
-    bool generateUnsettledEdges();
-
 
 };
 

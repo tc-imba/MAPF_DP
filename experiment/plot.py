@@ -33,6 +33,8 @@ LINE_MARKERS = ["o", "s", "^", "+"]
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
 plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['text.usetex'] = True
+
 
 def format_log(x, pos=None):
     x = float(x)
@@ -142,9 +144,11 @@ class PlotSettings:
             elif simulator == "replan":
                 label = f"replan-{subplot_key}"
             elif simulator == "pibt":
-                label = f"pibt-{subplot_key}"
+                label = f"causal-pibt+-{subplot_key}"
             elif simulator == "prioritized":
                 label = f"prioritized-{subplot_key}"
+            elif simulator == "snapshot":
+                label = f"snapshot-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -155,7 +159,10 @@ class PlotSettings:
         else:
             (simulator, subplot_key) = indexes
             subplot_key = self.get_subplot_key(subplot_key)
-            label = f"{simulator}-{subplot_key}"
+            if simulator == "pibt":
+                label = f"causal-pibt+-{subplot_key}"
+            else:
+                label = f"{simulator}-{subplot_key}"
 
         if self.subplot_type == "delay-ratio":
             label += "-obstacles"
@@ -189,6 +196,8 @@ class PlotSettings:
             linestyle = "-"
         else:
             assert False
+
+        label = f"\\texttt{{{label}}}"
 
         return LineSettings(simulator=simulator, label=label, linestyle=linestyle)
 
@@ -333,7 +342,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         elif settings.subplot_type == "delay-interval":
             ax.set_title(f"k = {int(key)}")
         elif settings.subplot_type == "obstacles":
-            ax.set_title(f"{int(key)} obstacles")
+            ax.set_title(f"{int(key / 9)}\\% obstacles")
         if settings.y_log:
             ax.set_yscale("log")
             # ax.set_ylim(bottom=1)
@@ -376,7 +385,7 @@ def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neigh
     df = data[
         (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
                 data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") | (
-                 data["simulator"] == "prioritized"))
+                 data["simulator"] == "prioritized") | (data["simulator"] == "snapshot"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
     df2 = df[df["simulator"] != "default"]
     groupby = ["simulator", "cycle", "delay_ratio"]
@@ -400,10 +409,10 @@ def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot_type = "replan"
     subplot_type = "delay-ratio"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="soc", groupby=groupby, legend=True)
+                                 y_field="soc", groupby=groupby, k_neighbor=2, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, legend=True)
+                                 y_field="time", groupby=groupby, k_neighbor=2, legend=True)
     plot(df, plot_settings)
 
 
@@ -413,13 +422,13 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot_type = "cycle"
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="soc", groupby=groupby, legend=True)
+                                 y_field="soc", groupby=groupby, k_neighbor=2, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, legend=False)
+                                 y_field="time", groupby=groupby, k_neighbor=2, legend=False)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="makespan_time", groupby=groupby, legend=False)
+                                 y_field="makespan_time", groupby=groupby, k_neighbor=2, legend=False)
     plot(df, plot_settings)
 
 
@@ -429,7 +438,7 @@ def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: in
     plot_type = "cdf"
     subplot_type = "delay-interval"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="cdf", groupby=groupby, legend=True, extra=str(obstacles))
+                                 y_field="cdf", groupby=groupby, k_neighbor=2, legend=True, extra=str(obstacles))
     plot(df, plot_settings)
 
 
@@ -455,14 +464,23 @@ def main(ctx):
 
     df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
     df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
+
+    if args.timing == "discrete":
+        df_discrete["k_neighbor"] = 2
+        for agents in args.agents:
+            # plot_simulator(args, df_discrete, agents, k_neighbor=2)
+            # plot_cycle(args, df_discrete, agents)
+            for obstacle in args.obstacles:
+                plot_cdf(args, df_discrete_time, agents, obstacle)
+            # plot_replan(args, df_discrete, agents)
+    else:
+        for agents in args.agents:
+            for k_neighbor in args.k_neighbors:
+                plot_simulator(args, df_discrete, agents, k_neighbor)
+
     for agents in args.agents:
         for k_neighbor in args.k_neighbors:
             plot_simulator(args, df_discrete, agents, k_neighbor)
-        # plot_cycle(args, df_discrete, agents)
-        # for obstacle in args.obstacles:
-        #     plot_cdf(args, df_discrete_time, agents, obstacle)
-        #     # plot_replan_pdf(args, df_discrete_time, agents, delay_interval)
-        # plot_replan(args, df_discrete, agents)
 
 
 if __name__ == '__main__':

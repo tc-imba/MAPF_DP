@@ -28,9 +28,11 @@ add_definitions("-D SPDLOG_ACTIVE_LEVEL=1")
 set(CMAKE_CXX_STANDARD 17)
 file(GLOB SIMULATOR_SOURCE_FILES "src/simulator/*.cpp")
 file(GLOB SOLVER_SOURCE_FILES "src/solver/*.cpp")
+file(GLOB DEPENDENCY_GRAPH_SOURCE_FILES "src/dependency_graph/*.cpp")
 set(SOURCE_FILES
         ${SIMULATOR_SOURCE_FILES}
         ${SOLVER_SOURCE_FILES}
+        ${DEPENDENCY_GRAPH_SOURCE_FILES}
         src/Graph.cpp
         Continuous-CBS/tinyxml2.cpp
 )

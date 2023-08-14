@@ -59,14 +59,14 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 1, 0, "Task file", "--task-file");
     optionParser.add("", false, 1, 0, "Log file", "--log-file");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
-    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt)", "--simulator");
+    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt / snapshot)", "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
     optionParser.add("node-node,edge-edge,node-edge", false, 1, 0, "Conflict types", "--conflicts");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "--simulator-output");
     optionParser.add("", false, 1, 0, "Time Output Filename", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
-    optionParser.add("eecbs", false, 1, 0, "Solver (default / separate / eecbs / ccbs", "--solver");
+    optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs", "--solver");
     optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
@@ -376,9 +376,13 @@ int main(int argc, const char *argv[]) {
                     }
                 }
             }
-        } else if (simulatorType == "online") {
+        } else if (simulatorType == "online" || simulatorType == "snapshot") {
             if (timingType == "continuous") {
                 simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
+                if (simulatorType == "snapshot") {
+                    auto continuousOnlineSimulator = std::dynamic_pointer_cast<ContinuousOnlineSimulator>(simulator);
+                    continuousOnlineSimulator->snapshot = true;
+                }
             } else {
                 simulator = std::make_unique<DiscreteOnlineSimulator>(graph, agents, i);
             }

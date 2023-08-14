@@ -10,12 +10,18 @@
 
 
 class DiscreteOnlineSimulator : public DiscreteSimulator, public OnlineSimulator {
+protected:
+    std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
+    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
+
+    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
+    Graph::topo_graph_t topoGraph;
+
 public:
-    DiscreteOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) :
-            Simulator(graph, agents, seed) {}
+    DiscreteOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
 
     unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
-                 unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
+                          unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
 private:
     void initSharedNodes(size_t i, size_t j);
@@ -46,14 +52,13 @@ private:
     std::pair<size_t, size_t> feasibilityCheckHelper(
             std::list<SharedNodePair> &sharedNodesList,
             bool recursive
-//            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
+            //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
     );
 
     std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
 
     std::pair<size_t, size_t> feasibilityCheck();
-
 };
 
 
-#endif //MAPF_DP_DISCRETEONLINESIMULATOR_H
+#endif//MAPF_DP_DISCRETEONLINESIMULATOR_H

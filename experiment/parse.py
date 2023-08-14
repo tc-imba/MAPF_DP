@@ -78,9 +78,8 @@ def get_confidence_interval(data):
 def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.DataFrame]:
     output_prefix = setup.get_output_prefix()
     output_file = args.result_dir / f"{output_prefix}.csv"
-    # click.echo(output_file)
     try:
-        if setup.simulator == "online":
+        if setup.simulator in ("online", "snapshot"):
             header_names = header_names_base + header_names_online
         elif setup.simulator in ("default", "replan", "prioritized", "prioritized_opt"):
             header_names = header_names_base + header_names_replan

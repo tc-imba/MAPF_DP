@@ -361,7 +361,7 @@ async def do_tests(args: TestArguments):
 @click.option("--map-seeds", type=int, default=10)
 @click.option("--agent-seeds", type=int, default=10)
 @click.option("--iteration", type=int, default=10)
-@click.option("-t", "--timeout", type=int, default=600)
+@click.option("-t", "--timeout", type=int, default=10)
 @click.option("--suboptimality", type=float, default=1)
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
 @click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count)

@@ -650,13 +650,13 @@ bool Graph::isConflict(const Graph::NodeEdgeState &state1, const Graph::NodeEdge
             }
             oss << " " << distance;
             SPDLOG_DEBUG("{}", oss.str());
-//            if (state1 % 2 == 1 && state2 % 2 == 1) {
-//                auto &node1 = graph.getNode(paths[agentId1][state1 / 2]);
-//                auto &node2 = graph.getNode(paths[agentId1][state1 / 2 + 1]);
-//                auto &node3 = graph.getNode(paths[agentId2][state2 / 2]);
-//                auto &node4 = graph.getNode(paths[agentId2][state2 / 2 + 1]);
-//                SPDLOG_DEBUG("({} {}) -- ({} {}) and ({} {}) -- ({} {})", node1.x, node1.y, node2.x, node2.y, node3.x, node3.y, node4.x, node4.y);
-//            }
+            //            if (state1 % 2 == 1 && state2 % 2 == 1) {
+            //                auto &node1 = graph.getNode(paths[agentId1][state1 / 2]);
+            //                auto &node2 = graph.getNode(paths[agentId1][state1 / 2 + 1]);
+            //                auto &node3 = graph.getNode(paths[agentId2][state2 / 2]);
+            //                auto &node4 = graph.getNode(paths[agentId2][state2 / 2 + 1]);
+            //                SPDLOG_DEBUG("({} {}) -- ({} {}) and ({} {}) -- ({} {})", node1.x, node1.y, node2.x, node2.y, node3.x, node3.y, node4.x, node4.y);
+            //            }
         }
         return true;
     }

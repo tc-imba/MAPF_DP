@@ -42,16 +42,8 @@ protected:
     };
 
     std::vector<std::vector<unsigned int>> paths;
-    std::vector<std::vector<std::pair<size_t, unsigned int> > > deadEndStates;
-    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
-
-    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
-    Graph::topo_graph_t topoGraph;
-
     std::unordered_map<size_t, size_t> nodeAgentMap;
     std::set<size_t> blocked, unblocked, moved, ready, unshared, keepMoving;
-
-
 };
 
 

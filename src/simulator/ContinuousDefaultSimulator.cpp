@@ -7,12 +7,12 @@
 #include <random>
 
 unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
-                               unsigned int delayStart, unsigned int delayInterval) {
-//    if (!success) return true;
+                                                  unsigned int delayStart, unsigned int delayInterval) {
+    //    if (!success) return true;
     std::unordered_map<unsigned int, std::vector<std::pair<unsigned int, unsigned int>>> nodes;
-//    std::vector<unsigned int> agentStates(agents.size(), 0);
+    //    std::vector<unsigned int> agentStates(agents.size(), 0);
     std::unordered_map<unsigned int, int> nodeStates;
-    std::vector<unsigned int> savedStart(agents.size());
+//    std::vector<unsigned int> savedStart(agents.size());
 
     initDelayedIntervals();
     openOutputFiles();
@@ -21,12 +21,17 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
         agents[i].state = 0;
         agents[i].blocked = true;
         agents[i].delayed = false;
-        savedStart[i] = agents[i].current = agents[i].start;
+//        savedStart[i] = agents[i].current = agents[i].start;
     }
+
+//    depGraph.solver = solver;
+//    depGraph.init();
+//    depGraph.feasibilityCheckTest(false, true);
+//    depGraph.addSavedEdges();
 
     bool refresh = true;
 
-/*    for (const auto &node: nodes) {
+    /*    for (const auto &node: nodes) {
         nodeStates[node.first] = 0;
         if (debug) {
             std::cout << node.first << " ";
@@ -49,8 +54,8 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
     }*/
 
 
-//    std::mt19937 generator(seed);
-//    std::uniform_real_distribution<double> distribution(0, 1);
+    //    std::mt19937 generator(seed);
+    //    std::uniform_real_distribution<double> distribution(0, 1);
 
     if (outputFile.is_open()) {
         outputFile << 0 << std::endl;
@@ -98,12 +103,12 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             }
         }
 
-/*        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
+        /*        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
             updateDelayedSet(currentTimestep);
 //            delayedSet.clear();
         }*/
 
-/*        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
+        /*        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
             updateDelayedSet(currentTimestep, pauseTimestep == 0);
         }
 
@@ -125,7 +130,8 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                     }
                     ++nodeStates[label.nodeId];
                     ++state;
-                } else break;
+                } else
+                    break;
             }
         }
 
@@ -150,7 +156,7 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                 if (debug) {
                     printAgent(i, "");
                 }
-//                nodeAgentMap.erase(currentNodeId);
+                //                nodeAgentMap.erase(currentNodeId);
                 agents[i].current = nextNodeId;
                 agents[i].timestep = agents[i].arrivingTimestep;
                 agents[i].blocked = true;
@@ -173,13 +179,12 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                         exit(-1);
                     }
                 }
-
             }
         }
         currentTimestep = newCurrentTimestep;
         SPDLOG_DEBUG("expanded timestep {}", currentTimestep);
 
-/*        for (unsigned int i = 0; i < agents.size(); i++) {
+        /*        for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
             if (state + 1 >= solver->solution->plans[i]->path.size()) {
                 if (debug) {
@@ -250,6 +255,29 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
 
             if (agents[i].blocked) {
+                /*Graph::NodeEdgeState state1{false, sqrt(2) / 4, label.nodeId, nextLabel.nodeId};
+                bool conflicted = false;
+                for (unsigned int j = 0; j < agents.size(); j++) {
+                    if (i == j) continue;
+                    Graph::NodeEdgeState state2;
+                    if (agents[j].blocked) {
+                        state2 = Graph::NodeEdgeState{true, sqrt(2) / 4, solver->solution->plans[j]->path[agents[j].state].nodeId, 0};
+                    } else {
+                        state2 = Graph::NodeEdgeState{false, sqrt(2) / 4, solver->solution->plans[j]->path[agents[j].state].nodeId, solver->solution->plans[j]->path[agents[j].state + 1].nodeId};
+                    }
+                    SPDLOG_DEBUG("{} {} {} {}", state1.srcNodeId, state1.destNodeId, state2.srcNodeId, state2.destNodeId);
+                    if (graph.isConflict(state1, state2)) {
+                        conflicted = true;
+                        break;
+                    }
+                }
+                if (conflicted) {
+                    if (debug) {
+                        printAgent(i, "blocked");
+                    }
+                    agents[i].delayed = false;
+                    continue;
+                }*/
                 // blocked -> unblocked
                 agents[i].blocked = false;
                 agents[i].arrivingTimestep = getAgentArrivingTime(currentTimestep, delayInterval, i, edge);
@@ -260,7 +288,10 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             } else {
                 // already unblocked, do nothing
             }
-/*            // delay by agent
+            if (debug) {
+                printAgent(i, "unblocked");
+            }
+            /*            // delay by agent
             if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by agent"
@@ -283,7 +314,7 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                 continue;
             }*/
 
-/*            if (label.nodeId != nextLabel.nodeId) {
+            /*            if (label.nodeId != nextLabel.nodeId) {
 //                auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
                 auto waitingTimestep = 1;
 //                auto waitingTimestep = (unsigned int) floor(10.0 * (edge.dp - 0.5) + 2);
@@ -302,16 +333,13 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                     continue;
                 }
             }*/
-/*            if (outputFile.is_open()) {
+            /*            if (outputFile.is_open()) {
                 auto &node = graph.getNode(nextLabel.nodeId);
                 outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
             }*/
-            if (debug) {
-                printAgent(i, "unblocked");
-            }
 
 
-/*            agents[i].blocked = true;
+            /*            agents[i].blocked = true;
             agents[i].delayed = false;
             agents[i].current = nextLabel.nodeId;
 //            agents[i].waitingTimestep = 0;
@@ -324,19 +352,18 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                 }
                 ++count;
             }*/
-
         }
 
         if (count >= agents.size()) {
             break;
         }
 
-//        std::cout << count << std::endl;
+        //        std::cout << count << std::endl;
 
         advanceTimestep(currentTimestep);
 
         if (replanMode) {
-//            std::cout << "replan: " << currentTimestep << std::endl;
+            //            std::cout << "replan: " << currentTimestep << std::endl;
             auto currentExecutionTime = replan();
             if (currentExecutionTime < 0) {
                 currentTimestep = maxTimeStep + 100;
@@ -351,9 +378,9 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
         }
     }
 
-//    std::cout << "window " << window << ": " << averageMakeSpan() << std::endl;
+    //    std::cout << "window " << window << ": " << averageMakeSpan() << std::endl;
 
-/*    bool unfinish = false;
+    /*    bool unfinish = false;
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (agents[i].current != agents[i].goal) {
             unfinish = true;
@@ -362,9 +389,9 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
         }
     }*/
 
-    for (unsigned int i = 0; i < agents.size(); i++) {
+/*    for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].start = savedStart[i];
-    }
+    }*/
 
     closeOutputFiles();
 

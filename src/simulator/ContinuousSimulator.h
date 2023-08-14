@@ -8,7 +8,6 @@
 #include "Simulator.h"
 
 class ContinuousSimulator : virtual public Simulator {
-
 };
 
 
