@@ -161,6 +161,10 @@ class PlotSettings:
             subplot_key = self.get_subplot_key(subplot_key)
             if simulator == "pibt":
                 label = f"causal-pibt+-{subplot_key}"
+            elif simulator == "default":
+                label = f"baseline-{subplot_key}"
+            elif simulator == "online":
+                label = f"proposed-{subplot_key}"
             else:
                 label = f"{simulator}-{subplot_key}"
 

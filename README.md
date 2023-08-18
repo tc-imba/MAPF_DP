@@ -99,16 +99,16 @@ Note that the executable `cmake-build-relwithdebinfo/MAPF_DP` must be compiled f
 
 ```bash
 # run the tests
-$ python3 experiments/test.py
+$ python3 experiments/test.py --timing discrete
 # parse the results
-$ python3 experiments/parse.py
+$ python3 experiments/parse.py --timing discrete
 # parse the results of the exhaustive vs. heuristic feasibility 
-$ python3 experiments/parse.py --category -o feasibility_category   
+$ python3 experiments/parse.py --timing discrete --category -o feasibility_category   
 # plot the figures
-$ python3 experiments/table.py  
+$ python3 experiments/plot.py --timing discrete
 ```
 
 ## Algorithms
 
-+ Algorithm 1: the function `feasibilityCheckHelper` in `src/OnlineSimulator.cpp`
-+ Algorithm 2: the framework is in the function `simulate` in `src/OnlineSimulator.cpp`, the detailed implementation of line 12-23 is in the function `heuristicCycleCheck` in the same file.
++ Algorithm 1: the function `feasibilityCheckHelper` in `src/simulator/DiscreteOnlineSimulator.cpp`
++ Algorithm 2: the framework is in the function `simulate` in `src/simulator/DiscreteOnlineSimulator.cpp`, the detailed implementation of line 12-23 is in the function `heuristicCycleCheck` in the same file.
