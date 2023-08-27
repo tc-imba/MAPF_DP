@@ -21,14 +21,12 @@ import scipy.integrate
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 
-
-#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 # rc('font',**{'family':'serif','serif':['Times']})
 # rc('text', useTex=False)
 
 LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129"]
 LINE_MARKERS = ["o", "s", "^", "+"]
-
 
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
@@ -148,7 +146,11 @@ class PlotSettings:
             elif simulator == "prioritized":
                 label = f"prioritized-{subplot_key}"
             elif simulator == "snapshot":
-                label = f"snapshot-{subplot_key}"
+                label = f"snapshot-none-{subplot_key}"
+            elif simulator == "snapshot_start":
+                label = f"snapshot-start-{subplot_key}"
+            elif simulator == "snapshot_end":
+                label = f"snapshot-end-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -387,9 +389,10 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 
 def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neighbor: int):
     df = data[
-        (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) | (
-                data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") | (
-                 data["simulator"] == "prioritized") | (data["simulator"] == "snapshot"))
+        (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
+         (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
+         (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
+         (data["simulator"] == "snapshot_start") | (data["simulator"] == "snapshot_end"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
     df2 = df[df["simulator"] != "default"]
     groupby = ["simulator", "cycle", "delay_ratio"]
@@ -481,10 +484,6 @@ def main(ctx):
         for agents in args.agents:
             for k_neighbor in args.k_neighbors:
                 plot_simulator(args, df_discrete, agents, k_neighbor)
-
-    for agents in args.agents:
-        for k_neighbor in args.k_neighbors:
-            plot_simulator(args, df_discrete, agents, k_neighbor)
 
 
 if __name__ == '__main__':

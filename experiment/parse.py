@@ -79,13 +79,15 @@ def parse_raw_csv(args: ParseArguments, setup: ExperimentSetup) -> Optional[pd.D
     output_prefix = setup.get_output_prefix()
     output_file = args.result_dir / f"{output_prefix}.csv"
     try:
-        if setup.simulator in ("online", "snapshot"):
+        if setup.simulator in ("online", "snapshot", "snapshot_start", "snapshot_end"):
             header_names = header_names_base + header_names_online
         elif setup.simulator in ("default", "replan", "prioritized", "prioritized_opt"):
             header_names = header_names_base + header_names_replan
         else:
             header_names = header_names_base
         df = pd.read_csv(output_file, header=None, names=header_names)
+        # print(output_file)
+        # print(df)
         df.sort_values(by=['map', 'agent', 'iteration'], inplace=True)
         # df.to_csv(args.result_dir / "parsed" / output_file, index=False)
         if len(df) > 0 and setup.simulator == "online":

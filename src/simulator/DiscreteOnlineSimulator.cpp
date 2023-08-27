@@ -17,12 +17,13 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
     initSimulation();
     executionTimeVec.clear();
     openOutputFiles();
+    std::vector<std::string> agentOutputStates(agents.size());
 
     if (outputFile.is_open()) {
         outputFile << 0 << std::endl;
         for (unsigned int i = 0; i < agents.size(); i++) {
             outputFile << i << " " << graph.getNode(paths[i][0]).index << " "
-                       << "node" << std::endl;
+                       << "node" << " " << "block" << std::endl;
         }
     }
 
@@ -201,12 +202,14 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
                 }
+                agentOutputStates[i] = "complete";
                 agents[i].blocked = true;
                 ++count;
             } else if (blocked.find(i) != blocked.end()) {
                 if (debug) {
                     std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") blocked" << std::endl;
                 }
+                agentOutputStates[i] = "block";
                 agents[i].blocked = true;
                 agents[i].timestep = currentTimestep;
             } else if (unblocked.find(i) != unblocked.end()) {
@@ -226,6 +229,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by agent"
                                   << std::endl;
                     }
+                    agentOutputStates[i] = "delay";
                     agents[i].blocked = false;
                     nodeAgentMap[nextNodeId] = i;
                 } else if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
@@ -233,6 +237,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by edge"
                                   << std::endl;
                     }
+                    agentOutputStates[i] = "delay";
                     agents[i].blocked = false;
                     nodeAgentMap[nextNodeId] = i;
                 } else {
@@ -253,6 +258,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                         std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
                                   << state + 1 << "," << nextNodeId << ")" << std::endl;
                     }
+                    agentOutputStates[i] = "move";
                     agents[i].blocked = true;
                     unblocked.erase(i);
                     moved.insert(i);
@@ -278,7 +284,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
             if (outputFile.is_open()) {
                 auto &node = graph.getNode(paths[i][state]);
                 auto delayed = delayedSet.find(i) != delayedSet.end();
-                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "blocked" : "unblocked") << " " << (delayed ? "delayed" : "immediate") << std::endl;
+                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "node" : "edge") << " " << agentOutputStates[i] << std::endl;
             }
         }
 

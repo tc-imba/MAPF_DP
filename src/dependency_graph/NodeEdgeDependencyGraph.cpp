@@ -7,6 +7,8 @@
 void NodeEdgeDependencyGraph::init() {
     paths.clear();
     paths.resize(agents.size());
+    timestamps.clear();
+    timestamps.resize(agents.size());
     deadEndStates.clear();
     deadEndStates.resize(agents.size());
     pathTopoNodeIds.clear();
@@ -18,8 +20,11 @@ void NodeEdgeDependencyGraph::init() {
     for (size_t i = 0; i < agents.size(); i++) {
         for (size_t j = 0; j < solver->solution->plans[i]->path.size(); j++) {
             auto newNodeId = solver->solution->plans[i]->path[j].nodeId;
+            auto newNodeTimestamp = solver->solution->plans[i]->path[j].estimatedTime;
+            SPDLOG_INFO("{} {} {} {}", i , j, newNodeId, newNodeTimestamp);
             if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
+                timestamps[i].emplace_back(newNodeTimestamp);
                 if (!pathTopoNodeIds[i].empty()) {
                     // add an edge state to topo graph
                     pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
@@ -460,15 +465,27 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
         if (erasedEdges == 0 && !unsettledEdgePairs.empty()) {
             /** line 11 **/
             auto it = unsettledEdgePairs.begin();
-            auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(it->first);
+
+            auto edge1 = it->first;
+            auto edge2 = it->second;
+            if (snapshotOrder == "start") {
+                orderEdgesByStart(edge1, edge2);
+            } else if (snapshotOrder == "end") {
+                orderEdgesByEnd(edge1, edge2);
+            } else if (snapshotOrder == "collision") {
+                orderEdgesByCollision(edge1, edge2);
+            }
+
+
+            auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge1);
 
             /** line 12 **/
             // TODO: add randomness here
             bool randomEdgeSelected = !isEdgeInTopoGraph(nodeId1, nodeId2);
             if (randomEdgeSelected) {
-                addedEdges.emplace_back(it->first);
+                addedEdges.emplace_back(edge1);
                 boost::add_edge(nodeId1, nodeId2, topoGraph);
-                SPDLOG_DEBUG("temporarily traverse unsettled edge pair: {} {} -> {}", it->first, it->second, it->first);
+                SPDLOG_DEBUG("temporarily traverse unsettled edge pair: {} {} -> {}", edge1, edge2, edge1);
             }
 
 
@@ -485,7 +502,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 }
                 if (randomEdgeSelected) {
                     boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                    SPDLOG_DEBUG("temporarily remove settled edge: {}", it->first);
+                    SPDLOG_DEBUG("temporarily remove settled edge: {}", edge1);
                     addedEdges.pop_back();
                 }
 
@@ -501,12 +518,11 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                     return result;
                 }
 
-                auto [nodeId3, nodeId4] = getTopoEdgeBySDGEdge(it->second);
+                auto [nodeId3, nodeId4] = getTopoEdgeBySDGEdge(edge2);
                 if (!isEdgeInTopoGraph(nodeId3, nodeId4)) {
-                    addedEdges.emplace_back(it->second);
+                    addedEdges.emplace_back(edge2);
                     boost::add_edge(nodeId3, nodeId4, topoGraph);
-                    SPDLOG_DEBUG("temporarily traverse unsettled edge pair: {} {} -> {}", it->first, it->second,
-                                 it->second);
+                    SPDLOG_DEBUG("temporarily traverse unsettled edge pair: {} {} -> {}", edge1, edge2, edge2);
                 }
             }
             //            std::cout << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
@@ -679,4 +695,21 @@ void NodeEdgeDependencyGraph::addSavedEdges() {
         boost::add_edge(_nodeId1, _nodeId2, topoGraph);
         SPDLOG_DEBUG("add saved settled edge: {}", edge);
     }
+}
+
+
+void NodeEdgeDependencyGraph::orderEdgesByStart(SDGEdge &edge1, SDGEdge &edge2) {
+    auto time1 = timestamps[edge1.source.agentId][edge1.source.state / 2];
+    auto time2 = timestamps[edge2.source.agentId][edge2.source.state / 2];
+    if (time1 > time2) std::swap(edge1, edge2);
+}
+
+void NodeEdgeDependencyGraph::orderEdgesByEnd(SDGEdge &edge1, SDGEdge &edge2) {
+    auto time1 = timestamps[edge1.source.agentId][(edge1.source.state / 2 + 1 < timestamps[edge1.source.agentId].size()) ? (edge1.source.state / 2 + 1) : (edge1.source.state / 2)];
+    auto time2 = timestamps[edge2.source.agentId][(edge2.source.state / 2 + 1 < timestamps[edge2.source.agentId].size()) ? (edge2.source.state / 2 + 1) : (edge2.source.state / 2)];
+    if (time1 > time2) std::swap(edge1, edge2);
+}
+
+void NodeEdgeDependencyGraph::orderEdgesByCollision(SDGEdge &edge1, SDGEdge &edge2) {
+
 }

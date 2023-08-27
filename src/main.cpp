@@ -68,6 +68,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs", "--solver");
     optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
+    optionParser.add("none", false, 1, 0, "(none, start, end, collision)", "--snapshot-order");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit, deprecated)", "-w", "--window", validWindowSize);
@@ -110,6 +111,8 @@ int main(int argc, const char *argv[]) {
     auto validSuboptimality = new ez::ezOptionValidator("d", "ge", "1");
     optionParser.add("1", false, 1, 0, "Suboptimality of CBS", "--suboptimality", validSuboptimality);
 
+    auto validMaxTimestep = new ez::ezOptionValidator("u4", "ge", "0");
+    optionParser.add("300", false, 1, 0, "Max Timestep", "--max-timestep", validMaxTimestep);
 
     optionParser.parse(argc, argv);
     if (optionParser.isSet("-h")) {
@@ -119,8 +122,8 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, timingType, conflictTypes, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile;
-    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
+    std::string mapType, objective, simulatorType, timingType, conflictTypes, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
+    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
@@ -137,6 +140,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--time-output")->getString(timeOutputFileName);
     optionParser.get("--solver")->getString(solverType);
     optionParser.get("--solver-binary")->getString(solverBinaryFile);
+    optionParser.get("--snapshot-order")->getString(snapshotOrder);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
@@ -152,6 +156,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--delay-start")->getLong(delayStart);
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
     optionParser.get("--suboptimality")->getDouble(suboptimality);
+    optionParser.get("--max-timestep")->getULong(maxTimestep);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
@@ -382,6 +387,7 @@ int main(int argc, const char *argv[]) {
                 if (simulatorType == "snapshot") {
                     auto continuousOnlineSimulator = std::dynamic_pointer_cast<ContinuousOnlineSimulator>(simulator);
                     continuousOnlineSimulator->snapshot = true;
+                    continuousOnlineSimulator->snapshotOrder = snapshotOrder;
                 }
             } else {
                 simulator = std::make_unique<DiscreteOnlineSimulator>(graph, agents, i);
@@ -425,7 +431,6 @@ int main(int argc, const char *argv[]) {
         }*/
 
         double currentTimestep = 1;
-        const int maxTimestep = 300;
 
 #ifdef DEBUG_CYCLE
         simulator->debug = true;

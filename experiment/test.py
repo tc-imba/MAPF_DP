@@ -128,11 +128,20 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     simulator = setup.simulator
     prioritized_replan = False
     prioritized_opt = False
+    snapshot_order = "none"
     if setup.simulator.startswith("prioritized"):
         simulator = "replan"
         prioritized_replan = True
         if setup.simulator == "prioritized_opt":
             prioritized_opt = True
+    elif setup.simulator.startswith("snapshot"):
+        simulator = "snapshot"
+        if setup.simulator == "snapshot_start":
+            snapshot_order = "start"
+        elif setup.simulator == "snapshot_end":
+            snapshot_order = "end"
+        elif setup.simulator == "snapshot_collision":
+            snapshot_order = "collision"
 
     program_args = [
         args.program.as_posix(),
@@ -154,6 +163,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         "--output", output_file.as_posix(),
         "--time-output", output_time_file.as_posix(),
         "--suboptimality", str(args.suboptimality),
+        "--snapshot-order", snapshot_order,
     ]
     if map_type == "hardcoded":
         program_args.append("--all")
@@ -170,6 +180,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     if prioritized_opt:
         program_args.append("--prioritized-opt")
 
+    # print(" ".join(program_args))
     elapsed_seconds = await asyncio.get_event_loop().run_in_executor(args.pool, run_program, full_prefix, program_args, args.timeout)
 
     result = 1

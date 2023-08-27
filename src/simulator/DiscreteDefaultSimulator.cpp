@@ -11,6 +11,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
 //    std::vector<unsigned int> agentStates(agents.size(), 0);
     std::unordered_map<unsigned int, int> nodeStates;
     std::vector<unsigned int> savedStart(agents.size());
+    std::vector<std::string> agentOutputStates(agents.size());
 
     openOutputFiles();
 
@@ -53,7 +54,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
         outputFile << 0 << std::endl;
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &node = graph.getNode(solver->solution->plans[i]->path[0].nodeId);
-            outputFile << i << " " << node.index << " " << "node" << std::endl;
+            outputFile << i << " " << node.index << " " << "node" << " " << "block" << std::endl;
         }
     }
 
@@ -130,6 +131,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                 if (debug) {
                     std::cout << "agent " << i << ": completed" << std::endl;
                 }
+                agentOutputStates[i] = "complete";
                 agents[i].blocked = true;
                 agents[i].delayed = false;
                 ++count;
@@ -160,6 +162,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                     std::cerr << "error" << std::endl;
                     exit(-1);
                 }
+                agentOutputStates[i] = "block";
                 agents[i].blocked = true;
                 agents[i].delayed = false;
 //                continue;
@@ -183,6 +186,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                     std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by agent"
                               << std::endl;
                 }
+                agentOutputStates[i] = "delay";
                 agents[i].blocked = false;
                 agents[i].delayed = true;
                 needReplan = true;
@@ -196,6 +200,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                     std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by edge"
                               << std::endl;
                 }
+                agentOutputStates[i] = "delay";
                 agents[i].blocked = false;
                 agents[i].delayed = true;
                 needReplan = true;
@@ -229,6 +234,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                 std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
                           << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
             }
+            agentOutputStates[i] = "move";
             agents[i].blocked = true;
             agents[i].delayed = false;
             agents[i].current = nextLabel.nodeId;
@@ -248,8 +254,8 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
         if (outputFile.is_open()) {
             for (unsigned int i = 0; i < agents.size(); i++) {
                 auto &node = graph.getNode(agents[i].current);
-                auto delayed = delayedSet.find(i) != delayedSet.end();
-                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "blocked" : "unblocked") << " " << (delayed ? "delayed" : "immediate") << std::endl;
+//                auto delayed = delayedSet.find(i) != delayedSet.end();
+                outputFile << i << " " << node.index << " " << (agents[i].blocked ? "node" : "edge") << " " << agentOutputStates[i] << std::endl;
             }
         }
 

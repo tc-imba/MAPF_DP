@@ -538,6 +538,7 @@ void ContinuousOnlineSimulator::initSimulation() {
         }
     }*/
     depGraph.solver = solver;
+    depGraph.snapshotOrder = snapshotOrder;
     depGraph.init();
 }
 

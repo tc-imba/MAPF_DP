@@ -16,6 +16,7 @@ protected:
 
 public:
     bool snapshot = false;
+    std::string snapshotOrder = "none";
 
     ContinuousOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed), depGraph(graph, agents, paths, firstAgentArrivingTimestep) {}
 

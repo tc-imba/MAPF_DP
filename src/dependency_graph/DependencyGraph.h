@@ -22,6 +22,7 @@ protected:
     std::vector<Agent> &agents;
     std::vector<std::vector<unsigned int>> &paths;
     const double &firstAgentArrivingTimestep;
+    std::vector<std::vector<double>> timestamps;
 
 
 public:

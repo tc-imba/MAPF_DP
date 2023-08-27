@@ -9,21 +9,23 @@
 
 class NodeEdgeDependencyGraph : public DependencyGraph {
 public:
+    std::string snapshotOrder = "none";
+
     struct SDGNode {
         size_t agentId;
         unsigned int state;
     };
 
-    friend bool operator<(const SDGNode& lhs, const SDGNode& rhs) {
+    friend bool operator<(const SDGNode &lhs, const SDGNode &rhs) {
         if (lhs.agentId == rhs.agentId) return lhs.state < rhs.state;
         return lhs.agentId < rhs.agentId;
     }
 
-    friend bool operator==(const SDGNode& lhs, const SDGNode& rhs) {
+    friend bool operator==(const SDGNode &lhs, const SDGNode &rhs) {
         return lhs.agentId == rhs.agentId && lhs.state == rhs.state;
     }
 
-    friend std::ostream& operator<<(std::ostream& out, const SDGNode& node) {
+    friend std::ostream &operator<<(std::ostream &out, const SDGNode &node) {
         return out << "(" << node.agentId << "," << node.state << ")";
     }
 
@@ -31,15 +33,15 @@ public:
         SDGNode source, dest;
     };
 
-    friend bool operator<(const SDGEdge& lhs, const SDGEdge& rhs) {
+    friend bool operator<(const SDGEdge &lhs, const SDGEdge &rhs) {
         return lhs.source == rhs.source ? lhs.dest < rhs.dest : lhs.source < rhs.source;
     }
 
-    friend bool operator==(const SDGEdge& lhs, const SDGEdge& rhs) {
+    friend bool operator==(const SDGEdge &lhs, const SDGEdge &rhs) {
         return lhs.source == rhs.source && lhs.dest == rhs.dest;
     }
 
-    friend std::ostream& operator<<(std::ostream& out, const SDGEdge& edge) {
+    friend std::ostream &operator<<(std::ostream &out, const SDGEdge &edge) {
         return out << edge.source << "->" << edge.dest;
     }
 
@@ -61,7 +63,7 @@ public:
     std::vector<SharedNodePair> sharedStates;
     std::vector<SDGEdge> savedAddedEdges;
 
-    NodeEdgeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep)  : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep) {};
+    NodeEdgeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths,  const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};
 
     void init();
 
@@ -95,6 +97,13 @@ public:
     bool singleAgentCheck(size_t agentId);
 
     void addSavedEdges();
+
+protected:
+    void orderEdgesByStart(SDGEdge &edge1, SDGEdge &edge2);
+
+    void orderEdgesByEnd(SDGEdge &edge1, SDGEdge &edge2);
+
+    void orderEdgesByCollision(SDGEdge &edge1, SDGEdge &edge2);
 };
 
 
