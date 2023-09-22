@@ -151,6 +151,8 @@ class PlotSettings:
                 label = f"snapshot-start-{subplot_key}"
             elif simulator == "snapshot_end":
                 label = f"snapshot-end-{subplot_key}"
+            elif simulator == "online_remove_redundant":
+                label = f"online-remove-redundant-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -392,7 +394,8 @@ def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neigh
         (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
          (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
          (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
-         (data["simulator"] == "snapshot_start") | (data["simulator"] == "snapshot_end"))
+         (data["simulator"] == "online_remove_redundant") |
+         (data["simulator"] == "snapshot_start"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
     df2 = df[df["simulator"] != "default"]
     groupby = ["simulator", "cycle", "delay_ratio"]
@@ -402,10 +405,10 @@ def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neigh
                                  k_neighbor=k_neighbor, y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 k_neighbor=k_neighbor, y_field="time", groupby=groupby, legend=False)
+                                 k_neighbor=k_neighbor, y_field="time", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=False)
+                                 k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 

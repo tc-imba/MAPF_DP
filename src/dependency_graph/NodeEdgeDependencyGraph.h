@@ -10,6 +10,7 @@
 class NodeEdgeDependencyGraph : public DependencyGraph {
 public:
     std::string snapshotOrder = "none";
+    bool removeRedundant = false;
 
     struct SDGNode {
         size_t agentId;
@@ -45,6 +46,7 @@ public:
         return out << edge.source << "->" << edge.dest;
     }
 
+    typedef std::pair<SDGNode, SDGNode> SDGNodePair;
     typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
 
     // each SDGNode has a corresponding SDGData
@@ -76,7 +78,13 @@ public:
 
     bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
 
+    SDGNodePair makeSDGNodePair(size_t agentId1, unsigned int state1, size_t agentId2, unsigned int state2);
+
+    SDGEdgePair makeSDGEdgePair(size_t agentId1, unsigned int state1, size_t agentId2, unsigned int state2);
+
     bool generateUnsettledEdges();
+
+    void removeRedundantNodePair(std::set<SDGNodePair> &nodePairs, const NodeEdgeDependencyGraph::SDGNodePair &nodePair, int dState1, int dState2);
 
     void initSharedNodes(size_t i, size_t j);
 

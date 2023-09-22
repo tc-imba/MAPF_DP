@@ -128,6 +128,7 @@ async def run(args: TestArguments, setup: ExperimentSetup,
     simulator = setup.simulator
     prioritized_replan = False
     prioritized_opt = False
+    remove_redundant = False
     snapshot_order = "none"
     if setup.simulator.startswith("prioritized"):
         simulator = "replan"
@@ -142,7 +143,10 @@ async def run(args: TestArguments, setup: ExperimentSetup,
             snapshot_order = "end"
         elif setup.simulator == "snapshot_collision":
             snapshot_order = "collision"
-
+    elif setup.simulator.startswith("online"):
+        simulator = "online"
+        if setup.simulator == "online_remove_redundant":
+            remove_redundant = True
     program_args = [
         args.program.as_posix(),
         "--map", map_type,
@@ -179,6 +183,8 @@ async def run(args: TestArguments, setup: ExperimentSetup,
         program_args.append("--prioritized-replan")
     if prioritized_opt:
         program_args.append("--prioritized-opt")
+    if remove_redundant:
+        program_args.append("--remove-redundant")
 
     # print(" ".join(program_args))
     elapsed_seconds = await asyncio.get_event_loop().run_in_executor(args.pool, run_program, full_prefix, program_args, args.timeout)

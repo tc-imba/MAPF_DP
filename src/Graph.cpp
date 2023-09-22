@@ -12,6 +12,7 @@
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/graphml.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/range.hpp>
 
 #include <Mathematics/IntrOrientedBox2Circle2.h>
 #include <Mathematics/DistPointSegment.h>
@@ -559,8 +560,8 @@ void Graph::generateGraphMLGraph(const std::string &filename) {
         auto &node = g[v];
         node.index = V++;
         node.type = '.';
-        node.x = (unsigned int) graphml[*it].x;
-        node.y = (unsigned int) graphml[*it].y;
+        node.x = graphml[*it].x;
+        node.y = graphml[*it].y;
     }
 
     for (auto it = nodes.first; it != nodes.second; ++it) {
@@ -862,7 +863,7 @@ void Graph::saveScenAgents(const std::string &mapName, const std::string &filena
     agentFileOut.close();
 }
 
-void Graph::saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents) {
+void Graph::saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents, const std::string &mapType) {
     if (filename.empty()) return;
     auto fullFileName = filename + ".xml";
     tinyxml2::XMLDocument doc;
@@ -872,10 +873,16 @@ void Graph::saveXMLAgents(const std::string &filename, const std::vector<Agent> 
     doc.InsertEndChild(root);
     for (size_t i = 0; i < agents.size(); i++) {
         auto agent = root->GetDocument()->NewElement("agent");
-        agent->SetAttribute("start_i", g[agents[i].start].x);
-        agent->SetAttribute("start_j", g[agents[i].start].y);
-        agent->SetAttribute("goal_i", g[agents[i].goal].x);
-        agent->SetAttribute("goal_j", g[agents[i].goal].y);
+        if (mapType == "graphml") {
+            agent->SetAttribute("start_id", agents[i].start);
+            agent->SetAttribute("goal_id", agents[i].goal);
+        } else {
+            agent->SetAttribute("start_i", g[agents[i].start].x);
+            agent->SetAttribute("start_j", g[agents[i].start].y);
+            agent->SetAttribute("goal_i", g[agents[i].goal].x);
+            agent->SetAttribute("goal_j", g[agents[i].goal].y);
+        }
+
         root->InsertEndChild(agent);
     }
 
@@ -887,4 +894,17 @@ unsigned int Graph::getNodeIdByGridPos(unsigned int x, unsigned int y) {
         return std::numeric_limits<unsigned int>::max();
     }
     return gridGraphIds[x][y];
+}
+
+unsigned int Graph::getNodeIdByRealPos(double x, double y) {
+    // TODO: optimize this
+//    SPDLOG_DEBUG("{} {}", x, y);
+    auto vertices = boost::vertices(g);
+    for (auto nodeId : boost::make_iterator_range(vertices.first, vertices.second)) {
+//        SPDLOG_DEBUG("{} {} {} {}", g[nodeId].x, x, g[nodeId].y, y);
+        if (is_close_equal_to(g[nodeId].x, x, 0.0000001) && is_close_equal_to(g[nodeId].y, y, 0.0000001)) {
+            return nodeId;
+        }
+    }
+    return std::numeric_limits<unsigned int>::max();
 }

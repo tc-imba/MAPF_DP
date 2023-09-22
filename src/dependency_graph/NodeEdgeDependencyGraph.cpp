@@ -21,7 +21,7 @@ void NodeEdgeDependencyGraph::init() {
         for (size_t j = 0; j < solver->solution->plans[i]->path.size(); j++) {
             auto newNodeId = solver->solution->plans[i]->path[j].nodeId;
             auto newNodeTimestamp = solver->solution->plans[i]->path[j].estimatedTime;
-            SPDLOG_INFO("{} {} {} {}", i , j, newNodeId, newNodeTimestamp);
+            SPDLOG_INFO("{} {} {} {}", i, j, newNodeId, newNodeTimestamp);
             if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
                 timestamps[i].emplace_back(newNodeTimestamp);
@@ -100,41 +100,52 @@ bool NodeEdgeDependencyGraph::isPathInTopoGraph(unsigned int nodeId1, unsigned i
     return false;
 }
 
-bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
-    for (size_t agentId1 = 0; agentId1 < sdgData.size(); agentId1++) {
-        for (unsigned int state1 = 0; state1 < sdgData[agentId1].size(); state1++) {
-            auto &sdgDataItem = sdgData[agentId1][state1];
-            for (const auto &conflict: sdgDataItem.conflicts) {
-                size_t agentId2 = conflict.agentId;
-                unsigned int state2 = conflict.state;
-                // prevent duplication
-                if (agentId1 < agentId2 || (agentId1 == agentId2 && state1 < state2)) {
-                    SDGEdge edge1{}, edge2{};
-                    //                    std::cout << agentId1 << " " << state1 << " " << agentId2 << " " << state2 << " ";
-                    if (state1 % 2 == 0 && state2 % 2 == 0) {
-                        // node-node
-                        edge1 = {SDGNode{agentId2, state2 + 2}, SDGNode{agentId1, state1 - 1}};
-                        edge2 = {SDGNode{agentId1, state1 + 2}, SDGNode{agentId2, state2 - 1}};
-                    } else if (state1 % 2 == 1 && state2 % 2 == 1) {
-                        // edge-edge
-                        edge1 = {SDGNode{agentId2, state2 + 1}, SDGNode{agentId1, state1}};
-                        edge2 = {SDGNode{agentId1, state1 + 1}, SDGNode{agentId2, state2}};
-                    } else if (state1 % 2 == 0 && state2 % 2 == 1) {
-                        // node-edge
-                        edge1 = {SDGNode{agentId2, state2 + 1}, SDGNode{agentId1, state1 - 1}};
-                        edge2 = {SDGNode{agentId1, state1 + 2}, SDGNode{agentId2, state2}};
-                    } else {
-                        // edge-node
-                        edge1 = {SDGNode{agentId2, state2 + 2}, SDGNode{agentId1, state1}};
-                        edge2 = {SDGNode{agentId1, state1 + 1}, SDGNode{agentId2, state2 - 1}};
-                    }
+NodeEdgeDependencyGraph::SDGNodePair NodeEdgeDependencyGraph::makeSDGNodePair(size_t agentId1, unsigned int state1, size_t agentId2, unsigned int state2) {
+    SDGNode node1 = {agentId1, state1};
+    SDGNode node2 = {agentId2, state2};
+    if (state1 % 2 == 0 && state2 % 2 == 1) {
+        // node-edge conflict
+        return std::make_pair(node2, node1);
+    }
+    if (state1 % 2 == 1 && state2 % 2 == 0) {
+        // edge-node conflict
+        return std::make_pair(node1, node2);
+    }
+    // node-node or edge-edge conflict
+    if (node1 < node2) {
+        return std::make_pair(node1, node2);
+    } else {
+        return std::make_pair(node2, node1);
+    }
+}
 
-                    // The next two lines are correct, but less readable than the code above
-                    //                     edge1 = {SDGNode{agentId2, state2 + 2 - state2 % 2}, SDGNode{agentId1, state1 - 1 + state1 % 2}};
-                    //                     edge2 = {SDGNode{agentId1, state1 + 2 - state1 % 2}, SDGNode{agentId2, state2 - 1 + state2 % 2}};
+NodeEdgeDependencyGraph::SDGEdgePair NodeEdgeDependencyGraph::makeSDGEdgePair(size_t agentId1, unsigned int state1, size_t agentId2, unsigned int state2) {
+    SDGEdge edge1{}, edge2{};
+    //                    std::cout << agentId1 << " " << state1 << " " << agentId2 << " " << state2 << " ";
+    if (state1 % 2 == 0 && state2 % 2 == 0) {
+        // node-node
+        edge1 = {SDGNode{agentId2, state2 + 2}, SDGNode{agentId1, state1 - 1}};
+        edge2 = {SDGNode{agentId1, state1 + 2}, SDGNode{agentId2, state2 - 1}};
+    } else if (state1 % 2 == 1 && state2 % 2 == 1) {
+        // edge-edge
+        edge1 = {SDGNode{agentId2, state2 + 1}, SDGNode{agentId1, state1}};
+        edge2 = {SDGNode{agentId1, state1 + 1}, SDGNode{agentId2, state2}};
+    } else if (state1 % 2 == 0 && state2 % 2 == 1) {
+        // node-edge
+        edge1 = {SDGNode{agentId2, state2 + 1}, SDGNode{agentId1, state1 - 1}};
+        edge2 = {SDGNode{agentId1, state1 + 2}, SDGNode{agentId2, state2}};
+    } else {
+        // edge-node
+        edge1 = {SDGNode{agentId2, state2 + 2}, SDGNode{agentId1, state1}};
+        edge2 = {SDGNode{agentId1, state1 + 1}, SDGNode{agentId2, state2 - 1}};
+    }
 
-                    // This is wrong
-                    /*if (state1 % 2 == 0) {
+    // The next two lines are correct, but less readable than the code above
+    //                     edge1 = {SDGNode{agentId2, state2 + 2 - state2 % 2}, SDGNode{agentId1, state1 - 1 + state1 % 2}};
+    //                     edge2 = {SDGNode{agentId1, state1 + 2 - state1 % 2}, SDGNode{agentId2, state2 - 1 + state2 % 2}};
+
+    // This is wrong
+    /*if (state1 % 2 == 0) {
                         edge1 = {SDGNode{agentId2, state2 + 2}, SDGNode{agentId1, state1 - 1}};
                     } else {
                         edge1 = {SDGNode{agentId2, state2 + 1}, SDGNode{agentId1, state1}};
@@ -144,7 +155,27 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
                     } else {
                         edge2 = {SDGNode{agentId1, state1 + 1}, SDGNode{agentId2, state2}};
                     }*/
+    if (edge1 < edge2) {
+        return std::make_pair(edge1, edge2);
+    } else {
+        return std::make_pair(edge2, edge1);
+    }
+}
 
+
+bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
+    std::vector<SDGNodePair> nnNodePairs;
+    std::set<SDGNodePair> neNodePairs, eeNodePairs;
+
+    for (size_t agentId1 = 0; agentId1 < sdgData.size(); agentId1++) {
+        for (unsigned int state1 = 0; state1 < sdgData[agentId1].size(); state1++) {
+            auto &sdgDataItem = sdgData[agentId1][state1];
+            for (const auto &conflict: sdgDataItem.conflicts) {
+                size_t agentId2 = conflict.agentId;
+                unsigned int state2 = conflict.state;
+                // prevent duplication
+                if (agentId1 < agentId2 || (agentId1 == agentId2 && state1 < state2)) {
+                    auto [edge1, edge2] = makeSDGEdgePair(agentId1, state1, agentId2, state2);
                     int invalid = 0;
                     if (edge1.source.state >= sdgData[edge1.source.agentId].size() ||
                         edge1.dest.state >= sdgData[edge1.dest.agentId].size()) {
@@ -158,14 +189,16 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
                     }
                     if (invalid == 0) {
                         // record the pair of unsettled edges
-                        SDGEdgePair edgePair;
-                        if (edge1 < edge2) {
-                            edgePair = {edge1, edge2};
+                        auto nodePair = makeSDGNodePair(agentId1, state1, agentId2, state2);
+                        if (state1 % 2 == 0 && state2 % 2 == 0) {
+                            nnNodePairs.emplace_back(nodePair);
+                        } else if (state1 % 2 == 1 && state2 % 2 == 1) {
+                            eeNodePairs.emplace(nodePair);
                         } else {
-                            edgePair = {edge2, edge1};
+                            neNodePairs.emplace(nodePair);
                         }
-                        sdgData[edge1.dest.agentId][edge1.dest.state].unsettledEdgePairs.push_back(edgePair);
-                        sdgData[edge2.dest.agentId][edge2.dest.state].unsettledEdgePairs.push_back(edgePair);
+                        //                        sdgData[edge1.dest.agentId][edge1.dest.state].unsettledEdgePairs.push_back(edgePair);
+                        //                        sdgData[edge2.dest.agentId][edge2.dest.state].unsettledEdgePairs.push_back(edgePair);
                         SPDLOG_DEBUG("generate unsettled edge pair {} {} with {}-{} conflict {} {}", edge1, edge2,
                                      state1 % 2 == 0 ? "node" : "edge", state2 % 2 == 0 ? "node" : "edge",
                                      SDGNode{agentId1, state1}, conflict);
@@ -191,7 +224,61 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
             }
         }
     }
+    std::vector<SDGNodePair> addedNodePairs;
+    // node-node conflict
+    for (const auto &nodePair: nnNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+        if (!removeRedundant) continue;
+        // suppose nodePair = <v_{i,j}, v_{i',j'}>
+        // remove redundant edge-edge conflicts
+        removeRedundantNodePair(eeNodePairs, nodePair, 1, 1);  // <e_{i,j}, e_{i',j'}>
+        removeRedundantNodePair(eeNodePairs, nodePair, -1, -1);// <e_{i,j-1}, e_{i',j'-1}>
+        removeRedundantNodePair(eeNodePairs, nodePair, 1, -1); // <e_{i,j}, e_{i',j'-1}>
+        removeRedundantNodePair(eeNodePairs, nodePair, -1, 1); // <e_{i,j-1}, e_{i',j'}>
+        // remove redundant node-edge conflicts
+        removeRedundantNodePair(neNodePairs, nodePair, 1, 0); // <e_{i,j}, v_{i',j'}>
+        removeRedundantNodePair(neNodePairs, nodePair, -1, 0);// <e_{i,j-1}, v_{i',j'}>
+        removeRedundantNodePair(neNodePairs, nodePair, 0, 1); // <v_{i,j}, e_{i',j'}>
+        removeRedundantNodePair(neNodePairs, nodePair, 0, -1);// <v_{i,j}, v_{i',j'-1}>
+    }
+    // node-edge conflict
+    for (const auto &nodePair: neNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+        if (!removeRedundant) continue;
+        // suppose nodePair = <e_{i,j}, v_{i',j'}>
+        // we ensure the edge-node order in makeSDGNodePair
+        // remove redundant edge-edge conflicts
+        removeRedundantNodePair(eeNodePairs, nodePair, 0, 1); // <e_{i,j}, e_{i',j'}>
+        removeRedundantNodePair(eeNodePairs, nodePair, 0, -1);// <e_{i,j}, e_{i',j'-1}>
+    }
+    // edge-edge conflict
+    for (const auto &nodePair: eeNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+    }
+    // all conflicts after removing redundant
+    for (const auto &nodePair: addedNodePairs) {
+        auto edgePair = makeSDGEdgePair(nodePair.first.agentId, nodePair.first.state, nodePair.second.agentId, nodePair.second.state);
+        const auto &[edge1, edge2] = edgePair;
+        sdgData[edge1.dest.agentId][edge1.dest.state].unsettledEdgePairs.push_back(edgePair);
+        sdgData[edge2.dest.agentId][edge2.dest.state].unsettledEdgePairs.push_back(edgePair);
+    }
     return true;
+}
+
+
+void NodeEdgeDependencyGraph::removeRedundantNodePair(std::set<SDGNodePair> &nodePairs, const NodeEdgeDependencyGraph::SDGNodePair &nodePair, int dState1, int dState2) {
+    auto newNodePair = makeSDGNodePair(nodePair.first.agentId, nodePair.first.state + dState1, nodePair.second.agentId, nodePair.second.state + dState2);
+    auto it = nodePairs.find(newNodePair);
+    if (it != nodePairs.end()) {
+        nodePairs.erase(it);
+        if (debug) {
+            auto edgePair = makeSDGEdgePair(newNodePair.first.agentId, newNodePair.first.state, newNodePair.second.agentId, newNodePair.second.state);
+            const auto &[edge1, edge2] = edgePair;
+            SPDLOG_DEBUG("remove redundant unsettled edge pair {} {} with {}-{} conflict {} {}", edge1, edge2,
+                         newNodePair.first.state % 2 == 0 ? "node" : "edge", newNodePair.second.state % 2 == 0 ? "node" : "edge",
+                         newNodePair.first, newNodePair.second);
+        }
+    }
 }
 
 
@@ -711,5 +798,4 @@ void NodeEdgeDependencyGraph::orderEdgesByEnd(SDGEdge &edge1, SDGEdge &edge2) {
 }
 
 void NodeEdgeDependencyGraph::orderEdgesByCollision(SDGEdge &edge1, SDGEdge &edge2) {
-
 }

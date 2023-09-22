@@ -34,18 +34,26 @@ bool CCBSSolver::readSolution(const std::string &filename) {
         auto pathElem = agentElem->FirstChildElement();
         auto sectionElem = pathElem->FirstChildElement();
         auto totalTime = std::strtod(pathElem->Attribute("duration"), nullptr);
+        SPDLOG_DEBUG("agent {}", agentId);
 //        std::cout << i << " " << agentId << std::endl;
         while (sectionElem) {
             auto labelId = std::strtoul(sectionElem->Attribute("number"), nullptr, 10);
-            auto startX = std::strtoul(sectionElem->Attribute("start_i"), nullptr, 10);
-            auto startY = std::strtoul(sectionElem->Attribute("start_j"), nullptr, 10);
-            auto goalX = std::strtoul(sectionElem->Attribute("goal_i"), nullptr, 10);
-            auto goalY = std::strtoul(sectionElem->Attribute("goal_j"), nullptr, 10);
+            auto startX = std::strtod(sectionElem->Attribute("start_i"), nullptr);
+            auto startY = std::strtod(sectionElem->Attribute("start_j"), nullptr);
+            auto goalX = std::strtod(sectionElem->Attribute("goal_i"), nullptr);
+            auto goalY = std::strtod(sectionElem->Attribute("goal_j"), nullptr);
             auto time = std::strtod(sectionElem->Attribute("duration"), nullptr);
-            auto startNode = graph.getNodeIdByGridPos(startX, startY);
-            auto goalNode = graph.getNodeIdByGridPos(goalX, goalY);
+            unsigned int startNode, goalNode;
+            if (mapType == "graphml") {
+                startNode = graph.getNodeIdByRealPos(startX, startY);
+                goalNode = graph.getNodeIdByRealPos(goalX, goalY);
+            } else {
+                startNode = graph.getNodeIdByGridPos((unsigned int) startX, (unsigned int) startY);
+                goalNode = graph.getNodeIdByGridPos((unsigned int) goalX, (unsigned int) goalY);
+            }
             if (startNode == std::numeric_limits<unsigned int>::max()) return false;
             if (goalNode == std::numeric_limits<unsigned int>::max()) return false;
+            SPDLOG_DEBUG("{} {} {}", labelId, startNode, goalNode);
 //            std::cout << labelId << " " << startNode << " " << goalNode << std::endl;
             if (plan->path.empty()) {
                 plan->add(startNode);
@@ -81,7 +89,8 @@ bool CCBSSolver::solve() {
     path taskFile = ph / "task";
     std::string taskFileName = taskFile.string() + ".xml";
     std::string configFileName = (ph / "config.xml").string();
-    std::string srcMapFileName = (current_path() / (graph.getFileName() + ".xml")).string();
+//    std::string srcMapFileName = (current_path() / (graph.getFileName() + ".xml")).string();
+    std::string srcMapFileName = graph.getFileName() + ".xml";
     std::string mapFileName = (ph / "map.xml").string();
     std::string outputFileName = (ph / "task_log.xml").string();
 
@@ -92,7 +101,7 @@ bool CCBSSolver::solve() {
 //    std::cout << outputFileName << std::endl;
 
     copy_file(srcMapFileName, mapFileName);
-    graph.saveXMLAgents(taskFile.string(), agents);
+    graph.saveXMLAgents(taskFile.string(), agents, mapType);
     saveConfig(configFileName);
 
     std::vector<std::string> arguments;
@@ -115,7 +124,7 @@ bool CCBSSolver::solve() {
     success = readSolution(outputFileName);
 
     if (success) {
-        remove_all(ph);
+//        remove_all(ph);
     }
 //    prioritizedReplan = false;
     return success;

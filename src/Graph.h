@@ -28,8 +28,8 @@ public:
     struct Node {
         size_t index;
         char type;
-        unsigned int x;
-        unsigned int y;
+        double x;
+        double y;
     };
 
     struct Edge {
@@ -71,7 +71,7 @@ private:
     double maxDP = 0.5;
     size_t height, width;
     std::string graphFilename;
-    unsigned int kNeighbor;
+    unsigned int kNeighbor = 3;
     std::vector<gte::Vector2<int>> neighborDirections;
     double epsilon = 0.0000001;
 
@@ -159,9 +159,11 @@ public:
 
     void saveScenAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
 
-    void saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents);
+    void saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents, const std::string &mapType);
 
     unsigned int getNodeIdByGridPos(unsigned int x, unsigned int y);
+
+    unsigned int getNodeIdByRealPos(double x, double y);
 };
 
 class TopoGraphBFSVisitor : public boost::default_bfs_visitor {

@@ -10,10 +10,11 @@
 class CCBSSolver : public Solver {
 protected:
     std::string solverBinaryFile;
+    std::string mapType;
 
 public:
-    CCBSSolver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType, std::string solverBinaryFile) :
-        Solver(graph, agents, makeSpanType), solverBinaryFile(std::move(solverBinaryFile)) {};
+    CCBSSolver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType, std::string solverBinaryFile, std::string mapType) :
+        Solver(graph, agents, makeSpanType), solverBinaryFile(std::move(solverBinaryFile)), mapType(std::move(mapType)) {};
 
     std::string getSolverName() override { return "ccbs"; }
 

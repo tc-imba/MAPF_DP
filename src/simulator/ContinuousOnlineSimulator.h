@@ -16,6 +16,7 @@ protected:
 
 public:
     bool snapshot = false;
+    bool removeRedundant = false;
     std::string snapshotOrder = "none";
 
     ContinuousOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed), depGraph(graph, agents, paths, firstAgentArrivingTimestep) {}
@@ -48,6 +49,7 @@ public:
 
     std::pair<size_t, size_t> feasibilityCheck();
 
+    void printPaths(double maxTimeStep);
 };
 
 

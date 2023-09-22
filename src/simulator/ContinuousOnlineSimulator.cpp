@@ -2,12 +2,12 @@
 // Created by liu on 7/1/2022.
 //
 
-#include <boost/range/join.hpp>
 #include <boost/graph/topological_sort.hpp>
-#include <iostream>
-#include <random>
+#include <boost/range/join.hpp>
 #include <chrono>
 #include <fstream>
+#include <iostream>
+#include <random>
 
 #include "ContinuousOnlineSimulator.h"
 
@@ -32,7 +32,6 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 
     initSimulation();
     executionTimeVec.clear();
-    openOutputFiles();
 
     // check whether the initial plan is feasible
     auto [agentId1, agentId2] = feasibilityCheck();
@@ -45,25 +44,14 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
     }
 
 
-    if (outputFile.is_open()) {
-        outputFile << 0 << std::endl;
-        for (unsigned int i = 0; i < agents.size(); i++) {
-            outputFile << i << " " << graph.getNode(paths[i][0]).index << std::endl;
-        }
-    }
-
-//    std::uniform_real_distribution<double> distribution(0, 1);
-
+    //    std::uniform_real_distribution<double> distribution(0, 1);
 
 
     while (currentTimestep < maxTimeStep) {
-        if (outputFile.is_open()) {
-            outputFile << currentTimestep << std::endl;
-        }
         SPDLOG_DEBUG("begin timestep {}", currentTimestep);
 
-//        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
-/*        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
+        //        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
+        /*        if (currentTimestep >= delayStart && (size_t) (currentTimestep - delayStart) % delayInterval == 0) {
             if (debug) {
                 std::cout << "update delayed set" << std::endl;
             }
@@ -71,10 +59,10 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 //            delayedSet.clear();
         }*/
 
-//        if (pauseTimestep > 0 && currentTimestep == 2) {
-//            std::cout << "breakpoint" << std::endl;
-//        }
-//
+        //        if (pauseTimestep > 0 && currentTimestep == 2) {
+        //            std::cout << "breakpoint" << std::endl;
+        //        }
+        //
         auto start = std::chrono::steady_clock::now();
 
         // agent arriving around current timestep
@@ -89,13 +77,13 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                 auto currentNodeId = paths[i][state / 2];
                 auto nextNodeId = paths[i][state / 2 + 1];
 
-                if (outputFile.is_open()) {
-                    outputFile << i << " " << graph.getNode(nextNodeId).index << std::endl;
-                }
+                //                if (outputFile.is_open()) {
+                //                    outputFile << i << " " << graph.getNode(nextNodeId).index << std::endl;
+                //                }
+
                 if (debug) {
                     printAgent(i, "");
                 }
-
                 unblocked.erase(i);
                 moved.insert(i);
                 nodeAgentMap.erase(currentNodeId);
@@ -108,14 +96,13 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                         firstAgentArrivingTimestep = agents[i].arrivingTimestep;
                     }
                 }
-
             }
         }
         currentTimestep = newCurrentTimestep;
 
         SPDLOG_DEBUG("expanded timestep {}", currentTimestep);
 
-//        std::cout << "timestep " << currentTimestep << std::endl;
+        //        std::cout << "timestep " << currentTimestep << std::endl;
 
         /** Algorithm 2 **/
 
@@ -155,15 +142,15 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 #else
         /** line 1 **/
         initChecks();
-//        if (!isOnlyCycleCheck) {
-//            /** note that the iteration (line 2-3) occurs three times separately in the following functions **/
-//            /** line 4-6 **/
-//            unsharedCheck();
-//            /** line 7-8 **/
-//            neighborCheck();
-//            /** line 9-10 **/
-//            deadEndCheck();
-//        }
+        //        if (!isOnlyCycleCheck) {
+        //            /** note that the iteration (line 2-3) occurs three times separately in the following functions **/
+        //            /** line 4-6 **/
+        //            unsharedCheck();
+        //            /** line 7-8 **/
+        //            neighborCheck();
+        //            /** line 9-10 **/
+        //            deadEndCheck();
+        //        }
         /** line 12-23 **/
         printSets("init        |");
         singleAgentCheck();
@@ -181,14 +168,14 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
         if (ready.size() != savedReady.size() + savedUnshared.size()) {
             std::cout << currentTimestep << std::endl;
             for (unsigned int i = 0; i < agents.size(); i++) {
-//        if (agents[i].current == agents[i].goal) continue;
+                //        if (agents[i].current == agents[i].goal) continue;
                 std::cout << "agent " << i << " " << agents[i].state << " (" << agents[i].start << "->"
                           << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
                     std::cout << "(" << label.state << "," << label.nodeId << ")->";
                 }
                 std::cout << std::endl;
-//        nodeStates[agents[i].start] = 0;
+                //        nodeStates[agents[i].start] = 0;
             }
             for (const auto &pair: sharedNodes) {
                 std::cout << pair.first << " ";
@@ -225,7 +212,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
         unblocked.insert(ready.begin(), ready.end());
         unblocked.insert(unshared.begin(), unshared.end());
 
-/*        for (auto i: keepMoving) {
+        /*        for (auto i: keepMoving) {
             if (unshared.find(i) == unshared.end()) {
                 std::cout << i << " in keepMoving not in unshared" << std::endl;
             }
@@ -238,13 +225,13 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
         unshared.clear();
         printSets("final       |");
 
-//        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
+        //        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
 
-//        for (auto i: savedBlocked) {
-//            if (ready.find(i) != ready.end()) {
-//                exit(0);
-//            }
-//        }
+        //        for (auto i: savedBlocked) {
+        //            if (ready.find(i) != ready.end()) {
+        //                exit(0);
+        //            }
+        //        }
 
         if (firstAgentArrivingTimestep == 0) {
             unblockedAgents += unblocked.size();
@@ -252,22 +239,22 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
             executionTime += elapsed_seconds.count();
         }
 
-//        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
-//            updateDelayedSet(currentTimestep, pauseTimestep == 0);
-//        }
+        //        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
+        //            updateDelayedSet(currentTimestep, pauseTimestep == 0);
+        //        }
 
-//        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
-//            updateDelayedSet(currentTimestep);
-//        }
-//        updateDelayedSet(currentTimestep);
+        //        if (pauseTimestep > 0 && currentTimestep == pauseTimestep) {
+        //            updateDelayedSet(currentTimestep);
+        //        }
+        //        updateDelayedSet(currentTimestep);
 
         int count = 0;
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
             auto currentNodeId = paths[i][state / 2];
-//            if (debug) {
-//                std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") initial" << std::endl;
-//            }
+            //            if (debug) {
+            //                std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") initial" << std::endl;
+            //            }
 
             if (state + 1 >= depGraph.pathTopoNodeIds[i].size()) {
                 if (firstAgentArrivingTimestep == 0) {
@@ -275,7 +262,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                 }
                 if (debug) {
                     printAgent(i, "completed");
-//                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
+                    //                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
                 }
                 ++count;
                 continue;
@@ -286,14 +273,17 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                 if (blocked.find(i) != blocked.end()) {
                     if (debug) {
                         printAgent(i, "blocked");
-//                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") blocked"
-//                                  << std::endl;
+                        //                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") blocked"
+                        //                                  << std::endl;
+                    }
+                    if (!outputPaths[i].empty() && outputPaths[i].back().agentState != AgentState::BLOCK) {
+                        outputPaths[i].push_back(PathNode{currentTimestep, state, AgentState::BLOCK});
                     }
                     agents[i].timestep = currentTimestep;
                     continue;
                 }
                 if (unblocked.find(i) != unblocked.end()) {
-//                auto &edge = graph.g[edgeId];
+                    //                auto &edge = graph.g[edgeId];
                     agents[i].timestep = currentTimestep;
 
                     auto nextNodeId = paths[i][state / 2 + 1];
@@ -305,13 +295,15 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                         exit(-1);
                     }
 
+
+                    outputPaths[i].push_back(PathNode{currentTimestep, state, AgentState::UNBLOCK});
+                    ++state;
                     agents[i].arrivingTimestep = getAgentArrivingTime(currentTimestep, delayInterval, i, edge);
                     if (debug) {
                         printAgent(i, "");
-//                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
-//                                  << state + 1 << "," << currentNodeId << "-" << nextNodeId << ")" << std::endl;
+                        //                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
+                        //                                  << state + 1 << "," << currentNodeId << "-" << nextNodeId << ")" << std::endl;
                     }
-                    ++state;
                     nodeAgentMap[nextNodeId] = i;
                     depGraph.updateSharedNode(i, state);
                     arrivingTimestepSet.insert(agents[i].arrivingTimestep);
@@ -330,7 +322,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                 if (debug) {
                     printAgent(i, "unblocked");
                 }
-/*                auto nextNodeId = paths[i][state / 2 + 1];
+                /*                auto nextNodeId = paths[i][state / 2 + 1];
                 auto &edge = graph.getEdge(currentNodeId, nextNodeId);
 
                 if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
@@ -403,10 +395,19 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
         }
 
         advanceTimestep(currentTimestep);
-
     }
 
-/*    bool unfinish = false;
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        if (agents[i].state + 1 >= depGraph.pathTopoNodeIds[i].size()) {
+            outputPaths[i].push_back(PathNode{agents[i].timestep, agents[i].state, AgentState::COMPLETE});
+        } else {
+            outputPaths[i].push_back(PathNode{currentTimestep, agents[i].state, AgentState::FAIL});
+        }
+    }
+
+    printPaths(currentTimestep);
+
+    /*    bool unfinish = false;
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (agents[i].current != agents[i].goal) {
             unfinish = true;
@@ -414,25 +415,23 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
             break;
         }
     }*/
-    closeOutputFiles();
-
     return countCompletedAgents();
 }
 
 
-
-
 void ContinuousOnlineSimulator::initSimulation() {
     blocked.clear();
-//    paths.clear();
-//    paths.resize(agents.size());
-//    deadEndStates.clear();
-//    deadEndStates.resize(agents.size());
-//    depGraph.pathTopoNodeIds.clear();
-//    depGraph.pathTopoNodeIds.resize(agents.size());
+    //    paths.clear();
+    //    paths.resize(agents.size());
+    //    deadEndStates.clear();
+    //    deadEndStates.resize(agents.size());
+    //    depGraph.pathTopoNodeIds.clear();
+    //    depGraph.pathTopoNodeIds.resize(agents.size());
     nodeAgentMap.clear();
-//    topoGraph.clear();
-//    sdgData.resize(agents.size());
+    //    topoGraph.clear();
+    //    sdgData.resize(agents.size());
+    outputPaths.clear();
+    outputPaths.resize(agents.size());
 
     initDelayedIntervals();
 
@@ -464,14 +463,14 @@ void ContinuousOnlineSimulator::initSimulation() {
     }
 
 
-/*    for (size_t i = 0; i < agents.size(); i++) {
+    /*    for (size_t i = 0; i < agents.size(); i++) {
         for (size_t j = i + 1; j < agents.size(); j++) {
 //            initSharedNodes(i, j);
             initSharedStates(i, j);
         }
     }*/
 
-/*    for (const auto &[nodeId, sharedNode]: sharedNodes) {
+    /*    for (const auto &[nodeId, sharedNode]: sharedNodes) {
         for (const auto &sharedNodePair: sharedNode) {
             // TODO: really need to duplicate?
             sdgData[sharedNodePair.agentId1][sharedNodePair.state1].conflicts.push_back(
@@ -482,7 +481,7 @@ void ContinuousOnlineSimulator::initSimulation() {
             );
         }
     }*/
-/*    for (const auto &sharedNodePair: sharedStates) {
+    /*    for (const auto &sharedNodePair: sharedStates) {
         // TODO: really need to duplicate?
         sdgData[sharedNodePair.agentId1][sharedNodePair.state1].conflicts.push_back(
                 {sharedNodePair.agentId2, sharedNodePair.state2}
@@ -504,9 +503,9 @@ void ContinuousOnlineSimulator::initSimulation() {
     feasibilityCheckUnsettledCount = 0;
     feasibilityCheckTopoCount = 0;
     feasibilityCheckLoopCount = 0;
-//    generateUnsettledEdges();
+    //    generateUnsettledEdges();
 
-/*    for (size_t i = 0; i < sdgData.size(); i++) {
+    /*    for (size_t i = 0; i < sdgData.size(); i++) {
         for (unsigned int state = 0; state < sdgData[i].size(); state++) {
             const auto &item = sdgData[i][state];
             for (const auto &edgePair: item.unsettledEdgePairs) {
@@ -523,7 +522,7 @@ void ContinuousOnlineSimulator::initSimulation() {
         }
     }*/
 
-/*    for (size_t i = 0; i < agents.size(); i++) {
+    /*    for (size_t i = 0; i < agents.size(); i++) {
         if (!paths[i].empty()) {
             for (size_t j = 0; j < agents.size(); j++) {
                 if (i != j) {
@@ -538,14 +537,16 @@ void ContinuousOnlineSimulator::initSimulation() {
         }
     }*/
     depGraph.solver = solver;
+    depGraph.debug = debug;
     depGraph.snapshotOrder = snapshotOrder;
+    depGraph.removeRedundant = removeRedundant;
     depGraph.init();
 }
 
 
 void ContinuousOnlineSimulator::initChecks() {
     ready.clear();
-/*    std::set<unsigned int> dests;
+    /*    std::set<unsigned int> dests;
     auto edges = boost::edges(topoGraph);
     for (auto it = edges.first; it != edges.second; ++it) {
         auto dest = boost::target(*it, topoGraph);
@@ -590,19 +591,18 @@ void ContinuousOnlineSimulator::initChecks() {
         }
     }
     blocked.clear();
-//    moved.clear();
+    //    moved.clear();
     unshared.clear();
-//    for (auto i: delayed_set) {
-//        if (ready.find(i) != ready.end()) {
-//            ready.erase(i);
-//            blocked.insert(i);
-//        }
-//    }
+    //    for (auto i: delayed_set) {
+    //        if (ready.find(i) != ready.end()) {
+    //            ready.erase(i);
+    //            blocked.insert(i);
+    //        }
+    //    }
 }
 
 
 void ContinuousOnlineSimulator::unnecessaryBlockCheck() {
-
 }
 
 
@@ -663,18 +663,18 @@ void ContinuousOnlineSimulator::singleAgentCheck() {
             // should not happen?
             fail = true;
         } else {
-//            auto addedEdges = updateSharedNode(i, agents[i].state + 1, true);
-//            for (const auto &edge: addedEdges) {
-//                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-//                boost::add_edge(nodeId1, nodeId2, topoGraph);
-//            }
+            //            auto addedEdges = updateSharedNode(i, agents[i].state + 1, true);
+            //            for (const auto &edge: addedEdges) {
+            //                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
+            //                boost::add_edge(nodeId1, nodeId2, topoGraph);
+            //            }
             for (size_t j = 0; j < agents.size(); j++) {
                 if (i == j || agents[j].state + 1 >= depGraph.pathTopoNodeIds[j].size()) {
                     continue;
                 }
                 NodeEdgeDependencyGraph::SDGEdge edge = {{i, agents[i].state + 2},
-                                {j, agents[j].state + 1}};
-//                std::cout << "test:" << edge << std::endl;
+                                                         {j, agents[j].state + 1}};
+                //                std::cout << "test:" << edge << std::endl;
                 auto [nodeId1, nodeId2] = depGraph.getTopoEdgeBySDGEdge(edge);
                 if (depGraph.isPathInTopoGraph(nodeId2, nodeId1)) {
                     fail = true;
@@ -682,10 +682,10 @@ void ContinuousOnlineSimulator::singleAgentCheck() {
                 }
                 // we can also do a feasibility check here!
             }
-//            for (const auto &edge: addedEdges) {
-//                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-//                boost::remove_edge(nodeId1, nodeId2, topoGraph);
-//            }
+            //            for (const auto &edge: addedEdges) {
+            //                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
+            //                boost::remove_edge(nodeId1, nodeId2, topoGraph);
+            //            }
         }
         if (fail) {
             it = ready.erase(it);
@@ -708,11 +708,11 @@ void ContinuousOnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &ready
                 checkedReady.emplace_back(readyList[i]);
             }
         }
-//        std::cout << "naive cycle check: ";
-//        for (auto i: checkedReady) {
-//            std::cout << i << " ";
-//        }
-//        std::cout << std::endl;
+        //        std::cout << "naive cycle check: ";
+        //        for (auto i: checkedReady) {
+        //            std::cout << i << " ";
+        //        }
+        //        std::cout << std::endl;
         if (checkedReady.size() <= maxReadyList.size()) return;
         std::vector<unsigned int> oldStates(agents.size());
         for (auto i: checkedReady) {
@@ -725,7 +725,7 @@ void ContinuousOnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &ready
             auto nodeId = paths[i][agents[i].state / 2];
             auto it = nodeAgentMap.find(nodeId);
             if (it != nodeAgentMap.end() && it->second != i) {
-//                std::cout << "neighbor in cycle: " << i << " " << nodeId << " " << it->second << std::endl;
+                //                std::cout << "neighbor in cycle: " << i << " " << nodeId << " " << it->second << std::endl;
                 agentId1 = i;
                 agentId2 = it->second;
                 break;
@@ -752,7 +752,7 @@ void ContinuousOnlineSimulator::naiveCycleCheckHelper(std::vector<size_t> &ready
 }
 
 void ContinuousOnlineSimulator::naiveCycleCheck() {
-//    std::cerr << ready.size() << std::endl;
+    //    std::cerr << ready.size() << std::endl;
     std::vector<size_t> readyList;
     readyList.insert(readyList.begin(), ready.begin(), ready.end());
     std::vector<bool> check(readyList.size(), false);
@@ -767,44 +767,44 @@ void ContinuousOnlineSimulator::naiveCycleCheck() {
         }
     }
     ready.swap(newReady);
-//    ready.clear();
-//    ready.insert(maxReadyList.begin(), maxReadyList.end());
+    //    ready.clear();
+    //    ready.insert(maxReadyList.begin(), maxReadyList.end());
 }
 
 /** Algorithm 2: line 12-23 **/
 void ContinuousOnlineSimulator::heuristicCycleCheck() {
-//    std::cout << "start cycle check: ";
+    //    std::cout << "start cycle check: ";
     std::set<size_t> newReady = ready;
     std::vector<std::vector<NodeEdgeDependencyGraph::SDGEdge>> addedEdges(agents.size());
     std::map<NodeEdgeDependencyGraph::SDGEdge, unsigned int> addedEdgesCounter;
     cycleCheckAddedEdges.clear();
 
     auto updateAgentTopoGraph = [&](size_t agentId) {
-//        addedEdges[agentId] = updateSharedNode(agentId, agents[agentId].state, true);
-//        for (const auto &edge: addedEdges[agentId]) {
-//            auto it = addedEdgesCounter.find(edge);
-//            if (it == addedEdgesCounter.end()) {
-//                it = addedEdgesCounter.emplace_hint(it, edge, 0);
-//                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-//                boost::add_edge(nodeId1, nodeId2, topoGraph);
-//                cycleCheckAddedEdges.emplace(edge);
-//                SPDLOG_DEBUG("cycle check add settled edge: {}", edge);
-//            }
-//            it->second++;
-//        }
+        //        addedEdges[agentId] = updateSharedNode(agentId, agents[agentId].state, true);
+        //        for (const auto &edge: addedEdges[agentId]) {
+        //            auto it = addedEdgesCounter.find(edge);
+        //            if (it == addedEdgesCounter.end()) {
+        //                it = addedEdgesCounter.emplace_hint(it, edge, 0);
+        //                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
+        //                boost::add_edge(nodeId1, nodeId2, topoGraph);
+        //                cycleCheckAddedEdges.emplace(edge);
+        //                SPDLOG_DEBUG("cycle check add settled edge: {}", edge);
+        //            }
+        //            it->second++;
+        //        }
     };
 
     auto recoverAgentTopoGraph = [&](size_t agentId) {
-//        for (const auto &edge: addedEdges[agentId]) {
-//            auto it = addedEdgesCounter.find(edge);
-//            it->second--;
-//            if (it->second == 0) {
-//                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-//                boost::remove_edge(nodeId1, nodeId2, topoGraph);
-//                cycleCheckAddedEdges.erase(edge);
-//                SPDLOG_DEBUG("cycle check remove settled edge: {}", edge);
-//            }
-//        }
+        //        for (const auto &edge: addedEdges[agentId]) {
+        //            auto it = addedEdgesCounter.find(edge);
+        //            it->second--;
+        //            if (it->second == 0) {
+        //                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
+        //                boost::remove_edge(nodeId1, nodeId2, topoGraph);
+        //                cycleCheckAddedEdges.erase(edge);
+        //                SPDLOG_DEBUG("cycle check remove settled edge: {}", edge);
+        //            }
+        //        }
     };
 
     // save old states for recovery
@@ -817,16 +817,16 @@ void ContinuousOnlineSimulator::heuristicCycleCheck() {
         oldStates[i] = agents[i].state;
         agents[i].state++;
         updateAgentTopoGraph(i);
-//        agents[i].state = getNextNodeState(agents[i].state);
-//        std::cout << "(" << i << "," << agents[i].state << ") ";
+        //        agents[i].state = getNextNodeState(agents[i].state);
+        //        std::cout << "(" << i << "," << agents[i].state << ") ";
     }
-//    std::cout << std::endl;
+    //    std::cout << std::endl;
 
     // use feasibility check to block some agents
     std::set<size_t> removed;
     /** line 12 **/
     while (!newReady.empty()) {
-//        std::cerr << "check 1" << std::endl;
+        //        std::cerr << "check 1" << std::endl;
         /** line 13 is done before the iteration and updated in each iteration **/
         /** line 14 **/
         auto [agentId1, agentId2] = feasibilityCheck();
@@ -836,7 +836,7 @@ void ContinuousOnlineSimulator::heuristicCycleCheck() {
         }
         /** line 16-17 **/
         // TODO: add randomness here
-//        std::cerr << agentId1 << " " << agentId2 << std::endl;
+        //        std::cerr << agentId1 << " " << agentId2 << std::endl;
         if (newReady.find(agentId1) != newReady.end()) {
             // recover state of agent 1 and remove it from ready
             newReady.erase(agentId1);
@@ -857,7 +857,7 @@ void ContinuousOnlineSimulator::heuristicCycleCheck() {
                 recoverAgentTopoGraph(i);
             }
             newReady.clear();
-//            std::cerr << "warn: nothing to remove!" << std::endl;
+            //            std::cerr << "warn: nothing to remove!" << std::endl;
             break;
         }
     }
@@ -870,8 +870,8 @@ void ContinuousOnlineSimulator::heuristicCycleCheck() {
         if (newReady.find(i) == newReady.end()) {
             agents[i].state++;
             updateAgentTopoGraph(i);
-//            agents[i].state = getNextNodeState(agents[i].state);
-//            std::cerr << "check 2: " << i << std::endl;
+            //            agents[i].state = getNextNodeState(agents[i].state);
+            //            std::cerr << "check 2: " << i << std::endl;
             /** line 20 **/
             auto [agentId1, agentId2] = feasibilityCheck();
             /** line 21-23 **/
@@ -886,7 +886,7 @@ void ContinuousOnlineSimulator::heuristicCycleCheck() {
             }
         }
     }
-//    }
+    //    }
 
     // hope this not happen
     if (newReady.empty() && unblocked.empty() && unshared.empty()) {
@@ -916,12 +916,12 @@ void ContinuousOnlineSimulator::cycleCheck() {
         cycleCheckAgents += ready.size();
     }
     // suppose all unblocked agents are at their next state (an edge state)
-//    for (auto i: unblocked) {
-//        agents[i].state++;
-//    }
-//    for (auto i: unshared) {
-//        agents[i].state++;
-//    }
+    //    for (auto i: unblocked) {
+    //        agents[i].state++;
+    //    }
+    //    for (auto i: unshared) {
+    //        agents[i].state++;
+    //    }
 
     if (isHeuristicCycleCheck) {
         heuristicCycleCheck();
@@ -930,16 +930,14 @@ void ContinuousOnlineSimulator::cycleCheck() {
     }
 
     // recover the states of the agents
-//    for (auto i: unblocked) {
-//        agents[i].state--;
-//    }
-//    for (auto i: unshared) {
-//        agents[i].state--;
-//    }
-//    std::cerr << "end cycle check: ";
+    //    for (auto i: unblocked) {
+    //        agents[i].state--;
+    //    }
+    //    for (auto i: unshared) {
+    //        agents[i].state--;
+    //    }
+    //    std::cerr << "end cycle check: ";
 }
-
-
 
 
 std::pair<size_t, size_t> ContinuousOnlineSimulator::feasibilityCheck() {
@@ -949,12 +947,12 @@ std::pair<size_t, size_t> ContinuousOnlineSimulator::feasibilityCheck() {
     if (!isFeasibilityType) {
         return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck, true);
     }
-//    feasibilityCheckIterationTemp = 0;
+    //    feasibilityCheckIterationTemp = 0;
     auto heuristicResult = depGraph.feasibilityCheckTest(false, true);
-//    feasibilityCheckIteration[0] += feasibilityCheckIterationTemp;
-//    feasibilityCheckIterationTemp = 0;
+    //    feasibilityCheckIteration[0] += feasibilityCheckIterationTemp;
+    //    feasibilityCheckIterationTemp = 0;
     auto exhaustiveResult = depGraph.feasibilityCheckTest(true, true);
-//    feasibilityCheckIteration[1] += feasibilityCheckIterationTemp;
+    //    feasibilityCheckIteration[1] += feasibilityCheckIterationTemp;
     bool heuristicSuccess = heuristicResult.first == agents.size() && heuristicResult.second == agents.size();
     bool exhaustiveSuccess = exhaustiveResult.first == agents.size() && exhaustiveResult.second == agents.size();
     if (heuristicSuccess) {
@@ -977,6 +975,16 @@ std::pair<size_t, size_t> ContinuousOnlineSimulator::feasibilityCheck() {
     }
 }
 
-
-
-
+void ContinuousOnlineSimulator::printPaths(double maxTimeStep) {
+    if (!outputFileName.empty()) outputFile.open(outputFileName);
+    if (!outputFile.is_open()) return;
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        outputFile << i << " " << outputPaths[i].size() << std::endl;
+        for (const auto &row: outputPaths[i]) {
+            if (row.timestep <= maxTimeStep) {
+                outputFile << row.state << " " << row.timestep << " " << paths[i][row.state / 2] << " " << AgentStateLiterals[(int) row.agentState] << std::endl;
+            }
+        }
+    }
+    outputFile.close();
+}

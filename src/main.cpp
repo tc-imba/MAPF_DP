@@ -54,6 +54,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
     optionParser.add("", false, 0, 0, "Use prioritized replan with optimization ", "--prioritized-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
+    optionParser.add("", false, 0, 0, "Remove redundant unsettled edges in continuous online", "--remove-redundant");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
     optionParser.add("", false, 1, 0, "Task file", "--task-file");
@@ -126,7 +127,7 @@ int main(int argc, const char *argv[]) {
     unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache, removeRedundant;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--task-file")->getString(taskFile);
@@ -167,6 +168,7 @@ int main(int argc, const char *argv[]) {
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
     noCache = optionParser.isSet("--no-cache");
+    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
     std::shared_ptr<spdlog::logger> file_logger;
@@ -323,7 +325,7 @@ int main(int argc, const char *argv[]) {
         solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile, suboptimality));
     } else if (solverType == "ccbs") {
         if (solverBinaryFile.empty()) exit(-1);
-        solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile));
+        solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile, mapType));
     } else if (solverType == "individual") {
         solver = std::shared_ptr<Solver>(new IndividualAStarSolver(graph, agents, makeSpanType));
     } else {
@@ -384,8 +386,9 @@ int main(int argc, const char *argv[]) {
         } else if (simulatorType == "online" || simulatorType == "snapshot") {
             if (timingType == "continuous") {
                 simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
+                auto continuousOnlineSimulator = std::dynamic_pointer_cast<ContinuousOnlineSimulator>(simulator);
+                continuousOnlineSimulator->removeRedundant = removeRedundant;
                 if (simulatorType == "snapshot") {
-                    auto continuousOnlineSimulator = std::dynamic_pointer_cast<ContinuousOnlineSimulator>(simulator);
                     continuousOnlineSimulator->snapshot = true;
                     continuousOnlineSimulator->snapshotOrder = snapshotOrder;
                 }

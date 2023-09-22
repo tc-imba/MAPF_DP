@@ -30,6 +30,23 @@ protected:
     std::vector<std::pair<bool, double> > executionTimeVec;
     std::set<double> arrivingTimestepSet;
 
+    enum class AgentState {
+        BLOCK,
+        UNBLOCK,
+        MOVE,
+        DELAY,
+        COMPLETE,
+        FAIL,
+    };
+
+    static const std::string AgentStateLiterals[6];
+
+    struct PathNode {
+        double timestep;
+        unsigned int state;
+        AgentState agentState;
+    };
+
 private:
     void updateDelayedIntervals(double start, double length);
 
@@ -47,6 +64,8 @@ public:
     double delayRatio = 0.2;
     double firstAgentArrivingTimestep = 0;
     double executionTime = 0;
+
+    std::vector<std::vector<PathNode>> outputPaths;
 
     Simulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed)
             : graph(graph), agents(agents), seed(seed) {}

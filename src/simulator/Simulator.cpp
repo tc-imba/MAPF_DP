@@ -5,6 +5,10 @@
 #include "Simulator.h"
 #include <iomanip>
 
+const std::string Simulator::AgentStateLiterals[] = {
+        "block", "unblock", "move", "delay", "complete", "fail",
+};
+
 size_t Simulator::combineRandomSeed(
         unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int _seed) {
     size_t result = 0;
@@ -87,13 +91,16 @@ double Simulator::getAgentArrivingTime(double currentTimestep, double delayLengt
         auto collideInterval = intervalSet.find(moveInterval);
         if (collideInterval == intervalSet.end()) {
             // no delay anymore
+            outputPaths[agentId].push_back(PathNode{arrivingTimestep, agents[agentId].state, AgentState::MOVE});
             arrivingTimestep = targetTimestep;
             break;
         }
 //        std::cout << currentTimestep << " " << edge.length << " " << arrivingTimestep << std::endl;
         if (collideInterval->lower() > arrivingTimestep) {
+            outputPaths[agentId].push_back(PathNode{arrivingTimestep, agents[agentId].state, AgentState::MOVE});
             remainDistance -= collideInterval->lower() - arrivingTimestep;
         }
+        outputPaths[agentId].push_back(PathNode{collideInterval->lower(), agents[agentId].state, AgentState::DELAY});
         arrivingTimestep = collideInterval->upper();
     }
     return arrivingTimestep;
