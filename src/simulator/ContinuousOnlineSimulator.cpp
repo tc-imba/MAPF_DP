@@ -67,13 +67,13 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 
         // agent arriving around current timestep
         moved.clear();
-        double newCurrentTimestep = currentTimestep;
+        double newCurrentTimestep = currentTimestep + deltaTimestep;
         for (unsigned int i = 0; i < agents.size(); i++) {
             auto &state = agents[i].state;
             if (state + 1 < depGraph.pathTopoNodeIds[i].size() && state % 2 == 1 &&
-                agents[i].arrivingTimestep <= currentTimestep) {
+                agents[i].arrivingTimestep <= newCurrentTimestep) {
 
-                newCurrentTimestep = std::max(newCurrentTimestep, agents[i].arrivingTimestep);
+//                newCurrentTimestep = std::max(newCurrentTimestep, agents[i].arrivingTimestep);
                 auto currentNodeId = paths[i][state / 2];
                 auto nextNodeId = paths[i][state / 2 + 1];
 

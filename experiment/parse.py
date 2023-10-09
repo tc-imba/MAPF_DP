@@ -8,10 +8,10 @@ import os
 from tqdm import tqdm
 from loguru import logger
 
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from pathlib import Path
 from experiment.app import app_command, AppArguments
-from experiment.utils import project_root, ExperimentSetup
+from experiment.utils import project_root, ExperimentSetup, validate_list
 
 
 @dataclasses.dataclass
@@ -19,7 +19,7 @@ class ParseArguments(AppArguments):
     output_suffix: str
     input_suffix: str
     category: str
-    timing: str
+    map_names: List[str]
     result_dir: Path
     output_csv: Path
     time_output_csv: Path
@@ -41,7 +41,7 @@ header_names_replan = [
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
 ]
 column_names = [
-    "timing", "simulator", "obstacles", "agents", "k_neighbor",
+    "timing", "simulator", "obstacles", "agents", "k_neighbor", "map_name",
     "delay_start", "delay_interval", "delay_ratio", "delay_type",
     "makespan", "soc", "total_time", "makespan_time", "feasibility", "cycle",
     "execution_time", "first_agent_arriving",
@@ -230,6 +230,7 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         "obstacles": setup.obstacles,
         "agents": setup.agents,
         "k_neighbor": setup.k_neighbor,
+        "map_name": setup.map_name,
         "delay_start": setup.delay_start,
         "delay_interval": setup.delay_interval,
         "delay_ratio": setup.delay_ratio,
@@ -317,12 +318,13 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
         args.obstacles,
         args.agents,
         args.k_neighbors,
+        args.map_names,
         args.delay_intervals,
         args.delay_ratios
     ))
     for case in tqdm(cases):
         logger.info("Parse {}", case)
-        delay_type, obstacles, agents, k_neighbor, delay_interval, delay_ratio = case
+        delay_type, obstacles, agents, k_neighbor, map_name, delay_interval, delay_ratio = case
         simulator_feasibility_cycle = []
         for simulator in args.simulators:
             if simulator == "online":
@@ -350,7 +352,8 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
             #     _cycle = "h"
             label = f"{simulator}-{feasibility}-{cycle}"
             setup = ExperimentSetup(
-                timing=args.timing, solver=solver, simulator=simulator, obstacles=obstacles,
+                timing=args.timing, map=args.map, map_name=map_name,
+                solver=solver, simulator=simulator, obstacles=obstacles,
                 k_neighbor=k_neighbor, agents=agents, delay_type=delay_type,
                 delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
                 feasibility=feasibility, cycle=cycle,
@@ -405,8 +408,9 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
 @click.option('-o', '--output-suffix', default='')
 @click.option('-i', '--input-suffix', default='')
 @click.option('--category', is_flag=True, default=False)
+@click.option("--map-names", type=str, default="random", callback=validate_list(str))
 @click.pass_context
-def main(ctx, output_suffix, input_suffix, category):
+def main(ctx, output_suffix, input_suffix, category, map_names):
     if input_suffix:
         input_suffix = '_' + input_suffix
     if output_suffix:
@@ -421,6 +425,7 @@ def main(ctx, output_suffix, input_suffix, category):
         output_suffix=output_suffix,
         input_suffix=input_suffix,
         category=category,
+        map_names=map_names,
         result_dir=project_root / f"result{input_suffix}",
         output_csv=data_dir / f"df_{timing}{output_suffix}.csv",
         time_output_csv=data_dir / f"df_{timing}_time{output_suffix}.csv",

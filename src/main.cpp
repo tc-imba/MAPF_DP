@@ -17,8 +17,8 @@
 #include "solver/CCBSSolver.h"
 #include "solver/EECBSSolver.h"
 #include "solver/IndividualAStarSolver.h"
-#include "utils/ezOptionParser.hpp"
 #include "utils/config.hpp"
+#include "utils/ezOptionParser.hpp"
 
 
 /*std::string double_to_string(double data) {
@@ -30,10 +30,8 @@
 }*/
 
 
-
-
 int main(int argc, const char *argv[]) {
-//    Config config(argc, argv);
+    //    Config config(argc, argv);
 
     spdlog::set_pattern("[%^%=8l%$] %v [%@]");
     ez::ezOptionParser optionParser;
@@ -56,6 +54,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("", false, 0, 0, "Remove redundant unsettled edges in continuous online", "--remove-redundant");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
+    optionParser.add("map", false, 1, 0, "Map name (eg., sparse, dense, super_dense)", "--map-name");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
     optionParser.add("", false, 1, 0, "Task file", "--task-file");
     optionParser.add("", false, 1, 0, "Log file", "--log-file");
@@ -82,6 +81,9 @@ int main(int argc, const char *argv[]) {
 
     auto validAgentSeed = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Agent Seed", "--agent-seed", validAgentSeed);
+
+    auto validAgentSkip = new ez::ezOptionValidator("u4", "ge", "0");
+    optionParser.add("0", false, 1, 0, "Skip agents skip in task file", "--agent-skip", validAgentSkip);
 
     auto validSimulationSeed = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Simulation Seed", "--simulation-seed", validSimulationSeed);
@@ -115,6 +117,9 @@ int main(int argc, const char *argv[]) {
     auto validMaxTimestep = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("300", false, 1, 0, "Max Timestep", "--max-timestep", validMaxTimestep);
 
+    auto validDeltaTimestep = new ez::ezOptionValidator("d", "ge", "0");
+    optionParser.add("0", false, 1, 0, "Delta Timestep", "--delta-timestep", validDeltaTimestep);
+
     optionParser.parse(argc, argv);
     if (optionParser.isSet("-h")) {
         std::string usage;
@@ -123,13 +128,14 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, objective, simulatorType, timingType, conflictTypes, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
-    unsigned long window, mapSeed, agentSeed, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
+    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
+    unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
-    double minDP, maxDP, delayRatio, suboptimality;
+    double minDP, maxDP, delayRatio, suboptimality, deltaTimestep;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache, removeRedundant;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
+    optionParser.get("--map-name")->getString(mapName);
     optionParser.get("--task-file")->getString(taskFile);
     optionParser.get("--log-file")->getString(logFile);
     optionParser.get("--objective")->getString(objective);
@@ -146,6 +152,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
     optionParser.get("--agent-seed")->getULong(agentSeed);
+    optionParser.get("--agent-skip")->getULong(agentSkip);
     optionParser.get("--simulation-seed")->getULong(simulationSeed);
     optionParser.get("--agents")->getULong(agentNum);
     optionParser.get("--iteration")->getULong(iteration);
@@ -158,6 +165,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
     optionParser.get("--suboptimality")->getDouble(suboptimality);
     optionParser.get("--max-timestep")->getULong(maxTimestep);
+    optionParser.get("--delta-timestep")->getDouble(deltaTimestep);
     debug = optionParser.isSet("--debug");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
@@ -247,11 +255,12 @@ int main(int argc, const char *argv[]) {
     graph.nodeEdgeConflict = nodeEdgeConflict;
     //    graph.noCache = noCache;
 
-    std::string filename;
+    std::string filename, cacheFileName;
     if (mapType == "random") {
         filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" +
                    std::to_string(obstacles) +
                    "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
+        cacheFileName = filename;
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {
         filename = "warehouse-" + std::to_string(maxX) + "-" + std::to_string(maxY);
@@ -269,15 +278,26 @@ int main(int argc, const char *argv[]) {
         if (boost::algorithm::ends_with(filename, ".xml")) {
             filename = filename.substr(0, filename.length() - 4);
         }
+        cacheFileName = timingType + "-" + mapName;
         graph.generateGraphMLGraph(filename);
+    } else if (mapType == "mapf") {
+        filename = mapFile;
+        if (boost::algorithm::ends_with(filename, ".map")) {
+            filename = filename.substr(0, filename.length() - 4);
+        }
+        graph.generateMAPFBenchmarkGraph(filename, kNeighbor);
     }
     if (useDP) {
         graph.generateDelayProbability(mapSeed, minDP, maxDP);
     }
-    graph.calculateAllPairShortestPath(filename, useDP);
+    // only use in individual
+//    graph.calculateAllPairShortestPath(filename, useDP);
+
+    // exit(0);
 
     std::vector<Agent> agents;
     if (taskFile.empty()) {
+        graph.calculateAllPairShortestPath(filename, useDP);
         if (mapType == "random") {
             agents = graph.generateRandomAgents(agentNum, agentSeed);
         } else if (mapType == "warehouse") {
@@ -288,23 +308,27 @@ int main(int argc, const char *argv[]) {
             agents = graph.generateRandomAgents(agentNum, agentSeed);
         } else if (mapType == "graphml") {
             agents = graph.generateRandomAgents(agentNum, agentSeed);
+        } else if (mapType == "mapf") {
+            agents = graph.generateRandomAgents(agentNum, agentSeed);
+        } else {
+            assert(0);
         }
     } else {
         std::string taskFileType = "xml";
-        filename = taskFile;
-        if (boost::algorithm::ends_with(filename, ".xml")) {
-            filename = filename.substr(0, filename.length() - 4);
+        std::string taskFilename = taskFile;
+        if (boost::algorithm::ends_with(taskFilename, ".xml")) {
+            taskFilename = taskFilename.substr(0, taskFilename.length() - 4);
         }
         if (taskFileType == "xml") {
-            agents = graph.loadXMLAgents(agentNum, filename);
+            agents = graph.loadXMLAgents(taskFilename, agentNum, agentSkip);
         } else if (taskFileType == "scen") {
             exit(0);
-            //            agents = graph.loadScenAgents(agentNum, filename);
+            //            agents = graph.loadScenAgents(agentNum, taskFilename);
         } else {
             assert(0);
         }
         // no cache for input task file
-        noCache = true;
+        // noCache = true;
     }
 
 
@@ -327,6 +351,7 @@ int main(int argc, const char *argv[]) {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile, mapType));
     } else if (solverType == "individual") {
+        graph.calculateAllPairShortestPath(filename, useDP);
         solver = std::shared_ptr<Solver>(new IndividualAStarSolver(graph, agents, makeSpanType));
     } else {
         assert(0);
@@ -341,7 +366,7 @@ int main(int argc, const char *argv[]) {
     if (noCache) {
         result = solver->solve();
     } else {
-        result = solver->solveWithCache(filename, agentSeed);
+        result = solver->solveWithCache(cacheFileName, agentSeed);
     }
 
     if (!result) {
@@ -388,6 +413,7 @@ int main(int argc, const char *argv[]) {
                 simulator = std::make_unique<ContinuousOnlineSimulator>(graph, agents, i);
                 auto continuousOnlineSimulator = std::dynamic_pointer_cast<ContinuousOnlineSimulator>(simulator);
                 continuousOnlineSimulator->removeRedundant = removeRedundant;
+                continuousOnlineSimulator->deltaTimestep = deltaTimestep;
                 if (simulatorType == "snapshot") {
                     continuousOnlineSimulator->snapshot = true;
                     continuousOnlineSimulator->snapshotOrder = snapshotOrder;

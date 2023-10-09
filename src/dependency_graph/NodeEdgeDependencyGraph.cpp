@@ -21,7 +21,7 @@ void NodeEdgeDependencyGraph::init() {
         for (size_t j = 0; j < solver->solution->plans[i]->path.size(); j++) {
             auto newNodeId = solver->solution->plans[i]->path[j].nodeId;
             auto newNodeTimestamp = solver->solution->plans[i]->path[j].estimatedTime;
-            SPDLOG_INFO("{} {} {} {}", i, j, newNodeId, newNodeTimestamp);
+            SPDLOG_DEBUG("{} {} {} {}", i, j, newNodeId, newNodeTimestamp);
             if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
                 timestamps[i].emplace_back(newNodeTimestamp);

@@ -61,7 +61,7 @@ class PlotSettings:
     plot_type: str
     subplot_type: str
     agents: int
-    k_neighbor: int
+    plot_value: str
     y_field: str
     groupby: List[str]
 
@@ -80,7 +80,10 @@ class PlotSettings:
         self.y_log = False
         if self.y_field == "time":
             if self.plot_type == "simulator" or self.plot_type == "replan":
-                self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
+                if self.args.timing == "continuous":
+                    self.y_label = 'Average Computation Time (ms) \n per Time Unit Simulated'
+                else:
+                    self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
             elif self.plot_type == "feasibility":
                 self.y_label = 'Average Computation Time of Each Feasibility Check (ms)'
             elif self.plot_type == "cycle":
@@ -116,17 +119,25 @@ class PlotSettings:
         elif self.subplot_type == "obstacles":
             self.subplot_field = "obstacles"
             self.subplot_keys = self.args.obstacles
+        elif self.subplot_type == "map-names":
+            self.subplot_field = "map_name"
+            self.subplot_keys = ["sparse", "dense"]
         elif self.subplot_type == "delay-interval":
             self.subplot_field = "delay_interval"
             self.subplot_keys = self.args.delay_intervals
+        elif self.subplot_type == "k_neighbor":
+            self.subplot_field = "k_neighbor"
+            self.subplot_keys = self.args.k_neighbors
         else:
             assert False
 
     def get_subplot_key(self, subplot_key):
-        if self.subplot_type == "delay-ratio" or self.subplot_type == "delay-interval":
+        if self.subplot_type == "delay-ratio" or self.subplot_type == "delay-interval" or self.subplot_type == "k_neighbor":
             subplot_key = int(subplot_key)
         elif self.subplot_type == "obstacles":
             subplot_key = f"{int(subplot_key * 100)}\\%"
+        elif self.subplot_type == "map-names":
+            subplot_key = str(subplot_key)
         else:
             assert False
         return subplot_key
@@ -150,9 +161,14 @@ class PlotSettings:
             elif simulator == "snapshot_start":
                 label = f"snapshot-start-{subplot_key}"
             elif simulator == "snapshot_end":
-                label = f"snapshot-end-{subplot_key}"
+                label = f"offline-{subplot_key}"
             elif simulator == "online_remove_redundant":
-                label = f"online-remove-redundant-{subplot_key}"
+                if self.y_field == "time":
+                    label = f"online-remove-redundant-{subplot_key}"
+                else:
+                    label = f"online-{subplot_key}"
+            elif simulator == "online" and self.args.timing == "continuous":
+                label = f"online-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -174,7 +190,7 @@ class PlotSettings:
 
         if self.subplot_type == "delay-ratio":
             label += "-obstacles"
-        elif self.subplot_type == "obstacles" or self.subplot_type == "delay-interval":
+        elif self.subplot_type in ("obstacles" , "delay-interval", "map-names", "k_neighbor"):
             label = "-".join(label.split('-')[:-1])
 
         if self.plot_type == "simulator" or self.plot_type == "cdf":
@@ -260,7 +276,7 @@ class PlotSettings:
         else:
             extra = ""
         return self.args.plot_dir / \
-            f"{self.args.timing}-{self.plot_type}-{self.subplot_type}-{self.agents}-{self.k_neighbor}-{self.y_field}{extra}.pdf"
+            f"{self.args.timing}-{self.args.map}-{self.plot_type}-{self.subplot_type}-{self.agents}-{self.plot_value}-{self.y_field}{extra}.pdf"
 
 
 def plot(df: pd.DataFrame, settings: PlotSettings):
@@ -324,7 +340,6 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
                         marker=None, label=line_settings.label,
                         linewidth=1.5)
 
-
             elif y_lower is None or y_upper is None:
                 ax.plot(xticks, y,
                         linestyle=line_settings.linestyle, color=line_settings.color,
@@ -351,6 +366,10 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             ax.set_title(f"k = {int(key)}")
         elif settings.subplot_type == "obstacles":
             ax.set_title(f"{int(key / 9)}\\% obstacles")
+        elif settings.subplot_type == "map-names":
+            ax.set_title(key)
+        elif settings.subplot_type == "k_neighbor":
+            ax.set_title(f"$2^{key}$ connected")
         if settings.y_log:
             ax.set_yscale("log")
             # ax.set_ylim(bottom=1)
@@ -361,6 +380,9 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 
             # ax.yaxis.set_minor_formatter(LogFormatter(labelOnlyBase=False))
             # ax.yaxis.set_major_formatter(LogFormatter(labelOnlyBase=True))
+
+        if settings.y_field == "time":
+            ax.set_ylim(bottom=0)
 
     # plt.ylabel(ylabel)
     ax = axes[0]
@@ -390,26 +412,70 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 
 
 def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neighbor: int):
+    # df = data[
+    #     (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
+    #      (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
+    #      (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
+    #      (data["simulator"] == "online_remove_redundant") |
+    #      (data["simulator"] == "snapshot_end"))
+    #     & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
+
     df = data[
-        (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
-         (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
-         (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
-         (data["simulator"] == "online_remove_redundant") |
-         (data["simulator"] == "snapshot_start"))
-        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
-    df2 = df[df["simulator"] != "default"]
+        ((data["simulator"] == "online_remove_redundant") | (data["simulator"] == "snapshot_end"))
+        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == 0.1)]
+
+    df2 = data[
+        ((data["simulator"] == "online") | (data["simulator"] == "online_remove_redundant"))
+        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == 0.1)]
+
     groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
-    subplot_type = "obstacles"
+    if args.map == "random":
+        subplot_type = "obstacles"
+    elif args.map == "den520d":
+        subplot_type = "map-names"
+    else:
+        assert False
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 k_neighbor=k_neighbor, y_field="soc", groupby=groupby, legend=True)
+                                 plot_value=str(k_neighbor), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 k_neighbor=k_neighbor, y_field="time", groupby=groupby, legend=True)
+                                 plot_value=str(k_neighbor), y_field="time", groupby=groupby, legend=True)
+    plot(df2, plot_settings)
+    # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+    #                              k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
+    # plot(df2, plot_settings)
+
+
+def plot_simulator_2(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: int):
+    # df = data[
+    #     (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
+    #      (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
+    #      (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
+    #      (data["simulator"] == "online_remove_redundant") |
+    #      (data["simulator"] == "snapshot_end"))
+    #     & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
+
+    df = data[
+        ((data["simulator"] == "online_remove_redundant") | (data["simulator"] == "snapshot_end"))
+        & (data["agents"] == agents) & (data["obstacles"] == obstacles) & (data["delay_ratio"] == 0.1)]
+
+    df2 = data[
+        ((data["simulator"] == "online") | (data["simulator"] == "online_remove_redundant"))
+        & (data["agents"] == agents) & (data["obstacles"] == obstacles) & (data["delay_ratio"] == 0.1)]
+
+    groupby = ["simulator", "cycle", "delay_ratio"]
+    plot_type = "simulator"
+    subplot_type = "k_neighbor"
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 plot_value=str(obstacles), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
-    plot(df, plot_settings)
+                                 plot_value=str(obstacles), y_field="time", groupby=groupby, legend=True)
+    plot(df2, plot_settings)
+    # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+    #                              k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
+    # plot(df2, plot_settings)
 
 
 def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
@@ -419,10 +485,10 @@ def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot_type = "replan"
     subplot_type = "delay-ratio"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="soc", groupby=groupby, k_neighbor=2, legend=True)
+                                 y_field="soc", groupby=groupby, plot_value="2", legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, k_neighbor=2, legend=True)
+                                 y_field="time", groupby=groupby, plot_value="2", legend=True)
     plot(df, plot_settings)
 
 
@@ -432,13 +498,13 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot_type = "cycle"
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="soc", groupby=groupby, k_neighbor=2, legend=True)
+                                 y_field="soc", groupby=groupby, plot_value="2", legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, k_neighbor=2, legend=False)
+                                 y_field="time", groupby=groupby, plot_value="2", legend=False)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="makespan_time", groupby=groupby, k_neighbor=2, legend=False)
+                                 y_field="makespan_time", groupby=groupby, plot_value="2", legend=False)
     plot(df, plot_settings)
 
 
@@ -448,7 +514,7 @@ def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: in
     plot_type = "cdf"
     subplot_type = "delay-interval"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="cdf", groupby=groupby, k_neighbor=2, legend=True, extra=str(obstacles))
+                                 y_field="cdf", groupby=groupby, plot_value=2, legend=True, extra=str(obstacles))
     plot(df, plot_settings)
 
 
@@ -472,8 +538,12 @@ def main(ctx):
     )
     click.echo(args)
 
-    df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
-    df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
+    if args.map == "random":
+        df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
+        df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
+    else:
+        df_discrete = pd.read_csv(data_dir / f"df_{args.timing}_{args.map}.csv")
+        df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time_{args.map}.csv")
 
     if args.timing == "discrete":
         df_discrete["k_neighbor"] = 2
@@ -485,8 +555,13 @@ def main(ctx):
             # plot_replan(args, df_discrete, agents)
     else:
         for agents in args.agents:
-            for k_neighbor in args.k_neighbors:
-                plot_simulator(args, df_discrete, agents, k_neighbor)
+            if args.map == "random":
+                for obstacles in args.obstacles:
+                    plot_simulator_2(args, df_discrete, agents, obstacles)
+
+            # for k_neighbor in args.k_neighbors:
+            #     plot_simulator(args, df_discrete, agents, k_neighbor)
+
 
 
 if __name__ == '__main__':

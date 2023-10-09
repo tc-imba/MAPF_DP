@@ -40,13 +40,18 @@ bool CCBSSolver::readSolution(const std::string &filename) {
             auto labelId = std::strtoul(sectionElem->Attribute("number"), nullptr, 10);
             auto startX = std::strtod(sectionElem->Attribute("start_i"), nullptr);
             auto startY = std::strtod(sectionElem->Attribute("start_j"), nullptr);
+            auto startId = std::strtoul(sectionElem->Attribute("start_id"), nullptr, 10);
             auto goalX = std::strtod(sectionElem->Attribute("goal_i"), nullptr);
             auto goalY = std::strtod(sectionElem->Attribute("goal_j"), nullptr);
+            auto goalId = std::strtoul(sectionElem->Attribute("goal_id"), nullptr, 10);
+
             auto time = std::strtod(sectionElem->Attribute("duration"), nullptr);
             unsigned int startNode, goalNode;
             if (mapType == "graphml") {
-                startNode = graph.getNodeIdByRealPos(startX, startY);
-                goalNode = graph.getNodeIdByRealPos(goalX, goalY);
+                startNode = startId;
+                goalNode = goalId;
+//                startNode = graph.getNodeIdByRealPos(startX, startY);
+//                goalNode = graph.getNodeIdByRealPos(goalX, goalY);
             } else {
                 startNode = graph.getNodeIdByGridPos((unsigned int) startX, (unsigned int) startY);
                 goalNode = graph.getNodeIdByGridPos((unsigned int) goalX, (unsigned int) goalY);
@@ -124,7 +129,7 @@ bool CCBSSolver::solve() {
     success = readSolution(outputFileName);
 
     if (success) {
-//        remove_all(ph);
+        remove_all(ph);
     }
 //    prioritizedReplan = false;
     return success;

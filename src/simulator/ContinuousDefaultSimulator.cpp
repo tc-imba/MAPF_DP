@@ -16,6 +16,8 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
 
     initDelayedIntervals();
     openOutputFiles();
+    outputPaths.clear();
+    outputPaths.resize(agents.size());
 
     for (unsigned int i = 0; i < agents.size(); i++) {
         agents[i].state = 0;

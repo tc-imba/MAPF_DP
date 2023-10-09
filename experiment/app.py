@@ -13,6 +13,7 @@ logger.add(lambda msg: tqdm.write(msg, end=""), colorize=True)
 
 @dataclasses.dataclass
 class AppArguments:
+    map: str
     obstacles: List[int]
     agents: List[int]
     simulators: List[str]
@@ -24,6 +25,7 @@ class AppArguments:
 
 
 def experiment_base_options(f):
+    @click.option("--map", type=str, default="random")
     @click.option("--obstacles", type=str, default="90,180,270", callback=validate_list(int))
     @click.option("--agents", type=str, default="10,20", callback=validate_list(int))
     @click.option("--simulators", type=str, default="online,default", callback=validate_list(str))
@@ -34,9 +36,10 @@ def experiment_base_options(f):
     @click.option("--timing", type=str, default="continuous")
     @click.pass_context
     @wraps(f)
-    def wrapper(ctx, obstacles, agents, simulators, k_neighbors, delay_types, delay_ratios, delay_intervals, timing,
+    def wrapper(ctx, map, obstacles, agents, simulators, k_neighbors, delay_types, delay_ratios, delay_intervals, timing,
                 *args, **kwargs):
         ctx.obj = AppArguments(
+            map=map,
             obstacles=obstacles,
             agents=agents,
             simulators=simulators,

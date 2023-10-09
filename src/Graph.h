@@ -121,7 +121,7 @@ public:
 
     void generateHardCodedGraph(const std::string &filename = "", size_t seed = 0);
 
-    void generateFileGraph(const std::string &filename);
+    void generateMAPFBenchmarkGraph(const std::string &filename, unsigned int kNeighbor);
 
     void generateDOTGraph(const std::string &filename);
 
@@ -155,7 +155,7 @@ public:
 
     std::vector<Agent> generateHardCodedAgents(unsigned int agentNum);
 
-    std::vector<Agent> loadXMLAgents(unsigned int agentNum, const std::string &filename);
+    std::vector<Agent> loadXMLAgents(const std::string &filename, unsigned int agentNum, size_t skip = 0);
 
     void saveScenAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
 

@@ -33,10 +33,10 @@ def validate_list(cast_func):
 @dataclasses.dataclass
 class ExperimentSetup:
     timing: str
+    map: str
+    map_name: str
     solver: str
     simulator: str
-    obstacles: int
-    k_neighbor: int
     agents: int
     delay_type: str
     delay_ratio: float
@@ -45,10 +45,22 @@ class ExperimentSetup:
     feasibility: str
     cycle: str
 
+    obstacles: int = 90
+    k_neighbor: int = 2
+
     def get_output_prefix(self):
-        output_prefix = "%s-%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
-            self.timing, self.simulator, self.obstacles, self.k_neighbor, self.agents,
-            self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
-            self.feasibility, self.cycle
-        )
+        if self.map == "random":
+            output_prefix = "%s-%s-%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
+                self.timing, self.map, self.simulator, self.obstacles, self.k_neighbor, self.agents,
+                self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
+                self.feasibility, self.cycle
+            )
+        elif self.map == "den520d":
+            output_prefix = "%s-%s-%s-%d-%s-%s-%d-%d-%s-%s" % (
+                self.timing, self.map_name, self.simulator, self.agents,
+                self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
+                self.feasibility, self.cycle
+            )
+        else:
+            assert False
         return output_prefix

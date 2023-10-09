@@ -44,7 +44,7 @@ int main(int argc, const char *argv[]) {
     boost::filesystem::path mapFilePath(mapName);
 
     Graph graph;
-    graph.generateFileGraph(mapName);
+    graph.generateMAPFBenchmarkGraph(mapName);
     graph.calculateAllPairShortestPath("", false);
     auto generatedAgents = graph.generateRandomAgents(agents, agentSeed);
 

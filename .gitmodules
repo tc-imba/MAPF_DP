@@ -14,3 +14,6 @@
 	path = spdlog
 	url = https://github.com/gabime/spdlog.git
     shallow = true
+[submodule "MAPF-benchmark"]
+	path = MAPF-benchmark
+	url = https://github.com/tc-imba/MAPF-benchmark.git

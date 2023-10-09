@@ -244,7 +244,7 @@ bool Graph::isPathConflictWithObstacle(std::vector<std::vector<char>> &gridGraph
 
     for (unsigned int i = xMin; i <= xMax; i++) {
         for (unsigned int j = yMin; j <= yMax; j++) {
-            if (gridGraph[i][j] != '@') continue;
+            if (gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') continue;
             // @TODO: add optimizations
 //            if (i == start.first && j == start.second) return true;
 //            if (i == goal.first && j == goal.second) return true;
@@ -298,7 +298,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
 
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
-            if (gridGraph[i][j] != '@') {
+            if (gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
                 gridGraphIds[i][j] = boost::add_vertex(g);
                 auto &node = g[gridGraphIds[i][j]];
                 node.type = gridGraph[i][j];
@@ -312,7 +312,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
     unsigned int E = 0;
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
-            if (gridGraph[i][j] != '@') {
+            if (gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
                 auto neighbors = getNeighbors(gridGraph, i, j);
                 for (auto &neighbor: neighbors) {
 //                    std::cout << i << " " << j << " " << neighbor.x << " " << neighbor.y << " " << neighbor.length
@@ -345,6 +345,7 @@ Graph::generateGraph(std::vector<std::vector<char>> &gridGraph, const std::strin
     SPDLOG_INFO("generate graph: V={}, E={}", V, E);
     nodeNum = V;
     edgeNum = E;
+    distances.resize(V, std::vector<double>(V, 0));
 
     if (write) {
         boost::dynamic_properties dp;
@@ -366,7 +367,7 @@ void Graph::generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph) {
 
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
-            if (gridGraph[i][j] != '@') {
+            if (gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
                 gridGraphIds[i][j] = boost::add_vertex(g);
                 g[gridGraphIds[i][j]].type = gridGraph[i][j];
                 V++;
@@ -378,11 +379,11 @@ void Graph::generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph) {
     unsigned int E = 0;
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
-            if (gridGraph[i][j] != '@') {
+            if (gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
                 std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
                                                                                 {i,     j + 1}};
                 for (auto [x, y]: neighbors) {
-                    if (x < height && y < width && gridGraph[x][y] != '@') {
+                    if (x < height && y < width && gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
                         auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
                         g[p.first].length = 1;
                         g[p.first].dp = 0;
@@ -494,14 +495,16 @@ void Graph::generateHardCodedGraph(const std::string &filename, size_t seed) {
     generateGraph(gridGraph, filename, seed);
 }
 
-void Graph::generateFileGraph(const std::string &filename) {
+void Graph::generateMAPFBenchmarkGraph(const std::string &filename, unsigned int kNeighbor) {
+    graphFilename = filename;
     std::vector<std::vector<char>> gridGraph;
     if (loadGridGraph(gridGraph, filename)) {
-        SPDLOG_INFO("load grid graph from {}.map", filename);
+        SPDLOG_INFO("load MAPF benchmark graph from {}.map", filename);
     } else {
         exit(-1);
     }
-    generateGraph(gridGraph, filename, 0, 1, false);
+    generateGraph(gridGraph, filename, 0, kNeighbor, false);
+    saveXMLGraph(gridGraph, filename);
 }
 
 void Graph::generateDOTGraph(const std::string &filename) {
@@ -584,6 +587,7 @@ void Graph::generateGraphMLGraph(const std::string &filename) {
 
     nodeNum = V;
     edgeNum = E;
+    distances.resize(V, std::vector<double>(V, 0));
 
 }
 
@@ -824,7 +828,7 @@ std::vector<Agent> Graph::generateHardCodedAgents(unsigned int agentNum) {
     return agents;
 }
 
-std::vector<Agent> Graph::loadXMLAgents(unsigned int agentNum, const std::string &filename) {
+std::vector<Agent> Graph::loadXMLAgents(const std::string &filename, unsigned int agentNum, size_t skip) {
     auto fullFileName = filename + ".xml";
     SPDLOG_INFO("load task from {}", fullFileName);
     std::vector<Agent> agents(agentNum);
@@ -833,6 +837,13 @@ std::vector<Agent> Graph::loadXMLAgents(unsigned int agentNum, const std::string
 
     auto root = doc.FirstChildElement("root");
     auto agentElem = root->FirstChildElement();
+    for (unsigned int i = 0; i < skip; i++) {
+        if (!agentElem) {
+            SPDLOG_ERROR("too few agents in task file");
+            exit(-1);
+        }
+        agentElem = agentElem->NextSiblingElement();
+    }
     for (unsigned int i = 0; i < agents.size(); i++) {
         if (!agentElem) {
             SPDLOG_ERROR("too few agents in task file");
