@@ -97,6 +97,8 @@ elay-start 1 --delay-ratio 0.3 --delay-interval 10 --obstacles 270 --delay agent
 
 Note that the executable `cmake-build-relwithdebinfo/MAPF_DP` must be compiled first before running the experiments.
 
+### Discrete
+
 ```bash
 # run the tests
 $ python3 experiments/test.py --timing discrete
@@ -108,7 +110,26 @@ $ python3 experiments/parse.py --timing discrete --category -o feasibility_categ
 $ python3 experiments/plot.py --timing discrete
 ```
 
+### Continuous
+
+```bash
+# run the tests
+$ python3 experiments/test.py -j 10 --init-tests --map-seeds 10 --agent-seeds 10 --obstacles 90,180 --agents 20 --k-neighbors 2,3,4
+$ python3 experiments/test.py -j 10 --map-seeds 10 --agent-seeds 10 --obstacles 90,180 --agents 20 --k-neighbors 2,3,4 --simulators snapshot_end,online,online_remove_redundant --delay-ratios 0.1 --delay-intervals 0
+# parse the results
+$ python3 experiments/parse.py --timing continuous --delay-intervals 0,1,10,20 --obstacles 90,180 --agents 20 --simulators online,snapshot_end,online_remove_redundant --k-neighbors 2,3,4 
+# plot the figures
+$ python3 experiments/plot.py --timing continuous --delay-intervals 0,1,10,20 --obstacles 90,180 --agents 20 --k-neighbors 2,3,4
+```
+
 ## Algorithms
+
+### Discrete
 
 + Algorithm 1: the function `feasibilityCheckHelper` in `src/simulator/DiscreteOnlineSimulator.cpp`
 + Algorithm 2: the framework is in the function `simulate` in `src/simulator/DiscreteOnlineSimulator.cpp`, the detailed implementation of line 12-23 is in the function `heuristicCycleCheck` in the same file.
+
+### Continuous
+
++ `src/simulator/ContinuousOnlineSimulator.cpp`
++ `src/dependency_graph%2FNodeEdgeDependencyGraph.cpp`
