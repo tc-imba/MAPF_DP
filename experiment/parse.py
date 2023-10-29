@@ -36,6 +36,7 @@ header_names_online = [
     'cycle_count', 'cycle_agents', 'unblocked_agents', 'feasibility_count',
     'feasibility_1', 'feasibility_2', 'feasibility_3', 'feasibility_4',
     'feasibility_unsettled', 'feasibility_loop', 'feasibility_topo', 'feasibility_recursion',
+    'all_node_pairs', 'fixed_node_pairs', 'added_node_pairs'
 ]
 header_names_replan = [
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
@@ -54,7 +55,7 @@ column_names = [
     "average_timestep_time_lower", "average_timestep_time_upper",
     "makespan_time_lower", "makespan_time_upper",
     'partial_replan_count', 'partial_replan_time', 'full_replan_count', 'full_replan_time',
-    "data_points",
+    "data_points", 'all_node_pairs', 'fixed_node_pairs', 'added_node_pairs'
 ]
 time_header_names = [
     'map', 'agent', 'iteration', 'length', 'data',
@@ -180,8 +181,11 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         average_timestep_time = timestep_time.mean() or 0
         average_timestep_time_lower, average_timestep_time_upper = \
             get_confidence_interval(timestep_time)
+        all_node_pairs = 0
+        fixed_node_pairs = 0
+        added_node_pairs = 0
 
-        if setup.simulator == "online":
+        if "online" in setup.simulator:
             cycle_count = npy.mean(df['cycle_count'])
             cycle_agents = npy.mean(df['cycle_agents'])
             unblocked_agents = npy.mean(df['unblocked_agents'])
@@ -215,6 +219,12 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
                     df['feasibility_topo'] / df['first_agent_arriving'])
                 average_feasibility_recursion = npy.mean(
                     df['feasibility_recursion'] / df['first_agent_arriving'])
+
+            if len(df.columns) > 20:
+                all_node_pairs = npy.mean(df['all_node_pairs'])
+                fixed_node_pairs = npy.mean(df['fixed_node_pairs'])
+                added_node_pairs = npy.mean(df['added_node_pairs'])
+
         elif setup.simulator in ("replan", "prioritized", "prioritized_opt"):
             partial_replan_count = npy.mean(df['partial_replan_count'])
             partial_replan_time = npy.mean(df['partial_replan_time'])
@@ -271,6 +281,9 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         'full_replan_count': full_replan_count,
         'full_replan_time': full_replan_time,
         'data_points': data_points,
+        'all_node_pairs': all_node_pairs,
+        'fixed_node_pairs': fixed_node_pairs,
+        'added_node_pairs': added_node_pairs,
     }
     return row
 

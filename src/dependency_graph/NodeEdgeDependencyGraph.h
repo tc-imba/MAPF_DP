@@ -9,8 +9,8 @@
 
 class NodeEdgeDependencyGraph : public DependencyGraph {
 public:
+    std::string removeRedundant = "none";
     std::string snapshotOrder = "none";
-    bool removeRedundant = false;
 
     struct SDGNode {
         size_t agentId;
@@ -49,6 +49,10 @@ public:
     typedef std::pair<SDGNode, SDGNode> SDGNodePair;
     typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
 
+    bool compareSDGEdgePairWithPartialOrder(const SDGEdgePair &lhs, const SDGEdgePair &rhs) {
+        return lhs.first.source.state <= rhs.first.source.state && lhs.first.dest.state >= rhs.first.dest.state && lhs.second.source.state <= rhs.second.source.state && lhs.second.dest.state >= rhs.second.dest.state;
+    }
+
     // each SDGNode has a corresponding SDGData
     struct SDGData {
         // conflicts between the current SDGNode and other SDGNodes
@@ -64,6 +68,10 @@ public:
     std::set<SDGEdgePair> unsettledEdgePairsSet;
     std::vector<SharedNodePair> sharedStates;
     std::vector<SDGEdge> savedAddedEdges;
+
+    size_t numAllNodePairs = 0;
+    size_t numFixedNodePairs = 0;
+    size_t numAddedNodePairs = 0;
 
     NodeEdgeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths,  const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};
 
@@ -85,6 +93,19 @@ public:
     bool generateUnsettledEdges();
 
     void removeRedundantNodePair(std::set<SDGNodePair> &nodePairs, const NodeEdgeDependencyGraph::SDGNodePair &nodePair, int dState1, int dState2);
+
+    void generateAddedNodePairsNone(const std::vector<SDGNodePair> &nnNodePairs, const std::vector<SDGNodePair> &neNodePairs,
+                                        const std::vector<SDGNodePair> &eeNodePairs, const std::vector<SDGNodePair> &fixedNodePairs,
+                                        std::vector<SDGNodePair> &addedNodePairs);
+
+
+    void generateAddedNodePairsPhysical(const std::vector<SDGNodePair> &nnNodePairs, const std::vector<SDGNodePair> &neNodePairs,
+                                        const std::vector<SDGNodePair> &eeNodePairs, const std::vector<SDGNodePair> &fixedNodePairs,
+                                        std::vector<SDGNodePair> &addedNodePairs);
+
+    void generateAddedNodePairsGraph(const std::vector<SDGNodePair> &nnNodePairs, const std::vector<SDGNodePair> &neNodePairs,
+                                     const std::vector<SDGNodePair> &eeNodePairs, const std::vector<SDGNodePair> &fixedNodePairs,
+                                     std::vector<SDGNodePair> &addedNodePairs);
 
     void initSharedNodes(size_t i, size_t j);
 

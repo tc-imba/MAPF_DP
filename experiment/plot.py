@@ -103,12 +103,18 @@ class PlotSettings:
             self.y_label = "\n Timesteps Completed (\\%)"
         elif self.y_field == "pdf":
             self.y_label = "\n Timesteps Completed (\\%)"
+        elif self.y_field == "node_pair":
+            self.y_label = "\n Number of Node Pairs"
+            self.y_log = True
         else:
             assert False
 
         if self.plot_type == "cdf":
             self.x_label = "Computation Time (s)"
             self.x_field = ""
+        elif self.plot_type == "redundant":
+            self.x_label = "$2^k$ connected"
+            self.x_field = "k_neighbor"
         else:
             self.x_label = 'length of each pause (k)'
             self.x_field = 'delay_interval'
@@ -162,9 +168,9 @@ class PlotSettings:
                 label = f"snapshot-start-{subplot_key}"
             elif simulator == "snapshot_end":
                 label = f"offline-{subplot_key}"
-            elif simulator == "online_remove_redundant":
+            elif simulator.startswith("online_remove_redundant"):
                 if self.y_field == "time":
-                    label = f"online-remove-redundant-{subplot_key}"
+                    label = f"{'-'.join(simulator.split('_'))}-{subplot_key}"
                 else:
                     label = f"online-{subplot_key}"
             elif simulator == "online" and self.args.timing == "continuous":
@@ -173,7 +179,7 @@ class PlotSettings:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
             simulator = "online"
-            subplot_key = indexes
+            (subplot_key) = indexes
             subplot_key = self.get_subplot_key(subplot_key)
             label = f"{subplot_key}"
         else:
@@ -185,12 +191,18 @@ class PlotSettings:
                 label = f"baseline-{subplot_key}"
             elif simulator == "online":
                 label = f"proposed-{subplot_key}"
+            elif simulator == "fixed":
+                label = f"determined-{subplot_key}"
+            elif simulator == "physical":
+                label = f"unsettled-physical-{subplot_key}"
+            elif simulator == "graph":
+                label = f"unsettled-graph-{subplot_key}"
             else:
                 label = f"{simulator}-{subplot_key}"
 
         if self.subplot_type == "delay-ratio":
             label += "-obstacles"
-        elif self.subplot_type in ("obstacles" , "delay-interval", "map-names", "k_neighbor"):
+        elif self.subplot_type in ("obstacles", "delay-interval", "map-names", "k_neighbor"):
             label = "-".join(label.split('-')[:-1])
 
         if self.plot_type == "simulator" or self.plot_type == "cdf":
@@ -218,6 +230,15 @@ class PlotSettings:
             linestyle = simulator == "proposed" and "-" or (simulator == "naive" and "-." or ":")
         elif self.plot_type == "category":
             linestyle = "-"
+        elif self.plot_type == "redundant":
+            if simulator == "fixed":
+                linestyle = "solid"
+            elif simulator == "physical":
+                linestyle = "dotted"
+            elif simulator == "graph":
+                linestyle = "dashed"
+            else:
+                linestyle = "dashdot"
         else:
             assert False
 
@@ -245,6 +266,8 @@ class PlotSettings:
             y = np.array(df["makespan_time"] * 1000)
             y_lower = y - np.array(df["makespan_time_lower"] * 1000)
             y_upper = np.array(df["makespan_time_upper"] * 1000) - y
+        elif self.y_field == "node_pair":
+            y = np.array(df["node_pair"])
         elif self.y_field == "cdf" or self.y_field == "pdf":
             data = ast.literal_eval(df["data"].iloc[0])
             data = np.array(data).transpose()
@@ -268,6 +291,7 @@ class PlotSettings:
 
         else:
             assert False
+        # print(x, y, y_lower, y_upper)
         return x, y, y_lower, y_upper
 
     def get_output_file(self):
@@ -292,6 +316,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         xticks = []
         xmax = 0
         xmin = np.inf
+        # print(sub_df)
         if settings.plot_type == "cdf":
             for j, (indexes, df2) in enumerate(sub_df.groupby(settings.groupby)):
                 x, y, y_lower, y_upper = settings.get_line_values(df2)
@@ -457,11 +482,14 @@ def plot_simulator_2(args: PlotArguments, data: pd.DataFrame, agents: int, obsta
     #     & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
 
     df = data[
-        ((data["simulator"] == "online_remove_redundant") | (data["simulator"] == "snapshot_end"))
+        ((data["simulator"] == "online_remove_redundant_physical") |
+         (data["simulator"] == "snapshot_end"))
         & (data["agents"] == agents) & (data["obstacles"] == obstacles) & (data["delay_ratio"] == 0.1)]
 
     df2 = data[
-        ((data["simulator"] == "online") | (data["simulator"] == "online_remove_redundant"))
+        ((data["simulator"] == "online") |
+         (data["simulator"] == "online_remove_redundant_physical") |
+         (data["simulator"] == "online_remove_redundant_graph"))
         & (data["agents"] == agents) & (data["obstacles"] == obstacles) & (data["delay_ratio"] == 0.1)]
 
     groupby = ["simulator", "cycle", "delay_ratio"]
@@ -476,6 +504,42 @@ def plot_simulator_2(args: PlotArguments, data: pd.DataFrame, agents: int, obsta
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
     #                              k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
     # plot(df2, plot_settings)
+
+
+def plot_redundant(args: PlotArguments, data: pd.DataFrame, agents: int):
+    df = data[
+        ((data["simulator"] == "online_remove_redundant_physical") |
+         (data["simulator"] == "online_remove_redundant_graph"))
+        & (data["agents"] == agents) & (data["delay_ratio"] == 0.1)]
+    # print(df)
+
+    dfs = []
+
+    for indexes, df2 in df.groupby(["obstacles", "k_neighbor"]):
+        # print(indexes, df2)
+        all = df2["all_node_pairs"].iloc[0]
+        fixed = df2["fixed_node_pairs"].iloc[0]
+        physical = df2[df2["simulator"] == "online_remove_redundant_physical"]["added_node_pairs"].iloc[0]
+        graph = df2[df2["simulator"] == "online_remove_redundant_graph"]["added_node_pairs"].iloc[0]
+
+        row = df2.copy().drop(columns=['all_node_pairs', 'fixed_node_pairs', 'added_node_pairs']).iloc[0]
+        df3 = pd.DataFrame([row, row, row, row])
+        df3["node_pair_type"] = ["all", "fixed", "physical", "graph"]
+        df3["node_pair"] = [all, fixed, physical, graph]
+        dfs.append(df3)
+
+        # print(df3)
+        # print(all, fixed, physical, graph)
+
+    new_df = pd.concat(dfs).reset_index()
+    # print(new_df)
+
+    groupby = ["node_pair_type", "obstacles"]
+    plot_type = "redundant"
+    subplot_type = "obstacles"
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 plot_value="", y_field="node_pair", groupby=groupby, legend=True)
+    plot(new_df, plot_settings)
 
 
 def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
@@ -558,10 +622,10 @@ def main(ctx):
             if args.map == "random":
                 for obstacles in args.obstacles:
                     plot_simulator_2(args, df_discrete, agents, obstacles)
+                plot_redundant(args, df_discrete, agents)
 
             # for k_neighbor in args.k_neighbors:
             #     plot_simulator(args, df_discrete, agents, k_neighbor)
-
 
 
 if __name__ == '__main__':

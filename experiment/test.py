@@ -142,7 +142,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     simulator = setup.simulator
     prioritized_replan = False
     prioritized_opt = False
-    remove_redundant = False
+    remove_redundant = "none"
     snapshot_order = "none"
 
     if setup.simulator.startswith("prioritized"):
@@ -160,8 +160,10 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             snapshot_order = "collision"
     elif setup.simulator.startswith("online"):
         simulator = "online"
-        if setup.simulator == "online_remove_redundant":
-            remove_redundant = True
+        if setup.simulator == "online_remove_redundant_physical":
+            remove_redundant = "physical"
+        elif setup.simulator == "online_remove_redundant_graph":
+            remove_redundant = "graph"
     program_args = [
         args.program.as_posix(),
         "--map", map_type,
@@ -186,6 +188,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--time-output", output_time_file.as_posix(),
         "--suboptimality", str(args.suboptimality),
         "--snapshot-order", snapshot_order,
+        "--remove-redundant", remove_redundant,
     ]
     # if map_type == "hardcoded":
     #     program_args.append("--all")
@@ -201,8 +204,6 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         program_args.append("--prioritized-replan")
     if prioritized_opt:
         program_args.append("--prioritized-opt")
-    if remove_redundant:
-        program_args.append("--remove-redundant")
     if map_file:
         program_args.append("--map-file")
         program_args.append(map_file.as_posix())

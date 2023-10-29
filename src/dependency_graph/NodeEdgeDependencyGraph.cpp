@@ -3,6 +3,7 @@
 //
 
 #include "NodeEdgeDependencyGraph.h"
+#include <boost/range/join.hpp>
 
 void NodeEdgeDependencyGraph::init() {
     paths.clear();
@@ -164,8 +165,7 @@ NodeEdgeDependencyGraph::SDGEdgePair NodeEdgeDependencyGraph::makeSDGEdgePair(si
 
 
 bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
-    std::vector<SDGNodePair> nnNodePairs;
-    std::set<SDGNodePair> neNodePairs, eeNodePairs;
+    std::vector<SDGNodePair> nnNodePairs, neNodePairs, eeNodePairs, fixedNodePairs;
 
     for (size_t agentId1 = 0; agentId1 < sdgData.size(); agentId1++) {
         for (unsigned int state1 = 0; state1 < sdgData[agentId1].size(); state1++) {
@@ -187,15 +187,15 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
                         // edge2 is not valid
                         invalid += 2;
                     }
+                    auto nodePair = makeSDGNodePair(agentId1, state1, agentId2, state2);
                     if (invalid == 0) {
                         // record the pair of unsettled edges
-                        auto nodePair = makeSDGNodePair(agentId1, state1, agentId2, state2);
                         if (state1 % 2 == 0 && state2 % 2 == 0) {
                             nnNodePairs.emplace_back(nodePair);
                         } else if (state1 % 2 == 1 && state2 % 2 == 1) {
-                            eeNodePairs.emplace(nodePair);
+                            eeNodePairs.emplace_back(nodePair);
                         } else {
-                            neNodePairs.emplace(nodePair);
+                            neNodePairs.emplace_back(nodePair);
                         }
                         //                        sdgData[edge1.dest.agentId][edge1.dest.state].unsettledEdgePairs.push_back(edgePair);
                         //                        sdgData[edge2.dest.agentId][edge2.dest.state].unsettledEdgePairs.push_back(edgePair);
@@ -204,6 +204,7 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
                                      SDGNode{agentId1, state1}, conflict);
                     } else if (invalid == 1) {
                         // edge2 is determined edge
+                        fixedNodePairs.emplace_back(nodePair);
                         sdgData[edge2.dest.agentId][edge2.dest.state].determinedEdgeSources.push_back(
                                 {edge2.source.agentId, edge2.source.state});
                         if (debug) {
@@ -211,6 +212,7 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
                         }
                     } else if (invalid == 2) {
                         // edge1 is determined edge
+                        fixedNodePairs.emplace_back(nodePair);
                         sdgData[edge1.dest.agentId][edge1.dest.state].determinedEdgeSources.push_back(
                                 {edge1.source.agentId, edge1.source.state});
                         if (debug) {
@@ -225,36 +227,20 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
         }
     }
     std::vector<SDGNodePair> addedNodePairs;
-    // node-node conflict
-    for (const auto &nodePair: nnNodePairs) {
-        addedNodePairs.emplace_back(nodePair);
-        if (!removeRedundant) continue;
-        // suppose nodePair = <v_{i,j}, v_{i',j'}>
-        // remove redundant edge-edge conflicts
-        removeRedundantNodePair(eeNodePairs, nodePair, 1, 1);  // <e_{i,j}, e_{i',j'}>
-        removeRedundantNodePair(eeNodePairs, nodePair, -1, -1);// <e_{i,j-1}, e_{i',j'-1}>
-        removeRedundantNodePair(eeNodePairs, nodePair, 1, -1); // <e_{i,j}, e_{i',j'-1}>
-        removeRedundantNodePair(eeNodePairs, nodePair, -1, 1); // <e_{i,j-1}, e_{i',j'}>
-        // remove redundant node-edge conflicts
-        removeRedundantNodePair(neNodePairs, nodePair, 1, 0); // <e_{i,j}, v_{i',j'}>
-        removeRedundantNodePair(neNodePairs, nodePair, -1, 0);// <e_{i,j-1}, v_{i',j'}>
-        removeRedundantNodePair(neNodePairs, nodePair, 0, 1); // <v_{i,j}, e_{i',j'}>
-        removeRedundantNodePair(neNodePairs, nodePair, 0, -1);// <v_{i,j}, v_{i',j'-1}>
+    numAllNodePairs = nnNodePairs.size() + neNodePairs.size() + eeNodePairs.size() + fixedNodePairs.size();
+    numFixedNodePairs = fixedNodePairs.size();
+
+    if (removeRedundant == "physical") {
+        generateAddedNodePairsPhysical(nnNodePairs, neNodePairs, eeNodePairs, fixedNodePairs, addedNodePairs);
+    } else if (removeRedundant == "graph") {
+        generateAddedNodePairsGraph(nnNodePairs, neNodePairs, eeNodePairs, fixedNodePairs, addedNodePairs);
+    } else {
+        generateAddedNodePairsNone(nnNodePairs, neNodePairs, eeNodePairs, fixedNodePairs, addedNodePairs);
     }
-    // node-edge conflict
-    for (const auto &nodePair: neNodePairs) {
-        addedNodePairs.emplace_back(nodePair);
-        if (!removeRedundant) continue;
-        // suppose nodePair = <e_{i,j}, v_{i',j'}>
-        // we ensure the edge-node order in makeSDGNodePair
-        // remove redundant edge-edge conflicts
-        removeRedundantNodePair(eeNodePairs, nodePair, 0, 1); // <e_{i,j}, e_{i',j'}>
-        removeRedundantNodePair(eeNodePairs, nodePair, 0, -1);// <e_{i,j}, e_{i',j'-1}>
-    }
-    // edge-edge conflict
-    for (const auto &nodePair: eeNodePairs) {
-        addedNodePairs.emplace_back(nodePair);
-    }
+
+    numAddedNodePairs = addedNodePairs.size();
+//    std::cerr << "all: " << numAllNodePairs << " fixed: " << numFixedNodePairs << " added: " << numAddedNodePairs << std::endl;
+
     // all conflicts after removing redundant
     for (const auto &nodePair: addedNodePairs) {
         auto edgePair = makeSDGEdgePair(nodePair.first.agentId, nodePair.first.state, nodePair.second.agentId, nodePair.second.state);
@@ -281,6 +267,104 @@ void NodeEdgeDependencyGraph::removeRedundantNodePair(std::set<SDGNodePair> &nod
     }
 }
 
+void NodeEdgeDependencyGraph::generateAddedNodePairsNone(
+        const std::vector<SDGNodePair> &nnNodePairs,
+        const std::vector<SDGNodePair> &neNodePairs,
+        const std::vector<SDGNodePair> &eeNodePairs,
+        const std::vector<SDGNodePair> &fixedNodePairs,
+        std::vector<SDGNodePair> &addedNodePairs) {
+    for (const auto &nodePair: nnNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+    }
+    for (const auto &nodePair: neNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+    }
+    for (const auto &nodePair: eeNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+    }
+}
+
+void NodeEdgeDependencyGraph::generateAddedNodePairsPhysical(
+        const std::vector<SDGNodePair> &nnNodePairs,
+        const std::vector<SDGNodePair> &neNodePairs,
+        const std::vector<SDGNodePair> &eeNodePairs,
+        const std::vector<SDGNodePair> &fixedNodePairs,
+        std::vector<SDGNodePair> &addedNodePairs) {
+
+    std::set<SDGNodePair> neNodePairsSet(neNodePairs.begin(), neNodePairs.end());
+    std::set<SDGNodePair> eeNodePairsSet(eeNodePairs.begin(), eeNodePairs.end());
+
+    // node-node conflict
+    for (const auto &nodePair: nnNodePairs) {
+        addedNodePairs.emplace_back(nodePair);
+        // suppose nodePair = <v_{i,j}, v_{i',j'}>
+        // remove redundant edge-edge conflicts
+        removeRedundantNodePair(eeNodePairsSet, nodePair, 1, 1);  // <e_{i,j}, e_{i',j'}>
+        removeRedundantNodePair(eeNodePairsSet, nodePair, -1, -1);// <e_{i,j-1}, e_{i',j'-1}>
+        removeRedundantNodePair(eeNodePairsSet, nodePair, 1, -1); // <e_{i,j}, e_{i',j'-1}>
+        removeRedundantNodePair(eeNodePairsSet, nodePair, -1, 1); // <e_{i,j-1}, e_{i',j'}>
+        // remove redundant node-edge conflicts
+        removeRedundantNodePair(neNodePairsSet, nodePair, 1, 0); // <e_{i,j}, v_{i',j'}>
+        removeRedundantNodePair(neNodePairsSet, nodePair, -1, 0);// <e_{i,j-1}, v_{i',j'}>
+        removeRedundantNodePair(neNodePairsSet, nodePair, 0, 1); // <v_{i,j}, e_{i',j'}>
+        removeRedundantNodePair(neNodePairsSet, nodePair, 0, -1);// <v_{i,j}, v_{i',j'-1}>
+    }
+    // node-edge conflict
+    for (const auto &nodePair: neNodePairsSet) {
+        addedNodePairs.emplace_back(nodePair);
+        // suppose nodePair = <e_{i,j}, v_{i',j'}>
+        // we ensure the edge-node order in makeSDGNodePair
+        // remove redundant edge-edge conflicts
+        removeRedundantNodePair(eeNodePairsSet, nodePair, 0, 1); // <e_{i,j}, e_{i',j'}>
+        removeRedundantNodePair(eeNodePairsSet, nodePair, 0, -1);// <e_{i,j}, e_{i',j'-1}>
+    }
+    // edge-edge conflict
+    for (const auto &nodePair: eeNodePairsSet) {
+        addedNodePairs.emplace_back(nodePair);
+    }
+}
+
+void NodeEdgeDependencyGraph::generateAddedNodePairsGraph(
+        const std::vector<SDGNodePair> &nnNodePairs,
+        const std::vector<SDGNodePair> &neNodePairs,
+        const std::vector<SDGNodePair> &eeNodePairs,
+        const std::vector<SDGNodePair> &fixedNodePairs,
+        std::vector<SDGNodePair> &addedNodePairs) {
+
+    std::set<SDGNodePair> fixedNodePairsSet(fixedNodePairs.begin(), fixedNodePairs.end());
+    std::vector<std::vector<std::vector<SDGNodePair>>> agentPairNodePairs(agents.size(), std::vector<std::vector<SDGNodePair>>(agents.size()));
+    for (const auto &nodePair: boost::join(boost::join(nnNodePairs, neNodePairs), boost::join(eeNodePairs, fixedNodePairs))) {
+        agentPairNodePairs[nodePair.first.agentId][nodePair.second.agentId].emplace_back(nodePair);
+        agentPairNodePairs[nodePair.second.agentId][nodePair.first.agentId].emplace_back(nodePair);
+    }
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        for (unsigned int j = i + 1; j < agents.size(); j++) {
+            auto &nodePairs = agentPairNodePairs[i][j];
+            std::vector<SDGEdgePair> edgePairs;
+            for (const auto &nodePair: nodePairs) {
+                auto edgePair = makeSDGEdgePair(nodePair.first.agentId, nodePair.first.state, nodePair.second.agentId, nodePair.second.state);
+                edgePairs.emplace_back(edgePair);
+            }
+            for (unsigned int m = 0; m < nodePairs.size(); m++) {
+                bool redundant = false;
+                for (unsigned int n = 0; n < nodePairs.size(); n++) {
+                    if (m == n) continue;
+                    if (compareSDGEdgePairWithPartialOrder(edgePairs[m], edgePairs[n])) {
+                        // if C_n exists so that C_m <= C_n (partial order), then C_m is redundant
+                        redundant = true;
+                        break;
+                    }
+                }
+                if (!redundant) {
+                    auto it = fixedNodePairsSet.find(nodePairs[m]);
+                    if (it == fixedNodePairsSet.end()) {
+                        addedNodePairs.emplace_back(nodePairs[m]);
+                    }
+                }
+            }
+        }
+    }
+}
 
 void NodeEdgeDependencyGraph::initSharedNodes(size_t i, size_t j) {
     std::unordered_map<unsigned int, std::vector<std::pair<size_t, unsigned int>>> m;

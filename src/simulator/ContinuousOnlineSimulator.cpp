@@ -975,6 +975,11 @@ std::pair<size_t, size_t> ContinuousOnlineSimulator::feasibilityCheck() {
     }
 }
 
+void ContinuousOnlineSimulator::print(std::ostream &out) const {
+    OnlineSimulator::print(out);
+    out << "," << depGraph.numAllNodePairs << "," << depGraph.numFixedNodePairs << "," << depGraph.numAddedNodePairs;
+}
+
 void ContinuousOnlineSimulator::printPaths(double maxTimeStep) {
     if (!outputFileName.empty()) outputFile.open(outputFileName);
     if (!outputFile.is_open()) return;

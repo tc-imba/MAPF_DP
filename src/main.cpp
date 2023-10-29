@@ -52,7 +52,6 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
     optionParser.add("", false, 0, 0, "Use prioritized replan with optimization ", "--prioritized-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
-    optionParser.add("", false, 0, 0, "Remove redundant unsettled edges in continuous online", "--remove-redundant");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("map", false, 1, 0, "Map name (eg., sparse, dense, super_dense)", "--map-name");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
@@ -62,6 +61,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt / snapshot)", "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
     optionParser.add("node-node,edge-edge,node-edge", false, 1, 0, "Conflict types", "--conflicts");
+    optionParser.add("none", false, 1, 0, "Remove redundant unsettled edges in continuous online (none / physical / graph)", "--remove-redundant");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "--simulator-output");
     optionParser.add("", false, 1, 0, "Time Output Filename", "--time-output");
@@ -128,11 +128,11 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
+    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality, deltaTimestep;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache, removeRedundant;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -142,6 +142,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--simulator")->getString(simulatorType);
     optionParser.get("--timing")->getString(timingType);
     optionParser.get("--conflicts")->getString(conflictTypes);
+    optionParser.get("--remove-redundant")->getString(removeRedundant);
     optionParser.get("--output")->getString(outputFileName);
     optionParser.get("--simulator-output")->getString(simulatorOutputFileName);
     optionParser.get("--time-output")->getString(timeOutputFileName);
@@ -176,7 +177,7 @@ int main(int argc, const char *argv[]) {
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
     noCache = optionParser.isSet("--no-cache");
-    removeRedundant = optionParser.isSet("--remove-redundant");
+//    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
     std::shared_ptr<spdlog::logger> file_logger;
