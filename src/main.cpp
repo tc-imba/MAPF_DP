@@ -52,6 +52,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
     optionParser.add("", false, 0, 0, "Use prioritized replan with optimization ", "--prioritized-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
+    optionParser.add("", false, 0, 0, "Use group conflicts optimization", "--group");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("map", false, 1, 0, "Map name (eg., sparse, dense, super_dense)", "--map-name");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
@@ -132,7 +133,7 @@ int main(int argc, const char *argv[]) {
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality, deltaTimestep;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache, useGroup;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -177,6 +178,7 @@ int main(int argc, const char *argv[]) {
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
     noCache = optionParser.isSet("--no-cache");
+    useGroup = optionParser.isSet("--group");
 //    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
@@ -415,6 +417,7 @@ int main(int argc, const char *argv[]) {
                 auto continuousOnlineSimulator = std::dynamic_pointer_cast<ContinuousOnlineSimulator>(simulator);
                 continuousOnlineSimulator->removeRedundant = removeRedundant;
                 continuousOnlineSimulator->deltaTimestep = deltaTimestep;
+                continuousOnlineSimulator->useGroup = useGroup;
                 if (simulatorType == "snapshot") {
                     continuousOnlineSimulator->snapshot = true;
                     continuousOnlineSimulator->snapshotOrder = snapshotOrder;

@@ -11,6 +11,7 @@ class NodeEdgeDependencyGraph : public DependencyGraph {
 public:
     std::string removeRedundant = "none";
     std::string snapshotOrder = "none";
+    bool useGroup = false;
 
     struct SDGNode {
         size_t agentId;
@@ -49,6 +50,13 @@ public:
     typedef std::pair<SDGNode, SDGNode> SDGNodePair;
     typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
 
+    enum class SDGNodePairType {
+        NodeNode,
+        NodeEdge,
+        EdgeEdge,
+        Fixed,
+    };
+
     bool compareSDGEdgePairWithPartialOrder(const SDGEdgePair &lhs, const SDGEdgePair &rhs) {
         return lhs.first.source.state <= rhs.first.source.state && lhs.first.dest.state >= rhs.first.dest.state && lhs.second.source.state <= rhs.second.source.state && lhs.second.dest.state >= rhs.second.dest.state;
     }
@@ -64,8 +72,17 @@ public:
         std::vector<SDGEdgePair> unsettledEdgePairs;
     };
 
+    typedef std::map<SDGEdgePair, int> SDGEdgePairGroup;
+
+    struct SDGEdgePairData {
+        // map<SDGEdgePair, order>
+        std::shared_ptr<SDGEdgePairGroup> group = nullptr;
+    };
+
     std::vector<std::vector<SDGData>> sdgData;
     std::set<SDGEdgePair> unsettledEdgePairsSet;
+    std::map<SDGEdgePair, SDGEdgePairData> unsettledEdgePairsMap;
+    std::set<std::shared_ptr<SDGEdgePairGroup >> unsettledEdgePairGroupsSet;
     std::vector<SharedNodePair> sharedStates;
     std::vector<SDGEdge> savedAddedEdges;
 
@@ -73,7 +90,7 @@ public:
     size_t numFixedNodePairs = 0;
     size_t numAddedNodePairs = 0;
 
-    NodeEdgeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths,  const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};
+    NodeEdgeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};
 
     void init();
 
@@ -92,20 +109,24 @@ public:
 
     bool generateUnsettledEdges();
 
-    void removeRedundantNodePair(std::set<SDGNodePair> &nodePairs, const NodeEdgeDependencyGraph::SDGNodePair &nodePair, int dState1, int dState2);
+    void initUnsettledEdges();
 
-    void generateAddedNodePairsNone(const std::vector<SDGNodePair> &nnNodePairs, const std::vector<SDGNodePair> &neNodePairs,
-                                        const std::vector<SDGNodePair> &eeNodePairs, const std::vector<SDGNodePair> &fixedNodePairs,
-                                        std::vector<SDGNodePair> &addedNodePairs);
+    void removeRedundantNodePair(std::set<SDGNodePair> &nodePairs, const SDGNodePair &nodePair, int dState1, int dState2);
+
+    void groupNodePair(std::set<SDGNodePair> &nodePairs, const SDGNodePair &nodePair, int dState1, int dState2, int order);
+
+    void generateAddedNodePairsNone(std::set<SDGNodePair> &nnNodePairs, std::set<SDGNodePair> &neNodePairs,
+                                    std::set<SDGNodePair> &eeNodePairs, const std::set<SDGNodePair> &fixedNodePairs);
 
 
-    void generateAddedNodePairsPhysical(const std::vector<SDGNodePair> &nnNodePairs, const std::vector<SDGNodePair> &neNodePairs,
-                                        const std::vector<SDGNodePair> &eeNodePairs, const std::vector<SDGNodePair> &fixedNodePairs,
-                                        std::vector<SDGNodePair> &addedNodePairs);
+    void generateAddedNodePairsPhysical(std::set<SDGNodePair> &nnNodePairs, std::set<SDGNodePair> &neNodePairs,
+                                        std::set<SDGNodePair> &eeNodePairs, const std::set<SDGNodePair> &fixedNodePairs);
 
-    void generateAddedNodePairsGraph(const std::vector<SDGNodePair> &nnNodePairs, const std::vector<SDGNodePair> &neNodePairs,
-                                     const std::vector<SDGNodePair> &eeNodePairs, const std::vector<SDGNodePair> &fixedNodePairs,
-                                     std::vector<SDGNodePair> &addedNodePairs);
+    void generateAddedNodePairsGraph(std::set<SDGNodePair> &nnNodePairs, std::set<SDGNodePair> &neNodePairs,
+                                     std::set<SDGNodePair> &eeNodePairs, const std::set<SDGNodePair> &fixedNodePairs);
+
+    void groupNodePairs(std::set<SDGNodePair> &nnNodePairs, std::set<SDGNodePair> &neNodePairs,
+                        std::set<SDGNodePair> &eeNodePairs, const std::set<SDGNodePair> &fixedNodePairs);
 
     void initSharedNodes(size_t i, size_t j);
 
@@ -116,7 +137,7 @@ public:
     std::vector<SDGEdge> updateSharedNode(size_t agentId, unsigned int state, bool dryRun = false);
 
     std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<SDGEdgePair> &sharedNodesList,
+            std::list<std::shared_ptr<SDGEdgePairGroup>> &unsettledEdgePairGroups,
             bool recursive, bool save
             //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
     );

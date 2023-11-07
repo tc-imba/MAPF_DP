@@ -540,6 +540,7 @@ void ContinuousOnlineSimulator::initSimulation() {
     depGraph.debug = debug;
     depGraph.snapshotOrder = snapshotOrder;
     depGraph.removeRedundant = removeRedundant;
+    depGraph.useGroup = useGroup;
     depGraph.init();
 }
 

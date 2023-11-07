@@ -17,6 +17,7 @@ protected:
 public:
     bool snapshot = false;
     double deltaTimestep = 0;
+    bool useGroup = false;
 
     std::string removeRedundant = "none";
     std::string snapshotOrder = "none";
