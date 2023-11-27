@@ -435,6 +435,26 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     fig.savefig(fname=output_file, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
     plt.close()
 
+def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int):
+    k_neighbor = 2
+    df = data[
+        (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
+         (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
+         (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
+         (data["simulator"] == "online_remove_redundant") |
+         (data["simulator"] == "snapshot_end"))
+        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
+
+    groupby = ["simulator", "cycle", "delay_ratio"]
+    plot_type = "simulator"
+    subplot_type = "obstacles"
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 plot_value=str(k_neighbor), y_field="soc", groupby=groupby, legend=True)
+    plot(df, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 plot_value=str(k_neighbor), y_field="time", groupby=groupby, legend=True)
+    plot(df, plot_settings)
+
 
 def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neighbor: int):
     # df = data[
@@ -612,10 +632,10 @@ def main(ctx):
     if args.timing == "discrete":
         df_discrete["k_neighbor"] = 2
         for agents in args.agents:
-            # plot_simulator(args, df_discrete, agents, k_neighbor=2)
+            plot_simulator_discrete(args, df_discrete, agents)
             # plot_cycle(args, df_discrete, agents)
-            for obstacle in args.obstacles:
-                plot_cdf(args, df_discrete_time, agents, obstacle)
+            # for obstacle in args.obstacles:
+            #     plot_cdf(args, df_discrete_time, agents, obstacle)
             # plot_replan(args, df_discrete, agents)
     else:
         for agents in args.agents:

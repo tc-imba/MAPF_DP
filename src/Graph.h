@@ -157,6 +157,8 @@ public:
 
     std::vector<Agent> loadXMLAgents(const std::string &filename, unsigned int agentNum, size_t skip = 0);
 
+    std::vector<Agent> loadScenAgents(const std::string &filename, unsigned int agentNum, size_t skip = 0);
+
     void saveScenAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents);
 
     void saveXMLAgents(const std::string &filename, const std::vector<Agent> &agents, const std::string &mapType);

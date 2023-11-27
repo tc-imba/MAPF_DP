@@ -34,7 +34,11 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
     executionTimeVec.clear();
 
     // check whether the initial plan is feasible
+    auto start = std::chrono::steady_clock::now();
     auto [agentId1, agentId2] = feasibilityCheck();
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    std::cerr << elapsed_seconds.count() << std::endl;
     if (agentId1 != agents.size() || agentId2 != agents.size()) {
         std::cerr << "initial plan is not feasible" << std::endl;
         exit(-1);

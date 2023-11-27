@@ -57,7 +57,7 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
     }
     double density = (double) E * 2 / (V) / (V - 1);
     SPDLOG_INFO("calculate all pair shortest path: V={}, E={}, density={}", V, E, density);
-    if (density < 0.1) {
+    /*if (density < 0.1) {
         boost::johnson_all_pairs_shortest_paths(g, distances,
                                                 boost::weight_map(boost::get(&Edge::_distance, g)));
     } else {
@@ -70,7 +70,7 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
             distFileOut << distances[i][j] << " ";
         }
         distFileOut << std::endl;
-    }
+    }*/
 }
 
 void Graph::calculateUnweightedAllPairShortestPath() {
@@ -856,6 +856,42 @@ std::vector<Agent> Graph::loadXMLAgents(const std::string &filename, unsigned in
     }
     return agents;
 }
+
+std::vector<Agent> Graph::loadScenAgents(const std::string &filename, unsigned int agentNum, size_t skip) {
+    auto fullFileName = filename + ".scen";
+    SPDLOG_INFO("load task from {}", fullFileName);
+    std::vector<Agent> agents(agentNum);
+
+    std::string line;
+    std::ifstream fin(fullFileName);
+    std::getline(fin, line);
+
+    for (unsigned int i = 0; i < skip; i++) {
+        if (!std::getline(fin, line)) {
+            SPDLOG_ERROR("too few agents in task file");
+            exit(-1);
+        }
+    }
+
+    std::istringstream iss;
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        if (!std::getline(fin, line)) {
+            SPDLOG_ERROR("too few agents in task file");
+            exit(-1);
+        }
+        iss.clear();
+        iss.str(line);
+        std::string temp;
+        unsigned int x1, x2, y1, y2;
+        double distance;
+        iss >> temp >> temp >> temp >> temp >> y1 >> x1 >> y2 >> x2 >> distance;
+        agents[i].start = getNodeIdByGridPos(x1, y1);
+        agents[i].goal = getNodeIdByGridPos(x2, y2);
+        SPDLOG_INFO("agent {}: {} -> {} ({})", i, agents[i].start, agents[i].goal, distance);
+    }
+    return agents;
+}
+
 
 void Graph::saveScenAgents(const std::string &mapName, const std::string &filename, const std::vector<Agent> &agents) {
     std::ofstream agentFileOut;

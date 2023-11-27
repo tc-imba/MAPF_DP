@@ -19,9 +19,7 @@ unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned i
 
     executionTimeStart = std::chrono::steady_clock::now();
     while (!flg_stop) {
-        if (debug) {
-            std::cerr << "begin timestep " << currentTimestep << std::endl;
-        }
+        SPDLOG_DEBUG("begin timestep {}", currentTimestep);
         updateDelayedSet(currentTimestep, delayStart, delayInterval);
 
         pibt::Agents unstable;

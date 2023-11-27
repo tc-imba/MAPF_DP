@@ -33,7 +33,7 @@
 int main(int argc, const char *argv[]) {
     //    Config config(argc, argv);
 
-    spdlog::set_pattern("[%^%=8l%$] %v [%@]");
+    spdlog::set_pattern("[%H:%M:%S %e] [%^%=8l%$] %v [%@]");
     ez::ezOptionParser optionParser;
 
     optionParser.overview = "Multi Agent Path Finding with Delay Probability";
@@ -115,6 +115,9 @@ int main(int argc, const char *argv[]) {
     auto validSuboptimality = new ez::ezOptionValidator("d", "ge", "1");
     optionParser.add("1", false, 1, 0, "Suboptimality of CBS", "--suboptimality", validSuboptimality);
 
+    auto validReplanSuboptimality = new ez::ezOptionValidator("d", "ge", "1");
+    optionParser.add("1", false, 1, 0, "Suboptimality of CBS in Replan", "--replan-suboptimality", validReplanSuboptimality);
+
     auto validMaxTimestep = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("300", false, 1, 0, "Max Timestep", "--max-timestep", validMaxTimestep);
 
@@ -132,7 +135,7 @@ int main(int argc, const char *argv[]) {
     std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
-    double minDP, maxDP, delayRatio, suboptimality, deltaTimestep;
+    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep;
     bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache, useGroup;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
@@ -166,6 +169,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--delay-start")->getLong(delayStart);
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
     optionParser.get("--suboptimality")->getDouble(suboptimality);
+    optionParser.get("--replan-suboptimality")->getDouble(replanSuboptimality);
     optionParser.get("--max-timestep")->getULong(maxTimestep);
     optionParser.get("--delta-timestep")->getDouble(deltaTimestep);
     debug = optionParser.isSet("--debug");
@@ -258,7 +262,7 @@ int main(int argc, const char *argv[]) {
     graph.nodeEdgeConflict = nodeEdgeConflict;
     //    graph.noCache = noCache;
 
-    std::string filename, cacheFileName;
+    std::string filename, cacheFileName, taskFileType;
     if (mapType == "random") {
         filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" +
                    std::to_string(obstacles) +
@@ -283,12 +287,15 @@ int main(int argc, const char *argv[]) {
         }
         cacheFileName = timingType + "-" + mapName;
         graph.generateGraphMLGraph(filename);
+        taskFileType = "xml";
     } else if (mapType == "mapf") {
         filename = mapFile;
         if (boost::algorithm::ends_with(filename, ".map")) {
             filename = filename.substr(0, filename.length() - 4);
         }
+        cacheFileName = timingType + "-" + mapName;
         graph.generateMAPFBenchmarkGraph(filename, kNeighbor);
+        taskFileType = "scen";
     }
     if (useDP) {
         graph.generateDelayProbability(mapSeed, minDP, maxDP);
@@ -317,16 +324,18 @@ int main(int argc, const char *argv[]) {
             assert(0);
         }
     } else {
-        std::string taskFileType = "xml";
         std::string taskFilename = taskFile;
-        if (boost::algorithm::ends_with(taskFilename, ".xml")) {
-            taskFilename = taskFilename.substr(0, taskFilename.length() - 4);
-        }
         if (taskFileType == "xml") {
+            if (boost::algorithm::ends_with(taskFilename, ".xml")) {
+                taskFilename = taskFilename.substr(0, taskFilename.length() - 4);
+            }
             agents = graph.loadXMLAgents(taskFilename, agentNum, agentSkip);
         } else if (taskFileType == "scen") {
-            exit(0);
-            //            agents = graph.loadScenAgents(agentNum, taskFilename);
+            if (boost::algorithm::ends_with(taskFilename, ".scen")) {
+                taskFilename = taskFilename.substr(0, taskFilename.length() - 5);
+            }
+//            exit(0);
+            agents = graph.loadScenAgents(taskFilename, agentNum, agentSkip);
         } else {
             assert(0);
         }
@@ -404,11 +413,18 @@ int main(int argc, const char *argv[]) {
                 defaultSimulator->replanMode = true;
                 defaultSimulator->prioritizedReplan = prioritizedReplan;
                 defaultSimulator->prioritizedOpt = prioritizedOpt;
+//                defaultSimulator->replanSuboptimality = replanSuboptimality;
+                if (solverType == "eecbs") {
+                    std::dynamic_pointer_cast<EECBSSolver>(solver)->suboptimality = suboptimality;
+                }
                 if (i != 0) {
                     solver->init();
                     if (!solver->solveWithCache(filename, agentSeed)) {
                         exit(-1);
                     }
+                }
+                if (solverType == "eecbs") {
+                    std::dynamic_pointer_cast<EECBSSolver>(solver)->suboptimality = replanSuboptimality;
                 }
             }
         } else if (simulatorType == "online" || simulatorType == "snapshot") {

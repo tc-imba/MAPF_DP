@@ -30,13 +30,16 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
     std::uniform_real_distribution<double> distribution(0, 1);
 
     if (debug) {
+        std::ostringstream oss;
         for (unsigned int i = 0; i < agents.size(); i++) {
             //        if (agents[i].current == agents[i].goal) continue;
-            std::cout << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+            oss.str("");
+            oss.clear();
+            oss << "agent " << i << " (" << agents[i].start << "->" << agents[i].goal << "): ";
             for (const auto &label: solver->solution->plans[i]->path) {
-                std::cout << "(" << label.state << "," << label.nodeId << ")->";
+                oss << "(" << label.state << "," << label.nodeId << ")->";
             }
-            std::cout << std::endl;
+            SPDLOG_DEBUG("{}", oss.str());
             //        nodeStates[agents[i].start] = 0;
         }
     }
@@ -57,9 +60,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         if (outputFile.is_open()) {
             outputFile << currentTimestep << std::endl;
         }
-        if (debug) {
-            std::cout << "begin timestep " << currentTimestep << std::endl;
-        }
+        SPDLOG_DEBUG("begin timestep {}", currentTimestep);
 
         auto start = std::chrono::steady_clock::now();
 
@@ -99,19 +100,26 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         cycleCheck();
         printSets("cycle       |");
 #else
+
+        printSets("before init |");
         /** line 1 **/
         initChecks();
+        printSets("after init  |");
         if (!isOnlyCycleCheck) {
             /** note that the iteration (line 2-3) occurs three times separately in the following functions **/
             /** line 4-6 **/
             unsharedCheck();
+            printSets("unshared    |");
             /** line 7-8 **/
             neighborCheck();
+            printSets("neighbor    |");
             /** line 9-10 **/
             deadEndCheck();
+            printSets("deadend     |");
         }
         /** line 12-23 **/
         cycleCheck();
+        printSets("cycle       |");
 #endif
 
         auto end = std::chrono::steady_clock::now();
@@ -166,7 +174,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         unblocked.insert(unshared.begin(), unshared.end());
         ready.clear();
         unshared.clear();
-        //        printSets("final       |");
+        printSets("final       |");
 
         //        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
 
@@ -199,16 +207,12 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                 if (firstAgentArrivingTimestep == 0) {
                     firstAgentArrivingTimestep = currentTimestep;
                 }
-                if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") completed" << std::endl;
-                }
+                SPDLOG_DEBUG("agent {}: ({},{}) {}", i, state, currentNodeId, "completed");
                 agentOutputStates[i] = "complete";
                 agents[i].blocked = true;
                 ++count;
             } else if (blocked.find(i) != blocked.end()) {
-                if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") blocked" << std::endl;
-                }
+                SPDLOG_DEBUG("agent {}: ({},{}) {}", i, state, currentNodeId, "blocked");
                 agentOutputStates[i] = "block";
                 agents[i].blocked = true;
                 agents[i].timestep = currentTimestep;
@@ -225,18 +229,12 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                 }
 
                 if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
-                    if (debug) {
-                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by agent"
-                                  << std::endl;
-                    }
+                    SPDLOG_DEBUG("agent {}: ({},{}) {}", i, state, currentNodeId, "delayed by agent");
                     agentOutputStates[i] = "delay";
                     agents[i].blocked = false;
                     nodeAgentMap[nextNodeId] = i;
                 } else if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
-                    if (debug) {
-                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") delayed by edge"
-                                  << std::endl;
-                    }
+                    SPDLOG_DEBUG("agent {}: ({},{}) {}", i, state, currentNodeId, "delayed by edge");
                     agentOutputStates[i] = "delay";
                     agents[i].blocked = false;
                     nodeAgentMap[nextNodeId] = i;
@@ -254,10 +252,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                     }
                     nodeAgentMap[nextNodeId] = i;
                 } else {*/
-                    if (debug) {
-                        std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ")->("
-                                  << state + 1 << "," << nextNodeId << ")" << std::endl;
-                    }
+                    SPDLOG_DEBUG("agent {}: ({},{})->({},{})", i, state, currentNodeId, state + 1, nextNodeId);
                     agentOutputStates[i] = "move";
                     agents[i].blocked = true;
                     unblocked.erase(i);
@@ -276,9 +271,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                     }
                 }
             } else {
-                if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << currentNodeId << ") error" << std::endl;
-                }
+                SPDLOG_DEBUG("agent {}: ({},{}) {}", i, state, currentNodeId, "error");
                 assert(0);
             }
             if (outputFile.is_open()) {
@@ -428,7 +421,7 @@ void DiscreteOnlineSimulator::initChecks() {
     ready.clear();
     for (auto i: boost::join(blocked, moved)) {
         auto &agent = agents[i];
-        if (agent.current != agent.goal && agent.state + 1 < paths[i].size()) {
+        if (agent.state + 1 < paths[i].size()) {
             ready.insert(i);
         }
     }
@@ -866,6 +859,8 @@ std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheckTest(bool rec
     if (firstAgentArrivingTimestep == 0) {
         feasibilityCheckUnsettledCount += sharedNodesList.size();
     }
+
+    SPDLOG_DEBUG("feasibility check: {} shared nodes", sharedNodesList.size());
 
     return feasibilityCheckHelper(sharedNodesList, recursive);
 

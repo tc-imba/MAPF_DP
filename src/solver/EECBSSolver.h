@@ -12,9 +12,10 @@
 class EECBSSolver : public Solver {
 protected:
     std::string solverBinaryFile;
-    double suboptimality;
 
 public:
+    double suboptimality;
+
     EECBSSolver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanType, std::string solverBinaryFile, double suboptimality) :
         Solver(graph, agents, makeSpanType), solverBinaryFile(std::move(solverBinaryFile)), suboptimality(suboptimality) {};
 

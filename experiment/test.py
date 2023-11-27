@@ -144,6 +144,11 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     prioritized_opt = False
     remove_redundant = "none"
     snapshot_order = "none"
+    replan_suboptimality = 1
+
+    if setup.simulator.startswith("replan_"):
+        simulator = "replan"
+        replan_suboptimality = float(setup.simulator[7:])
 
     if setup.simulator.startswith("prioritized"):
         simulator = "replan"
@@ -189,6 +194,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--suboptimality", str(args.suboptimality),
         "--snapshot-order", snapshot_order,
         "--remove-redundant", remove_redundant,
+        "--replan_suboptimality", str(replan_suboptimality)
     ]
     # if map_type == "hardcoded":
     #     program_args.append("--all")

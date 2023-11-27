@@ -835,7 +835,8 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
         if (erasedEdges == 0 && !unsettledEdgePairGroups.empty()) {
             /** line 11 **/
             auto it = unsettledEdgePairGroups.begin();
-            auto &edgePair = it->get()->begin()->first;
+            auto edgePairGroup = *it;
+            auto &edgePair = edgePairGroup->begin()->first;
             auto edge1 = edgePair.first;
             auto edge2 = edgePair.second;
             if (snapshotOrder == "start") {
@@ -854,9 +855,9 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
             //            bool randomEdgeSelected = !isEdgeInTopoGraph(nodeId1, nodeId2);
             //            if (randomEdgeSelected) {
 
-            SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {}", (*it)->size());
+            SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {}", edgePairGroup->size());
             std::vector<SDGEdge> recursiveAddedEdges;
-            for (auto &[_edgePair, __]: **it) {
+            for (auto &[_edgePair, __]: *edgePairGroup) {
                 auto &edge = edgeIndex == 0 ? _edgePair.first : _edgePair.second;
                 auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
                 if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
@@ -879,7 +880,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
             /** exhaustive version of Algorithm 1 **/
             if (recursive) {
                 auto sharedEdgePairGroupsBackup = unsettledEdgePairGroups;
-                //                std::cout << "recursive" << std::endl;
+//                std::cerr << "recursive" << std::endl;
                 auto result = feasibilityCheckHelper(sharedEdgePairGroupsBackup, recursive, save);
                 if (firstAgentArrivingTimestep == 0) {
                     feasibilityCheckRecursionCount++;
@@ -895,6 +896,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 //                    SPDLOG_DEBUG("temporarily remove settled edge: {}", edge1);
                 //                    addedEdges.pop_back();
                 //                }
+
                 if (result.first == agents.size() && result.second == agents.size()) {
                     for (auto &edge: addedEdges) {
                         auto [_nodeId1, _nodeId2] = getTopoEdgeBySDGEdge(edge);
@@ -913,14 +915,14 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 //                    boost::add_edge(nodeId3, nodeId4, topoGraph);
                 //                    SPDLOG_DEBUG("temporarily traverse unsettled edge pair: {} {} -> {}", edge1, edge2, edge2);
                 //                }
-                SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {}", (*it)->size());
-                for (auto &[_edgePair, __]: **it) {
+                SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {} (recursive)", edgePairGroup->size());
+                for (auto &[_edgePair, __]: *edgePairGroup) {
                     auto &edge = edgeIndex == 1 ? _edgePair.first : _edgePair.second;
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
                     if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
                         addedEdges.emplace_back(edge);
                         boost::add_edge(nodeId1, nodeId2, topoGraph);
-                        SPDLOG_DEBUG("temporarily select unsettled edge pair: {} {} -> {}", _edgePair.first, _edgePair.second, edge);
+                        SPDLOG_DEBUG("temporarily select unsettled edge pair (recursive): {} {} -> {}", _edgePair.first, _edgePair.second, edge);
                     }
                 }
             }
@@ -932,7 +934,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
         boost::remove_edge(nodeId1, nodeId2, topoGraph);
         SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
     }
-    if (save) {
+    if (!addedEdges.empty() && save) {
         savedAddedEdges.insert(savedAddedEdges.end(), addedEdges.begin(), addedEdges.end());
     }
     //    std::cout << "feasible" << std::endl;

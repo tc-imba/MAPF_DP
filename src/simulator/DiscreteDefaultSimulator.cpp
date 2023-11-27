@@ -86,13 +86,16 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
         }
 
         if (debug) {
-            std::cerr << "begin timestep " << currentTimestep << std::endl;
+            SPDLOG_DEBUG("begin timestep {}", currentTimestep);
+            std::ostringstream oss;
             for (unsigned int i = 0; i < agents.size(); i++) {
-                std::cerr << "agent " << i << "(" << agents[i].start << "->" << agents[i].goal << "): ";
+                oss.str("");
+                oss.clear();
+                oss << "agent " << i << " (" << agents[i].start << "->" << agents[i].goal << "): ";
                 for (const auto &label: solver->solution->plans[i]->path) {
-                    std::cerr << "(" << label.state << "," << label.nodeId << ")->";
+                    oss << "(" << label.state << "," << label.nodeId << ")->";
                 }
-                std::cerr << std::endl;
+                SPDLOG_DEBUG("{}", oss.str());
             }
         }
 
