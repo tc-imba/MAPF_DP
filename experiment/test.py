@@ -194,7 +194,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--suboptimality", str(args.suboptimality),
         "--snapshot-order", snapshot_order,
         "--remove-redundant", remove_redundant,
-        "--replan_suboptimality", str(replan_suboptimality)
+        "--replan-suboptimality", str(replan_suboptimality)
     ]
     # if map_type == "hardcoded":
     #     program_args.append("--all")
