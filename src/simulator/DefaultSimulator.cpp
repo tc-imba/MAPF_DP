@@ -47,10 +47,10 @@ double DefaultSimulator::replan() {
     std::vector<Agent> savedAgents = agents;
 
     for (unsigned int i = 0; i < agents.size(); i++) {
-        if (debug) {
-            std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current
-                      << ", goal " << agents[i].goal << std::endl;
-        }
+//        if (debug) {
+//            std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current
+//                      << ", goal " << agents[i].goal << std::endl;
+//        }
         auto &path = solver->solution->plans[i]->path;
         if (agents[i].state + 1 >= path.size()) {
             // already at goal location
@@ -116,10 +116,10 @@ double DefaultSimulator::replan() {
         agents[i].current = savedAgents[i].current;
         agents[i].timestep = savedAgents[i].timestep;
         agents[i].arrivingTimestep = savedAgents[i].arrivingTimestep;
-        if (debug) {
-            std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current
-                      << ", goal " << agents[i].goal << std::endl;
-        }
+//        if (debug) {
+//            std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current
+//                      << ", goal " << agents[i].goal << std::endl;
+//        }
         auto &path = solver->solution->plans[i]->path;
         for (auto &label: path) {
             label.state++;
@@ -127,5 +127,6 @@ double DefaultSimulator::replan() {
         path.insert(path.begin(), Label{agents[i].current, 0, 0, 0});
     }
 //    std::cerr << solver->executionTime << std::endl;
+    SPDLOG_INFO("replan succeeded in {} seconds", solver->executionTime);
     return solver->partialExecutionTime + solver->executionTime;
 }

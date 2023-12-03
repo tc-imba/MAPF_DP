@@ -156,8 +156,8 @@ class PlotSettings:
                 cycle = "naive"
             if simulator == "default":
                 label = f"baseline-{subplot_key}"
-            elif simulator == "replan":
-                label = f"replan-{subplot_key}"
+            elif simulator.startswith("replan"):
+                label = f"{simulator}-{subplot_key}"
             elif simulator == "pibt":
                 label = f"causal-pibt+-{subplot_key}"
             elif simulator == "prioritized":
@@ -442,8 +442,8 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
          (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
          (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
          (data["simulator"] == "online_remove_redundant") |
-         (data["simulator"] == "snapshot_end"))
-        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor)]
+         (data["simulator"] == "snapshot_end") | (data["simulator"] == "replan_1.1"))
+        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == 0.1)]
 
     groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
@@ -453,6 +453,9 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(k_neighbor), y_field="time", groupby=groupby, legend=True)
+    plot(df, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 plot_value=str(k_neighbor), y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -624,10 +627,10 @@ def main(ctx):
 
     if args.map == "random":
         df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
-        df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
+        # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
     else:
         df_discrete = pd.read_csv(data_dir / f"df_{args.timing}_{args.map}.csv")
-        df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time_{args.map}.csv")
+        # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time_{args.map}.csv")
 
     if args.timing == "discrete":
         df_discrete["k_neighbor"] = 2

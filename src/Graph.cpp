@@ -79,6 +79,7 @@ void Graph::calculateUnweightedAllPairShortestPath() {
     auto edges = boost::edges(g);
     for (auto it = edges.first; it != edges.second; ++it) {
         g[*it]._distance = g[*it].length;
+//        std::cout << std::distance(edges.first, it) << " " << g[*it].length << std::endl;
     }
     double density = (double) E * 2 / (V) / (V - 1);
     if (density < 0.1) {

@@ -260,7 +260,7 @@ int main(int argc, const char *argv[]) {
     graph.nodeNodeConflict = nodeNodeConflict;
     graph.edgeEdgeConflict = edgeEdgeConflict;
     graph.nodeEdgeConflict = nodeEdgeConflict;
-    //    graph.noCache = noCache;
+    graph.noCache = noCache;
 
     std::string filename, cacheFileName, taskFileType;
     if (mapType == "random") {
