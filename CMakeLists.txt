@@ -43,14 +43,14 @@ IF (WIN32)
     target_link_libraries(MAPF_DP ws2_32)
 ENDIF ()
 
-add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
-target_link_libraries(MAPF_Map_Generator ${Boost_LIBRARIES})
-
-add_executable(MAPF_Task_Generator src/generator/TaskGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
-target_link_libraries(MAPF_Task_Generator ${Boost_LIBRARIES})
-
-add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
-target_link_libraries(MAPF_Plan_Validator ${Boost_LIBRARIES})
+#add_executable(MAPF_Map_Generator src/generator/MapGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
+#target_link_libraries(MAPF_Map_Generator ${Boost_LIBRARIES})
+#
+#add_executable(MAPF_Task_Generator src/generator/TaskGenerator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
+#target_link_libraries(MAPF_Task_Generator ${Boost_LIBRARIES})
+#
+#add_executable(MAPF_Plan_Validator src/generator/PlanValidator.cpp src/Graph.cpp Continuous-CBS/tinyxml2.cpp)
+#target_link_libraries(MAPF_Plan_Validator ${Boost_LIBRARIES})
 
 #add_executable(MAPF_test src/test_graphml.cpp)
 #target_link_libraries(MAPF_test ${Boost_LIBRARIES})
