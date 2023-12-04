@@ -442,7 +442,7 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
          (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
          (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
          (data["simulator"] == "online_remove_redundant") |
-         (data["simulator"] == "snapshot_end") | (data["simulator"] == "replan_1.1"))
+         (data["simulator"] == "snapshot_end") | (data["simulator"] == "replan_1.2"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == 0.1)]
 
     groupby = ["simulator", "cycle", "delay_ratio"]

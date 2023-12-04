@@ -359,6 +359,7 @@ void DiscreteOnlineSimulator::initSimulation() {
 
     depGraph.solver = solver;
     depGraph.debug = debug;
+    depGraph.onlineOpt = onlineOpt;
     depGraph.init();
 }
 

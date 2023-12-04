@@ -66,6 +66,7 @@ protected:
 
 public:
     bool debug = false;
+    bool onlineOpt = false;
     std::shared_ptr<Solver> solver = nullptr;
     std::vector<std::vector<unsigned int>> pathTopoNodeIds;
     Graph::topo_graph_t topoGraph;

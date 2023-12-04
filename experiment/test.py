@@ -142,6 +142,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     simulator = setup.simulator
     prioritized_replan = False
     prioritized_opt = False
+    online_opt = False
     remove_redundant = "none"
     snapshot_order = "none"
     replan_suboptimality = 1
@@ -169,6 +170,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             remove_redundant = "physical"
         elif setup.simulator == "online_remove_redundant_graph":
             remove_redundant = "graph"
+        elif setup.simulator == "online_opt":
+            online_opt = True
     program_args = [
         args.program.as_posix(),
         "--map", map_type,
@@ -210,6 +213,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         program_args.append("--prioritized-replan")
     if prioritized_opt:
         program_args.append("--prioritized-opt")
+    if online_opt:
+        program_args.append("--online-opt")
     if map_file:
         program_args.append("--map-file")
         program_args.append(map_file.as_posix())

@@ -51,6 +51,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Classify feasibility types", "--feasibility-type");
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
     optionParser.add("", false, 0, 0, "Use prioritized replan with optimization ", "--prioritized-opt");
+    optionParser.add("", false, 0, 0, "Use online with optimization ", "--online-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("", false, 0, 0, "Use group conflicts optimization", "--group");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
@@ -136,7 +137,7 @@ int main(int argc, const char *argv[]) {
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, noCache, useGroup;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -181,6 +182,7 @@ int main(int argc, const char *argv[]) {
     feasibilityType = optionParser.isSet("--feasibility-type");
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
+    onlineOpt = optionParser.isSet("--online-opt");
     noCache = optionParser.isSet("--no-cache");
     useGroup = optionParser.isSet("--group");
 //    removeRedundant = optionParser.isSet("--remove-redundant");
@@ -440,6 +442,8 @@ int main(int argc, const char *argv[]) {
                 }
             } else {
                 simulator = std::make_unique<DiscreteOnlineSimulator>(graph, agents, i);
+                auto discreteOnlineSimulator = std::dynamic_pointer_cast<DiscreteOnlineSimulator>(simulator);
+                discreteOnlineSimulator->onlineOpt = onlineOpt;
             }
             auto onlineSimulator = std::dynamic_pointer_cast<OnlineSimulator>(simulator);
             onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;

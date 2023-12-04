@@ -386,19 +386,19 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckTest(bool recursi
 
     SPDLOG_DEBUG("feasibility check: {} shared nodes", unsettledEdgePairs.size());
 
-    // try to speed up
-    auto result = feasibilityCheckHelper(unsettledEdgePairs, false, true);
-    if (result.first == agents.size() && result.second == agents.size()) return result;
-    unsettledEdgePairs.clear();
-    for (const auto &[nodeId, sharedNode]: sharedNodes) {
-        for (const auto &sharedNodePair: sharedNode) {
-            auto edgePair = makeSDGEdgePair(
-                    sharedNodePair.agentId1, sharedNodePair.state1,
-                    sharedNodePair.agentId2, sharedNodePair.state2);
-            unsettledEdgePairs.emplace_back(edgePair);
+    if (onlineOpt) {
+        auto result = feasibilityCheckHelper(unsettledEdgePairs, false, true);
+        if (result.first == agents.size() && result.second == agents.size()) return result;
+        unsettledEdgePairs.clear();
+        for (const auto &[nodeId, sharedNode]: sharedNodes) {
+            for (const auto &sharedNodePair: sharedNode) {
+                auto edgePair = makeSDGEdgePair(
+                        sharedNodePair.agentId1, sharedNodePair.state1,
+                        sharedNodePair.agentId2, sharedNodePair.state2);
+                unsettledEdgePairs.emplace_back(edgePair);
+            }
         }
     }
-
     return feasibilityCheckHelper(unsettledEdgePairs, recursive, false);
 }
 

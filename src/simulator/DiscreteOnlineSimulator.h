@@ -26,6 +26,8 @@ public:
     unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
                           unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
+    bool onlineOpt = false;
+
 private:
     void initSimulation();
 
