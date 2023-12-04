@@ -23,7 +23,9 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         outputFile << 0 << std::endl;
         for (unsigned int i = 0; i < agents.size(); i++) {
             outputFile << i << " " << graph.getNode(paths[i][0]).index << " "
-                       << "node" << " " << "block" << std::endl;
+                       << "node"
+                       << " "
+                       << "block" << std::endl;
         }
     }
 
@@ -259,7 +261,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
                     moved.insert(i);
                     nodeAgentMap.erase(currentNodeId);
                     nodeAgentMap[nextNodeId] = i;
-                    updateSharedNode(currentNodeId, i, state);
+                    depGraph.updateSharedNode(currentNodeId, i, state);
                     agents[i].current = nextNodeId;
                     //                    agents[i].waitingTimestep = 0;
                     state++;
@@ -302,79 +304,19 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
 }
 
 
-void DiscreteOnlineSimulator::initSharedNodes(size_t i, size_t j) {
-    std::unordered_map<unsigned int, std::vector<std::pair<size_t, unsigned int>>> m;
-    for (auto x: {i, j}) {
-        for (size_t k = 0; k < paths[x].size(); k++) {
-            m[paths[x][k]].emplace_back(x, k);
-        }
-    }
-    // remove unshared nodes and init shared nodes
-    for (auto it = m.begin(); it != m.end();) {
-        std::vector<unsigned int> vi, vj;
-        for (auto &&[agentId, state]: it->second) {
-            if (agentId == i) vi.emplace_back(state);
-            if (agentId == j) vj.emplace_back(state);
-        }
-        if (!vi.empty() && !vj.empty()) {
-            auto &sharedNode = sharedNodes[it->first];
-            for (auto state1: vi) {
-                for (auto state2: vj) {
-                    sharedNode.emplace_back(SharedNodePair{i, state1, j, state2});
-                }
-            }
-            ++it;
-        } else {
-            it = m.erase(it);
-        }
-    }
-    // init dead-end states
-    for (auto [_i, _j]: {std::make_pair(i, j),
-                         std::make_pair(j, i)}) {
-        auto lastNodeId = paths[_i].back();
-        if (m.find(lastNodeId) != m.end()) {
-            unsigned int lastState = 0;
-            for (auto &&[agentId, state]: m[lastNodeId]) {
-                if (agentId == _j) {
-                    lastState = std::max(lastState, state);
-                }
-            }
-            deadEndStates[_i].emplace_back(_j, lastState);
-        }
-    }
-}
-
-void DiscreteOnlineSimulator::updateSharedNode(unsigned int nodeId, size_t agentId, unsigned int state) {
-    auto it = sharedNodes.find(nodeId);
-    if (it == sharedNodes.end()) {
-        return;
-    }
-    for (auto it2 = it->second.begin(); it2 != it->second.end();) {
-        if ((it2->agentId1 == agentId && it2->state1 <= state) || (it2->agentId2 == agentId && it2->state2 <= state)) {
-            it2 = it->second.erase(it2);
-        } else {
-            ++it2;
-        }
-    }
-    if (it->second.empty()) {
-        sharedNodes.erase(it);
-    }
-}
-
-
 void DiscreteOnlineSimulator::initSimulation() {
     blocked.clear();
     paths.clear();
     paths.resize(agents.size());
-    deadEndStates.clear();
-    deadEndStates.resize(agents.size());
-    pathTopoNodeIds.clear();
-    pathTopoNodeIds.resize(agents.size());
+//    deadEndStates.clear();
+//    deadEndStates.resize(agents.size());
+//    pathTopoNodeIds.clear();
+//    pathTopoNodeIds.resize(agents.size());
     nodeAgentMap.clear();
     delayedSet.clear();
-    topoGraph.clear();
+//    topoGraph.clear();
 
-    unsigned int topoGraphNodeNum = 0;
+//    unsigned int topoGraphNodeNum = 0;
     for (size_t i = 0; i < agents.size(); i++) {
         agents[i].current = agents[i].start;
         agents[i].blocked = true;
@@ -382,7 +324,7 @@ void DiscreteOnlineSimulator::initSimulation() {
         agents[i].timestep = 0;
         blocked.insert(i);
         nodeAgentMap[agents[i].current] = i;
-        for (size_t j = 0; j < solver->solution->plans[i]->path.size(); j++) {
+        /*for (size_t j = 0; j < solver->solution->plans[i]->path.size(); j++) {
             auto newNodeId = solver->solution->plans[i]->path[j].nodeId;
             if (paths[i].empty() || paths[i].back() != newNodeId) {
                 paths[i].emplace_back(newNodeId);
@@ -392,15 +334,15 @@ void DiscreteOnlineSimulator::initSimulation() {
         for (size_t j = 0; j < paths[i].size() - 1; j++) {
             boost::add_edge(pathTopoNodeIds[i][j], pathTopoNodeIds[i][j + 1], topoGraph);
         }
-        topoGraphNodeNum += paths[i].size();
+        topoGraphNodeNum += paths[i].size();*/
     }
 
 
-    for (size_t i = 0; i < agents.size(); i++) {
+/*    for (size_t i = 0; i < agents.size(); i++) {
         for (size_t j = i + 1; j < agents.size(); j++) {
             initSharedNodes(i, j);
         }
-    }
+    }*/
 
     executionTime = 0;
     feasibilityCheckCount = 0;
@@ -414,6 +356,10 @@ void DiscreteOnlineSimulator::initSimulation() {
     feasibilityCheckUnsettledCount = 0;
     feasibilityCheckTopoCount = 0;
     feasibilityCheckLoopCount = 0;
+
+    depGraph.solver = solver;
+    depGraph.debug = debug;
+    depGraph.init();
 }
 
 
@@ -440,8 +386,8 @@ void DiscreteOnlineSimulator::unsharedCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         auto &agent = agents[*it];
         auto nextNodeId = paths[*it][agent.state + 1];
-        auto it2 = sharedNodes.find(nextNodeId);
-        if (it2 == sharedNodes.end() || it2->second.empty()) {
+        auto it2 = depGraph.sharedNodes.find(nextNodeId);
+        if (it2 == depGraph.sharedNodes.end() || it2->second.empty()) {
             unshared.insert(*it);
             it = ready.erase(it);
         } else {
@@ -469,7 +415,7 @@ void DiscreteOnlineSimulator::deadEndCheck() {
     for (auto it = ready.begin(); it != ready.end();) {
         bool remove = false;
         if (agents[*it].state == paths[*it].size() - 2) {
-            for (auto &&[j, state]: deadEndStates[*it]) {
+            for (auto &&[j, state]: depGraph.deadEndStates[*it]) {
                 if (agents[j].state <= state) {
                     remove = true;
                     break;
@@ -675,278 +621,21 @@ void DiscreteOnlineSimulator::cycleCheck() {
     //    std::cerr << "end cycle check: ";
 }
 
-bool DiscreteOnlineSimulator::isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2) {
-    auto visitor = TopoGraphBFSVisitor(nodeId2);
-    try {
-        boost::breadth_first_search(topoGraph, nodeId1, boost::visitor(visitor));
-    } catch (...) {
-        return true;
-    }
-    return false;
-}
-
-/** Algorithm 1 **/
-std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheckHelper(
-        std::list<SharedNodePair> &sharedNodesList,
-        bool recursive) {
-    std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
-    //    std::cout << "feasibility check" << std::endl;
-
-    /** line 1 **/
-    while (!sharedNodesList.empty()) {
-        /** line 2 **/
-        if (firstAgentArrivingTimestep == 0) {
-            feasibilityCheckLoopCount++;
-        }
-        unsigned int erasedEdges = 0;
-        /** line 3 **/
 
 
-        for (auto it = sharedNodesList.begin(); it != sharedNodesList.end();) {
-            //            feasibilityCheckIterationTemp++;
-            if (firstAgentArrivingTimestep == 0) {
-                feasibilityCheckTopoCount++;
-            }
-            std::vector<std::pair<unsigned int, unsigned int>> selectedEdges;
-            unsigned int maxSelectedEdges = 0;
-            if (it->state2 > agents[it->agentId2].state) {
-                if (it->state1 + 1 == paths[it->agentId1].size()) {
-                    ++maxSelectedEdges;
-                } else if (it->state1 + 1 < paths[it->agentId1].size() && it->state2 > agents[it->agentId2].state) {
-                    auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
-                    auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-                    if (!isPathInTopoGraph(nodeId2, nodeId1)) {
-                        selectedEdges.emplace_back(nodeId1, nodeId2);
-                    }
-                    //                    boost::add_edge(nodeId1, nodeId2, topoGraph);
-                    //                    std::vector<Graph::topo_vertex_t> container;
-                    //                    try {
-                    //                        boost::topological_sort(topoGraph, std::back_inserter(container));
-                    //                        selectedEdges.emplace_back(nodeId1, nodeId2);
-                    //                    } catch (std::exception) {}
-                    //                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                    ++maxSelectedEdges;
-                }
-            }
-            if (it->state1 > agents[it->agentId1].state) {
-                if (it->state2 + 1 == paths[it->agentId2].size()) {
-                    ++maxSelectedEdges;
-                } else if (it->state2 + 1 < paths[it->agentId2].size() && it->state1 > agents[it->agentId1].state) {
-                    auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1];
-                    auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
-                    if (!isPathInTopoGraph(nodeId1, nodeId2)) {
-                        selectedEdges.emplace_back(nodeId2, nodeId1);
-                    }
-                    //                    boost::add_edge(nodeId2, nodeId1, topoGraph);
-                    //                    try {
-                    //                        std::vector<Graph::topo_vertex_t> container;
-                    //                        boost::topological_sort(topoGraph, std::back_inserter(container));
-                    //                        selectedEdges.emplace_back(nodeId2, nodeId1);
-                    //                    } catch (std::exception) {}
-                    //                    boost::remove_edge(nodeId2, nodeId1, topoGraph);
-                    ++maxSelectedEdges;
-                }
-            }
-
-            if (selectedEdges.empty()) {
-                /** line 4 **/
-                if (maxSelectedEdges > 0) {
-                    // failed
-                    //                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
-                    //                              << it->state2 << std::endl;
-                    for (auto [nodeId1, nodeId2]: addedEdges) {
-                        boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                    }
-                    //                    std::cout << "infeasible" << std::endl;
-                    /** line 5 **/
-                    return std::make_pair(it->agentId1, it->agentId2);
-                } else {
-                    //                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
-                    //                              << it->state2 << std::endl;
-                }
-                /** unreachable code, only for execution safety  **/
-                it = sharedNodesList.erase(it);
-                ++erasedEdges;
-                /** unreachable code end **/
-            } /** line 6 **/
-            else if (selectedEdges.size() == 1) {
-                /** line 7 **/
-                addedEdges.emplace_back(selectedEdges[0]);
-                boost::add_edge(selectedEdges[0].first, selectedEdges[0].second, topoGraph);
-                /** line 8 **/
-                it = sharedNodesList.erase(it);
-                /** line 9 **/
-                ++erasedEdges;
-                //                std::cout << "choose: " << selectedEdges[0].first << " " << selectedEdges[0].second << std::endl;
-            } else {
-                ++it;
-            }
-        }
-
-        //        std::cout << erasedEdges << std::endl;
-
-        /** line 10 **/
-        if (erasedEdges == 0 && !sharedNodesList.empty()) {
-            /** line 11 **/
-            auto it = sharedNodesList.begin();
-            auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
-            auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-
-            /** line 12 **/
-            // TODO: add randomness here
-            addedEdges.emplace_back(nodeId1, nodeId2);
-            boost::add_edge(nodeId1, nodeId2, topoGraph);
-
-            /** line 13 **/
-            sharedNodesList.erase(it);
-
-            /** exhaustive version of Algorithm 1 **/
-            if (recursive) {
-                auto sharedNodesListBackup = sharedNodesList;
-                //                std::cout << "recursive" << std::endl;
-                auto result = feasibilityCheckHelper(sharedNodesListBackup, recursive);
-                if (firstAgentArrivingTimestep > 0) {
-                    feasibilityCheckRecursionCount++;
-                }
-                boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                addedEdges.pop_back();
-
-                if (result.first == agents.size() && result.second == agents.size()) {
-                    for (auto [_nodeId1, _nodeId2]: addedEdges) {
-                        boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
-                    }
-                    return result;
-                }
-                auto nodeId3 = pathTopoNodeIds[it->agentId1][it->state1];
-                auto nodeId4 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
-                addedEdges.emplace_back(nodeId4, nodeId3);
-                boost::add_edge(nodeId4, nodeId3, topoGraph);
-            }
-            //            std::cout << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
-        }
-    }
-    for (auto [nodeId1, nodeId2]: addedEdges) {
-        boost::remove_edge(nodeId1, nodeId2, topoGraph);
-    }
-    //    std::cout << "feasible" << std::endl;
-    /** line 14 **/
-    return std::make_pair(agents.size(), agents.size());
-}
-
-
-std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheckTest(bool recursive) {
-    //    std::cerr << "start feasibility check" << std::endl;
-
-    std::list<SharedNodePair> sharedNodesList;
-
-    std::unordered_map<size_t, size_t> nodeAgentMapSnapshot;
-    for (size_t i = 0; i < agents.size(); i++) {
-        auto nodeId = paths[i][agents[i].state];
-        auto it = nodeAgentMapSnapshot.find(nodeId);
-        if (it == nodeAgentMapSnapshot.end()) {
-            nodeAgentMapSnapshot.emplace_hint(it, nodeId, i);
-        } else {
-            return std::make_pair(it->second, i);
-        }
-    }
-
-    for (const auto &[nodeId, sharedNode]: sharedNodes) {
-        for (const auto &sharedNodePair: sharedNode) {
-            sharedNodesList.emplace_back(sharedNodePair);
-        }
-    }
-
-    if (firstAgentArrivingTimestep == 0) {
-        feasibilityCheckUnsettledCount += sharedNodesList.size();
-    }
-
-    SPDLOG_DEBUG("feasibility check: {} shared nodes", sharedNodesList.size());
-
-    return feasibilityCheckHelper(sharedNodesList, recursive);
-
-    /*
-    while (!sharedNodesList.empty()) {
-        unsigned int erasedEdges = 0;
-        for (auto it = sharedNodesList.begin(); it != sharedNodesList.end();) {
-            std::vector<std::pair<unsigned int, unsigned int>> selectedEdges;
-            unsigned int maxSelectedEdges = 0;
-            if (it->state1 + 1 < paths[it->agentId1].size() && it->state2 > agents[it->agentId2].state) {
-                auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
-                auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-                boost::add_edge(nodeId1, nodeId2, topoGraph);
-                std::vector<Graph::topo_vertex_t> container;
-                try {
-                    boost::topological_sort(topoGraph, std::back_inserter(container));
-                    selectedEdges.emplace_back(nodeId1, nodeId2);
-                } catch (std::exception) {}
-                boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                ++maxSelectedEdges;
-            }
-            if (it->state2 + 1 < paths[it->agentId2].size() && it->state1 > agents[it->agentId1].state) {
-                auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1];
-                auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2 + 1];
-                boost::add_edge(nodeId2, nodeId1, topoGraph);
-                try {
-                    std::vector<Graph::topo_vertex_t> container;
-                    boost::topological_sort(topoGraph, std::back_inserter(container));
-                    selectedEdges.emplace_back(nodeId2, nodeId1);
-                } catch (std::exception) {}
-                boost::remove_edge(nodeId2, nodeId1, topoGraph);
-                ++maxSelectedEdges;
-            }
-            if (selectedEdges.empty()) {
-                if (maxSelectedEdges > 0) {
-                    // failed
-                    // std::cerr << "failed!" << std::endl;
-                    for (auto [nodeId1, nodeId2]: addedEdges) {
-                        boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                    }
-                    return std::make_pair(it->agentId1, it->agentId2);
-                }
-                it = sharedNodesList.erase(it);
-                ++erasedEdges;
-            } else if (selectedEdges.size() == 1) {
-                addedEdges.emplace_back(selectedEdges[0]);
-                boost::add_edge(selectedEdges[0].first, selectedEdges[0].second, topoGraph);
-                it = sharedNodesList.erase(it);
-                ++erasedEdges;
-//                std::cerr << "choose: " << selectedEdges[0].first << " " << selectedEdges[0].second << std::endl;
-            } else {
-                ++it;
-            }
-        }
-        if (erasedEdges == 0 && !sharedNodesList.empty()) {
-            auto it = sharedNodesList.begin();
-            auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
-            auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-            // TODO: add randomness here
-            addedEdges.emplace_back(nodeId1, nodeId2);
-            boost::add_edge(nodeId1, nodeId2, topoGraph);
-            sharedNodesList.erase(it);
-//            std::cerr << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
-        }
-    }
-*/
-
-    //    for (auto [nodeId1, nodeId2]: addedEdges) {
-    //        boost::remove_edge(nodeId1, nodeId2, topoGraph);
-    //    }
-    //
-    //    return std::make_pair(agents.size(), agents.size());
-}
 
 std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheck() {
     if (firstAgentArrivingTimestep == 0) {
         feasibilityCheckCount++;
     }
     if (!isFeasibilityType) {
-        return feasibilityCheckTest(!isHeuristicFeasibilityCheck);
+        return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck);
     }
     //    feasibilityCheckIterationTemp = 0;
-    auto heuristicResult = feasibilityCheckTest(false);
+    auto heuristicResult = depGraph.feasibilityCheckTest(false);
     //    feasibilityCheckIteration[0] += feasibilityCheckIterationTemp;
     //    feasibilityCheckIterationTemp = 0;
-    auto exhaustiveResult = feasibilityCheckTest(true);
+    auto exhaustiveResult = depGraph.feasibilityCheckTest(true);
     //    feasibilityCheckIteration[1] += feasibilityCheckIterationTemp;
     bool heuristicSuccess = heuristicResult.first == agents.size() && heuristicResult.second == agents.size();
     bool exhaustiveSuccess = exhaustiveResult.first == agents.size() && exhaustiveResult.second == agents.size();

@@ -5,29 +5,28 @@
 #ifndef MAPF_DP_DISCRETEONLINESIMULATOR_H
 #define MAPF_DP_DISCRETEONLINESIMULATOR_H
 
+#include "../dependency_graph/NodeDependencyGraph.h"
 #include "DiscreteSimulator.h"
 #include "OnlineSimulator.h"
 
 
 class DiscreteOnlineSimulator : public DiscreteSimulator, public OnlineSimulator {
 protected:
-    std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
-    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
+    NodeDependencyGraph depGraph;
 
-    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
-    Graph::topo_graph_t topoGraph;
+//    std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
+//    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
+
+//    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
+//    Graph::topo_graph_t topoGraph;
 
 public:
-    DiscreteOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed) {}
+    DiscreteOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed), depGraph(graph, agents, paths, firstAgentArrivingTimestep) {}
 
     unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
                           unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
 private:
-    void initSharedNodes(size_t i, size_t j);
-
-    void updateSharedNode(unsigned int nodeId, size_t agentId, unsigned int state);
-
     void initSimulation();
 
     void initChecks();
@@ -46,16 +45,6 @@ private:
     void heuristicCycleCheck();
 
     void cycleCheck();
-
-    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
-
-    std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<SharedNodePair> &sharedNodesList,
-            bool recursive
-            //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
-    );
-
-    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
 
     std::pair<size_t, size_t> feasibilityCheck();
 };

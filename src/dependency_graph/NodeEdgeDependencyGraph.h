@@ -13,43 +13,6 @@ public:
     std::string snapshotOrder = "none";
     bool useGroup = false;
 
-    struct SDGNode {
-        size_t agentId;
-        unsigned int state;
-    };
-
-    friend bool operator<(const SDGNode &lhs, const SDGNode &rhs) {
-        if (lhs.agentId == rhs.agentId) return lhs.state < rhs.state;
-        return lhs.agentId < rhs.agentId;
-    }
-
-    friend bool operator==(const SDGNode &lhs, const SDGNode &rhs) {
-        return lhs.agentId == rhs.agentId && lhs.state == rhs.state;
-    }
-
-    friend std::ostream &operator<<(std::ostream &out, const SDGNode &node) {
-        return out << "(" << node.agentId << "," << node.state << ")";
-    }
-
-    struct SDGEdge {
-        SDGNode source, dest;
-    };
-
-    friend bool operator<(const SDGEdge &lhs, const SDGEdge &rhs) {
-        return lhs.source == rhs.source ? lhs.dest < rhs.dest : lhs.source < rhs.source;
-    }
-
-    friend bool operator==(const SDGEdge &lhs, const SDGEdge &rhs) {
-        return lhs.source == rhs.source && lhs.dest == rhs.dest;
-    }
-
-    friend std::ostream &operator<<(std::ostream &out, const SDGEdge &edge) {
-        return out << edge.source << "->" << edge.dest;
-    }
-
-    typedef std::pair<SDGNode, SDGNode> SDGNodePair;
-    typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
-
     enum class SDGNodePairType {
         NodeNode,
         NodeEdge,
@@ -93,15 +56,6 @@ public:
     NodeEdgeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};
 
     void init();
-
-    std::pair<unsigned int, unsigned int> getTopoEdgeBySDGEdge(const SDGEdge &edge) const {
-        return std::make_pair(pathTopoNodeIds[edge.source.agentId][edge.source.state],
-                              pathTopoNodeIds[edge.dest.agentId][edge.dest.state]);
-    };
-
-    bool isEdgeInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
-
-    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
 
     SDGNodePair makeSDGNodePair(size_t agentId1, unsigned int state1, size_t agentId2, unsigned int state2);
 
