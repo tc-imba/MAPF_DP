@@ -296,7 +296,7 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
             if (erasedEdges == 0 && !unsettledEdgePairs.empty()) {
                 /** line 11 **/
                 auto it = unsettledEdgePairs.begin();
-                auto &edgePair = *it;
+                auto edgePair = *it;
 
                 //            auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
                 //            auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];

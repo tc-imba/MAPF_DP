@@ -25,8 +25,8 @@ from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
 # rc('font',**{'family':'serif','serif':['Times']})
 # rc('text', useTex=False)
 
-LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129"]
-LINE_MARKERS = ["o", "s", "^", "+"]
+LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129", "#FF0000", "#330066"]
+LINE_MARKERS = ["o", "s", "^", "+", "o", "s"]
 
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
@@ -173,8 +173,8 @@ class PlotSettings:
                     label = f"{'-'.join(simulator.split('_'))}-{subplot_key}"
                 else:
                     label = f"online-{subplot_key}"
-            elif simulator == "online" and self.args.timing == "continuous":
-                label = f"online-{subplot_key}"
+            elif simulator.startswith("online"):
+                label = f"{simulator}-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -441,8 +441,8 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
         (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
          (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
          (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
-         (data["simulator"] == "online_remove_redundant") |
-         (data["simulator"] == "snapshot_end") | (data["simulator"] == "replan_1.2"))
+         (data["simulator"] == "online_remove_redundant") | (data["simulator"] == "online_opt") |
+         (data["simulator"] == "snapshot_end") | (data["simulator"] == "replan_1.2") | (data["simulator"] == "replan_1.1"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == 0.1)]
 
     groupby = ["simulator", "cycle", "delay_ratio"]
