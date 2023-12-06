@@ -10,6 +10,9 @@
 
 class NodeDependencyGraph : public DependencyGraph {
 public:
+//    std::vector<SDGEdge> savedAddedEdges;
+    std::map<SDGEdgePair, SDGEdge> savedAddedEdges;
+
     NodeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};
 
     void init();
@@ -25,13 +28,19 @@ public:
     std::pair<size_t, size_t> feasibilityCheckHelper(
             std::list<SDGEdgePair> &unsettledEdgePairs,
             bool recursive, bool speed = true
-            //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
+    );
+
+    std::pair<size_t, size_t> feasibilityCheckHelperNew(
+            std::list<SDGEdgePair> &unsettledEdgePairs,
+            bool recursive, bool init = true
     );
 
     std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
 
 protected:
-    void orderEdgesByStart(SDGEdge &edge1, SDGEdge &edge2);
+    SDGEdgePair orderEdgesByStart(const SDGEdgePair &edgePair);
+
+    SDGEdgePair orderEdgesBySave(const SDGEdgePair &edgePair);
 
 };
 

@@ -163,7 +163,7 @@ std::vector<NodeDependencyGraph::SDGEdge> NodeDependencyGraph::feasibilityCheckE
 std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
         std::list<SDGEdgePair> &unsettledEdgePairs,
         bool recursive, bool speed) {
-    std::vector<std::pair<unsigned int, unsigned int>> addedEdges;
+    std::vector<std::pair<SDGEdgePair, SDGEdge>> addedEdges;
     //    std::cout << "feasibility check" << std::endl;
 
     /** line 1 **/
@@ -189,7 +189,8 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                 // failed
                 //                    std::cout << "failed: " << it->agentId1 << " " << it->state1 << " " << it->agentId2 << ""
                 //                              << it->state2 << std::endl;
-                for (auto [nodeId1, nodeId2]: addedEdges) {
+                for (auto [_edgePair, _edge]: addedEdges) {
+                    auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(_edge);
                     boost::remove_edge(nodeId1, nodeId2, topoGraph);
                 }
                 //                    std::cout << "infeasible" << std::endl;
@@ -212,7 +213,7 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                 auto &edge = selectedEdges.front();
                 auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
                 if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
-                    addedEdges.emplace_back(nodeId1, nodeId2);
+                    addedEdges.emplace_back(edgePair, edge);
                     boost::add_edge(nodeId1, nodeId2, topoGraph);
                 }
 
@@ -224,7 +225,8 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
             } else {
                 ++it;
                 /*if (speed) {
-                    *//** line 11 **//*
+                    */
+                /** line 11 **/ /*
                     //                auto it = sharedNodesList.begin();
                     auto edge1 = edgePair.first;
                     auto edge2 = edgePair.second;
@@ -234,14 +236,16 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                     //                    auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge1);
 
-                    *//** line 12 **//*
+                    */
+                /** line 12 **/ /*
                     // TODO: add randomness here
                     if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
                         addedEdges.emplace_back(nodeId1, nodeId2);
                         boost::add_edge(nodeId1, nodeId2, topoGraph);
                     }
 
-                    *//** line 13 **//*
+                    */
+                /** line 13 **/ /*
                     it = unsettledEdgePairs.erase(it);
                     ++erasedEdges;
 
@@ -260,7 +264,8 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                 auto selectedEdges = feasibilityCheckEdgePair(edgePair);
 
                 if (selectedEdges.empty()) {
-                    for (auto [nodeId1, nodeId2]: addedEdges) {
+                    for (auto [_edgePair, _edge]: addedEdges) {
+                        auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(_edge);
                         boost::remove_edge(nodeId1, nodeId2, topoGraph);
                     }
                     return std::make_pair(edgePair.first.dest.agentId, edgePair.second.dest.agentId);
@@ -268,7 +273,7 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                     auto &edge = selectedEdges.front();
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
                     if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
-                        addedEdges.emplace_back(nodeId1, nodeId2);
+                        addedEdges.emplace_back(edgePair, edge);
                         boost::add_edge(nodeId1, nodeId2, topoGraph);
                     }
 
@@ -278,12 +283,10 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                     ++erasedEdges;
                     break;
                 } else {
-                    auto edge1 = edgePair.first;
-                    auto edge2 = edgePair.second;
-                    orderEdgesByStart(edge1, edge2);
+                    auto [edge1, edge2] = orderEdgesBySave(edgePair);
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge1);
                     if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
-                        addedEdges.emplace_back(nodeId1, nodeId2);
+                        addedEdges.emplace_back(edgePair, edge1);
                         boost::add_edge(nodeId1, nodeId2, topoGraph);
                     }
                     it = unsettledEdgePairs.erase(it);
@@ -297,15 +300,17 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                 /** line 11 **/
                 auto it = unsettledEdgePairs.begin();
                 auto edgePair = *it;
+                auto [edge1, edge2] = orderEdgesBySave(edgePair);
 
                 //            auto nodeId1 = pathTopoNodeIds[it->agentId1][it->state1 + 1];
                 //            auto nodeId2 = pathTopoNodeIds[it->agentId2][it->state2];
-                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edgePair.first);
+                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge1);
 
                 /** line 12 **/
                 // TODO: add randomness here
-                if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
-                    addedEdges.emplace_back(nodeId1, nodeId2);
+                bool recursiveEdgeAdded = !isEdgeInTopoGraph(nodeId1, nodeId2);
+                if (recursiveEdgeAdded) {
+                    addedEdges.emplace_back(edgePair, edge1);
                     boost::add_edge(nodeId1, nodeId2, topoGraph);
                 }
 
@@ -320,11 +325,14 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                     if (firstAgentArrivingTimestep > 0) {
                         feasibilityCheckRecursionCount++;
                     }
-                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
-                    addedEdges.pop_back();
+                    if (recursiveEdgeAdded) {
+                        boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                        addedEdges.pop_back();
+                    }
 
                     if (result.first == agents.size() && result.second == agents.size()) {
-                        for (auto [_nodeId1, _nodeId2]: addedEdges) {
+                        for (auto [_edgePair, _edge]: addedEdges) {
+                            auto [_nodeId1, _nodeId2] = getTopoEdgeBySDGEdge(_edge);
                             boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
                         }
                         return result;
@@ -334,25 +342,120 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelper(
                     //                addedEdges.emplace_back(nodeId4, nodeId3);
                     //                boost::add_edge(nodeId4, nodeId3, topoGraph);
 
-                    auto [nodeId3, nodeId4] = getTopoEdgeBySDGEdge(edgePair.second);
+                    auto [nodeId3, nodeId4] = getTopoEdgeBySDGEdge(edge2);
                     if (!isEdgeInTopoGraph(nodeId3, nodeId4)) {
-                        addedEdges.emplace_back(nodeId3, nodeId4);
+                        addedEdges.emplace_back(edgePair, edge2);
                         boost::add_edge(nodeId3, nodeId4, topoGraph);
                     }
                 }
                 //            std::cout << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
             }
         }
-
-
     }
-    for (auto [nodeId1, nodeId2]: addedEdges) {
+    savedAddedEdges.clear();
+    for (auto [edgePair, edge]: addedEdges) {
+        savedAddedEdges.emplace(edgePair, edge);
+        auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
         boost::remove_edge(nodeId1, nodeId2, topoGraph);
     }
     //    std::cout << "feasible" << std::endl;
     /** line 14 **/
     return std::make_pair(agents.size(), agents.size());
 }
+
+
+/*
+std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckHelperNew(
+        std::list<SDGEdgePair> &unsettledEdgePairs,
+        bool recursive, bool init) {
+    std::vector<std::pair<SDGEdgePair, SDGEdge>> addedEdges;
+    //    std::cout << "feasibility check" << std::endl;
+
+    while (!unsettledEdgePairs.empty()) {
+
+        if (firstAgentArrivingTimestep == 0) {
+            feasibilityCheckLoopCount++;
+        }
+
+        if (!init) {
+            for (auto it = unsettledEdgePairs.begin(); it != unsettledEdgePairs.end();) {
+                auto edgePair = *it;
+                auto selectedEdges = feasibilityCheckEdgePair(edgePair);
+
+                if (selectedEdges.size() == 2) {
+                    auto edge1 = edgePair.first;
+                    auto edge2 = edgePair.second;
+                    orderEdgesByStart(edge1, edge2);
+                    auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge1);
+                    bool recursiveEdgeAdded = !isEdgeInTopoGraph(nodeId1, nodeId2);
+                    if (recursiveEdgeAdded) {
+                        addedEdges.emplace_back(edgePair, edge1);
+                        boost::add_edge(nodeId1, nodeId2, topoGraph);
+                    }
+                    it = unsettledEdgePairs.erase(it);
+                    if (recursive) {
+                        auto unsettledEdgePairsBackup = unsettledEdgePairs;
+                        auto result = feasibilityCheckHelperNew(unsettledEdgePairsBackup, recursive, init);
+                        if (firstAgentArrivingTimestep > 0) {
+                            feasibilityCheckRecursionCount++;
+                        }
+                        if (recursiveEdgeAdded) {
+                            boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                            addedEdges.pop_back();
+                        }
+                        if (result.first == agents.size() && result.second == agents.size()) {
+                            for (auto [_edgePair, _edge]: addedEdges) {
+                                auto [_nodeId1, _nodeId2] = getTopoEdgeBySDGEdge(_edge);
+                                boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
+                            }
+                            return result;
+                        }
+                        auto [nodeId3, nodeId4] = getTopoEdgeBySDGEdge(edgePair.second);
+                        if (!isEdgeInTopoGraph(nodeId3, nodeId4)) {
+                            addedEdges.emplace_back(edgePair, edge2);
+                            boost::add_edge(nodeId3, nodeId4, topoGraph);
+                        }
+                    }
+                } else
+                    break;
+            }
+        }
+
+        for (auto it = unsettledEdgePairs.begin(); it != unsettledEdgePairs.end();) {
+            auto &edgePair = *it;
+
+            if (firstAgentArrivingTimestep == 0) {
+                feasibilityCheckTopoCount++;
+            }
+            auto selectedEdges = feasibilityCheckEdgePair(edgePair);
+            if (selectedEdges.empty()) {
+                for (auto [nodeId1, nodeId2]: addedEdges) {
+                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                }
+                return std::make_pair(edgePair.first.dest.agentId, edgePair.second.dest.agentId);
+            } else if (selectedEdges.size() == 1) {
+                auto &edge = selectedEdges.front();
+                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
+                if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
+                    addedEdges.emplace_back(nodeId1, nodeId2);
+                    boost::add_edge(nodeId1, nodeId2, topoGraph);
+                }
+                it = unsettledEdgePairs.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        init = false;
+    }
+    savedAddedEdges.clear();
+    for (auto [nodeId1, nodeId2]: addedEdges) {
+        boost::remove_edge(nodeId1, nodeId2, topoGraph);
+    }
+    //    std::cout << "feasible" << std::endl;
+    return std::make_pair(agents.size(), agents.size());
+}
+*/
 
 
 std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckTest(bool recursive) {
@@ -387,8 +490,13 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckTest(bool recursi
     SPDLOG_DEBUG("feasibility check: {} shared nodes", unsettledEdgePairs.size());
 
     if (onlineOpt) {
+//        auto size = unsettledEdgePairs.size();
         auto result = feasibilityCheckHelper(unsettledEdgePairs, false, true);
-        if (result.first == agents.size() && result.second == agents.size()) return result;
+        if (result.first == agents.size() && result.second == agents.size()) {
+//            SPDLOG_INFO("1 {}", size);
+            return result;
+        }
+//        SPDLOG_INFO("0 {}", size);
         unsettledEdgePairs.clear();
         for (const auto &[nodeId, sharedNode]: sharedNodes) {
             for (const auto &sharedNodePair: sharedNode) {
@@ -400,10 +508,22 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckTest(bool recursi
         }
     }
     return feasibilityCheckHelper(unsettledEdgePairs, recursive, false);
+
+    //    return feasibilityCheckHelperNew(unsettledEdgePairs, recursive);
 }
 
-void NodeDependencyGraph::orderEdgesByStart(SDGEdge &edge1, SDGEdge &edge2) {
-    auto time1 = timestamps[edge1.source.agentId][edge1.source.state];
-    auto time2 = timestamps[edge2.source.agentId][edge2.source.state];
-    if (time1 > time2) std::swap(edge1, edge2);
+NodeDependencyGraph::SDGEdgePair NodeDependencyGraph::orderEdgesByStart(const SDGEdgePair &edgePair) {
+    auto time1 = timestamps[edgePair.first.source.agentId][edgePair.first.source.state];
+    auto time2 = timestamps[edgePair.second.source.agentId][edgePair.second.source.state];
+    if (time1 <= time2) return edgePair;
+    return std::make_pair(edgePair.second, edgePair.first);
+}
+
+NodeDependencyGraph::SDGEdgePair NodeDependencyGraph::orderEdgesBySave(const SDGEdgePair &edgePair) {
+    auto it = savedAddedEdges.find(edgePair);
+    if (it == savedAddedEdges.end()) {
+        return orderEdgesByStart(edgePair);
+    }
+    if (it->second == edgePair.first) return edgePair;
+    return std::make_pair(edgePair.second, edgePair.first);
 }
