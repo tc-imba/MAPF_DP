@@ -633,10 +633,10 @@ std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheck() {
         return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck);
     }
     //    feasibilityCheckIterationTemp = 0;
-    auto heuristicResult = depGraph.feasibilityCheckTest(false);
+    auto heuristicResult = depGraph.feasibilityCheckTest(false, false);
     //    feasibilityCheckIteration[0] += feasibilityCheckIterationTemp;
     //    feasibilityCheckIterationTemp = 0;
-    auto exhaustiveResult = depGraph.feasibilityCheckTest(true);
+    auto exhaustiveResult = depGraph.feasibilityCheckTest(false, true);
     //    feasibilityCheckIteration[1] += feasibilityCheckIterationTemp;
     bool heuristicSuccess = heuristicResult.first == agents.size() && heuristicResult.second == agents.size();
     bool exhaustiveSuccess = exhaustiveResult.first == agents.size() && exhaustiveResult.second == agents.size();
@@ -645,17 +645,20 @@ std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheck() {
             feasibilityCheckTypes[0]++;
         } else {
             feasibilityCheckTypes[1]++;
+            exit(0);
         }
     } else {
         if (exhaustiveSuccess) {
             feasibilityCheckTypes[2]++;
+            exit(0);
         } else {
             feasibilityCheckTypes[3]++;
         }
     }
-    if (isHeuristicFeasibilityCheck) {
-        return heuristicResult;
-    } else {
-        return exhaustiveResult;
-    }
+    return heuristicResult;
+//    if (isHeuristicFeasibilityCheck) {
+//        return heuristicResult;
+//    } else {
+//        return exhaustiveResult;
+//    }
 }

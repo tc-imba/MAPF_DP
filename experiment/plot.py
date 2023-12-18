@@ -157,7 +157,8 @@ class PlotSettings:
             if simulator == "default":
                 label = f"baseline-{subplot_key}"
             elif simulator.startswith("replan"):
-                label = f"{simulator}-{subplot_key}"
+                # label = f"{simulator}-{subplot_key}"
+                label = f"replan-{subplot_key}"
             elif simulator == "pibt":
                 label = f"causal-pibt+-{subplot_key}"
             elif simulator == "prioritized":
@@ -174,7 +175,10 @@ class PlotSettings:
                 else:
                     label = f"online-{subplot_key}"
             elif simulator.startswith("online"):
-                label = f"{simulator}-{subplot_key}"
+                if simulator == "online_opt":
+                    label = f"proposed-{subplot_key}"
+                else:
+                    label = f"{simulator}-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -435,27 +439,24 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     fig.savefig(fname=output_file, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
     plt.close()
 
-def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int):
+def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio: float):
     k_neighbor = 2
     df = data[
-        (((data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["cycle"] == "proposed")) |
-         (data["simulator"] == "default") | (data["simulator"] == "replan") | (data["simulator"] == "pibt") |
-         (data["simulator"] == "prioritized") | (data["simulator"] == "snapshot") |
-         (data["simulator"] == "online_remove_redundant") | (data["simulator"] == "online_opt") |
-         (data["simulator"] == "snapshot_end") | (data["simulator"] == "replan_1.2") | (data["simulator"] == "replan_1.1"))
-        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == 0.1)]
+        ((data["simulator"] == "default") | (data["simulator"] == "online_opt") |
+         (data["simulator"] == "replan_1.1") | (data["simulator"] == "pibt"))
+        & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == delay_ratio)]
 
     groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(k_neighbor), y_field="soc", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(k_neighbor), y_field="time", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(k_neighbor), y_field="makespan_time", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -579,19 +580,22 @@ def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot(df, plot_settings)
 
 
-def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int):
-    df = data[(data["simulator"] == "online") & (data["feasibility"] == "heuristic") & (data["agents"] == agents)]
+def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio: float):
+    df = data[
+        (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (data["delay_ratio"] == delay_ratio) &
+        ((data["simulator"] == "online_opt") | ((data["simulator"] == "online") & (data["cycle"] != "proposed")))
+    ]
     groupby = ["cycle", "delay_ratio"]
     plot_type = "cycle"
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="soc", groupby=groupby, plot_value="2", legend=True)
+                                 plot_value=str(delay_ratio), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="time", groupby=groupby, plot_value="2", legend=False)
+                                 plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="makespan_time", groupby=groupby, plot_value="2", legend=False)
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -626,7 +630,8 @@ def main(ctx):
     click.echo(args)
 
     if args.map == "random":
-        df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
+        # df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
+        df_discrete = pd.read_csv(data_dir / f"df_discrete_combined.csv")
         # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
     else:
         df_discrete = pd.read_csv(data_dir / f"df_{args.timing}_{args.map}.csv")
@@ -634,8 +639,11 @@ def main(ctx):
 
     if args.timing == "discrete":
         df_discrete["k_neighbor"] = 2
+        plot_cycle(args, df_discrete, 30, 0.1)
         for agents in args.agents:
-            plot_simulator_discrete(args, df_discrete, agents)
+            for delay_ratio in args.delay_ratios:
+                # pass
+                plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
             # plot_cycle(args, df_discrete, agents)
             # for obstacle in args.obstacles:
             #     plot_cdf(args, df_discrete_time, agents, obstacle)

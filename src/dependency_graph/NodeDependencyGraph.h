@@ -27,6 +27,7 @@ public:
 
     std::pair<size_t, size_t> feasibilityCheckHelper(
             std::list<SDGEdgePair> &unsettledEdgePairs,
+//            const std::vector<bool> &agentIgnored,
             bool recursive, bool speed = true
     );
 
@@ -35,7 +36,7 @@ public:
             bool recursive, bool init = true
     );
 
-    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive);
+    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive, bool ignore = true);
 
 protected:
     SDGEdgePair orderEdgesByStart(const SDGEdgePair &edgePair);
