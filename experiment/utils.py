@@ -56,8 +56,8 @@ class ExperimentSetup:
                 self.feasibility, self.cycle
             )
         elif self.map == "den520d" or self.map == "warehouse":
-            output_prefix = "%s-%s-%s-%d-%s-%s-%d-%d-%s-%s" % (
-                self.timing, self.map_name, self.simulator, self.agents,
+            output_prefix = "%s-%s-%s-%s-%d-%s-%s-%d-%d-%s-%s" % (
+                self.timing, self.map, self.map_name, self.simulator, self.agents,
                 self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
                 self.feasibility, self.cycle
             )
