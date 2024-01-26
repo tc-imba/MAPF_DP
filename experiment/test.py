@@ -1,4 +1,5 @@
 import asyncio
+import math
 import os
 import time
 from typing import List
@@ -53,6 +54,10 @@ NAIVE_SETTINGS = [
     # (True, True, False),       # feasibility
     # (True, True, True),
 ]
+
+class CurrentWrapper:
+    def __init__(self):
+        self.current = 0
 
 
 def kill_all_process():
@@ -109,6 +114,11 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         cbs_prefix = "%s-%s-30-30-%d-%d-%s-%d-%d-%s" % (
             setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
         full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
+    elif setup.map == "warehouse":
+        map_type = "warehouse"
+        cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
+            setup.timing, setup.map, map_name, setup.agents, agent_seed, setup.solver)
+        full_prefix = output_prefix + "-%d" % agent_seed
     elif setup.map == "den520d":
         map_type = "graphml"
         cbs_prefix = "%s-%s-%d-%d-%s" % (
@@ -292,11 +302,6 @@ async def do_init_tests(args: TestArguments):
         return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, iteration=1, init_tests=True)
 
     async def init_map(map_seed, obstacle, k_neighbor, agent):
-
-        class CurrentWrapper:
-            def __init__(self):
-                self.current = 0
-
         _current = CurrentWrapper()
         row = df.loc[(df["map_seed"] == map_seed) & (df["obstacle"] == obstacle) &
                      (df["k_neighbor"] == k_neighbor) & (df["agent"] == agent)]
@@ -440,31 +445,37 @@ async def do_init_tests_den520d(args: TestArguments):
     # logger.info(df)
     # test_file.unlink(missing_ok=True)
 
+    if args.timing == "discrete":
+        simulator = "default"
+    else:
+        simulator = "snapshot_start"
+
+
     async def init_case(map_name, agent_seed, agents):
         setup = ExperimentSetup(
-            timing=args.timing, map="den520d", map_name=map_name, solver=args.solver,
-            simulator="snapshot_start", agents=agents, delay_type="agent",
+            timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
+            simulator=simulator, agents=agents, delay_type="agent",
             delay_ratio=0, delay_start=0, delay_interval=0,
             feasibility="h", cycle="h",
         )
 
-        base_dir = args.maps_dir / "roadmaps" / map_name
-        map_file = base_dir / "map.xml"
+        if args.map == "den520d":
+            base_dir = args.maps_dir / "roadmaps" / map_name
+            map_file = base_dir / "map.xml"
 
-        task_per_task_file = int(100 / agents)
-        task_file_id = int(agent_seed / task_per_task_file)
-        task_file = base_dir / f"{task_file_id + 1}_task.xml"
-        agent_skip = agents * (agent_seed % task_per_task_file)
-        return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
-                         map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
-                         init_tests=True)
+            task_per_task_file = int(100 / agents)
+            task_file_id = int(agent_seed / task_per_task_file)
+            task_file = base_dir / f"{task_file_id + 1}_task.xml"
+            agent_skip = agents * (agent_seed % task_per_task_file)
+            return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
+                             map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
+                             init_tests=True)
+        elif args.map == "warehouse":
+            return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
+                             max_timestep=10000, init_tests=True)
+
 
     async def init_map(map_name, agent):
-
-        class CurrentWrapper:
-            def __init__(self):
-                self.current = 0
-
         _current = CurrentWrapper()
         row = df.loc[(df["map_name"] == map_name) & (df["agent"] == agent)]
         if len(row) > 0:
@@ -475,16 +486,19 @@ async def do_init_tests_den520d(args: TestArguments):
             completed_seeds = 0
         if completed_seeds > 0:
             setup = ExperimentSetup(
-                timing=args.timing, map="den520d", map_name=map_name, solver=args.solver,
-                simulator="snapshot_start", agents=agent, delay_type="agent",
+                timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
+                simulator=simulator, agents=agent, delay_type="agent",
                 delay_ratio=0, delay_start=0, delay_interval=0,
                 feasibility="h", cycle="h",
             )
             logger.info('{} tests skipped for {}-{}-*', completed_seeds, setup.get_output_prefix(), map_name)
         agent_seeds = args.agent_seeds - completed_seeds
 
-        task_per_task_file = int(100 / agent)
-        max_agent_seed = 25 * task_per_task_file
+        if args.map == "den520d":
+            task_per_task_file = int(100 / agent)
+            max_agent_seed = 25 * task_per_task_file
+        elif args.map == "warehouse":
+            max_agent_seed = math.inf
 
         async def init_agent():
             while True:
@@ -631,7 +645,9 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
             await do_init_tests(args)
         else:
             await do_tests(args)
-    elif args.map == "den520d":
+    elif args.map == "den520d" or args.map == "warehouse":
+        if args.map == "warehouse":
+            args.map_names = ["22-57"]
         if init_tests:
             await do_init_tests_den520d(args)
         else:

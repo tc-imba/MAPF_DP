@@ -272,7 +272,8 @@ int main(int argc, const char *argv[]) {
         cacheFileName = filename;
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {
-        filename = "warehouse-" + std::to_string(maxX) + "-" + std::to_string(maxY);
+        filename = timingType + "-warehouse-" + std::to_string(maxX) + "-" + std::to_string(maxY);
+        cacheFileName = filename;
         graph.generateWareHouse(deliveryWidth, maxX, maxY, filename, mapSeed);
     } else if (mapType == "hardcoded") {
         filename = "hardcoded";
@@ -305,7 +306,7 @@ int main(int argc, const char *argv[]) {
     // only use in individual
 //    graph.calculateAllPairShortestPath(filename, useDP);
 
-    // exit(0);
+//     exit(0);
 
     std::vector<Agent> agents;
     if (taskFile.empty()) {

@@ -57,7 +57,7 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
     }
     double density = (double) E * 2 / (V) / (V - 1);
     SPDLOG_INFO("calculate all pair shortest path: V={}, E={}, density={}", V, E, density);
-    /*if (density < 0.1) {
+    if (density < 0.1) {
         boost::johnson_all_pairs_shortest_paths(g, distances,
                                                 boost::weight_map(boost::get(&Edge::_distance, g)));
     } else {
@@ -70,7 +70,7 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
             distFileOut << distances[i][j] << " ";
         }
         distFileOut << std::endl;
-    }*/
+    }
 }
 
 void Graph::calculateUnweightedAllPairShortestPath() {
@@ -114,7 +114,11 @@ void Graph::saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::
     gridOut << "map" << std::endl;
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
-            gridOut << gridGraph[i][j];
+            if (gridGraph[i][j] == '@') {
+                gridOut << '@';
+            } else {
+                gridOut << '.';
+            }
         }
         gridOut << std::endl;
     }
@@ -462,7 +466,7 @@ void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, uns
     }*/
 
     std::vector<unsigned int> parkingY = {0, 1, 2, 3, 4, 5};
-    std::vector<unsigned int> taskY = {maxY - 6, maxY - 5, maxY - 4, maxY - 5, maxY - 2, maxY - 1};
+    std::vector<unsigned int> taskY = {maxY - 6, maxY - 5, maxY - 4, maxY - 3, maxY - 2, maxY - 1};
     for (unsigned int i = 0; i < maxX; i++) {
         for (unsigned int j: parkingY) {
             gridGraph[i][j] = 'p';
@@ -471,7 +475,8 @@ void Graph::generateWareHouse(unsigned int deliveryWidth, unsigned int maxX, uns
             gridGraph[i][j] = 't';
         }
     }
-
+    saveGridGraph(gridGraph, filename);
+    saveXMLGraph(gridGraph, filename);
     generateGraph(gridGraph, filename, seed);
 }
 
