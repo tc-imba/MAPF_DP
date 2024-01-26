@@ -541,23 +541,31 @@ async def do_tests_den520d(args: TestArguments):
                 cycle = "n"
 
         setup = ExperimentSetup(
-            timing=args.timing, map="den520d", map_name=map_name, solver=args.solver,
+            timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
             simulator=simulator, agents=agents, delay_type="agent",
             delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
             feasibility=feasibility, cycle=cycle,
         )
 
-        base_dir = args.maps_dir / "roadmaps" / map_name
-        map_file = base_dir / "map.xml"
+        if args.map == "den520d":
 
-        task_per_task_file = int(100 / agents)
-        task_file_id = int(agent_seed / task_per_task_file)
-        task_file = base_dir / f"{task_file_id + 1}_task.xml"
-        agent_skip = agents * (agent_seed % task_per_task_file)
+            base_dir = args.maps_dir / "roadmaps" / map_name
+            map_file = base_dir / "map.xml"
 
-        return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
-                         map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
-                         init_tests=False)
+            task_per_task_file = int(100 / agents)
+            task_file_id = int(agent_seed / task_per_task_file)
+            task_file = base_dir / f"{task_file_id + 1}_task.xml"
+            agent_skip = agents * (agent_seed % task_per_task_file)
+
+            return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
+                             map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
+                             init_tests=False)
+
+        elif args.map == "warehouse":
+            return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
+                             max_timestep=10000, init_tests=False)
+
+
 
     test_file = args.result_dir / "tests_den520d.csv"
     df = pd.read_csv(test_file, header=None)
