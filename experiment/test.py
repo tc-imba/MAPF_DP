@@ -31,6 +31,7 @@ class TestArguments(AppArguments):
     solver: str
     program: Path
     maps_dir: Path
+    mapf_maps_dir: Path
     result_dir: Path
     pool: concurrent.futures.ProcessPoolExecutor
 
@@ -114,8 +115,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         cbs_prefix = "%s-%s-30-30-%d-%d-%s-%d-%d-%s" % (
             setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
         full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
-    elif setup.map == "warehouse":
-        map_type = "warehouse"
+    elif setup.map == "warehouse" or setup.map == "mapf":
+        map_type = setup.map
         cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
             setup.timing, setup.map, map_name, setup.agents, agent_seed, setup.solver)
         full_prefix = output_prefix + "-%d" % agent_seed
@@ -470,6 +471,10 @@ async def do_init_tests_den520d(args: TestArguments):
             return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
                              map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
                              init_tests=True)
+        elif args.map == "mapf":
+            map_file = args.mapf_maps_dir / "map" / map_name
+            return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
+                             map_file=map_file, max_timestep=10000, init_tests=True)
         elif args.map == "warehouse":
             return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
                              max_timestep=10000, init_tests=True)
@@ -497,7 +502,7 @@ async def do_init_tests_den520d(args: TestArguments):
         if args.map == "den520d":
             task_per_task_file = int(100 / agent)
             max_agent_seed = 25 * task_per_task_file
-        elif args.map == "warehouse":
+        else:
             max_agent_seed = math.inf
 
         async def init_agent():
@@ -560,7 +565,10 @@ async def do_tests_den520d(args: TestArguments):
             return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
                              map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
                              init_tests=False)
-
+        elif args.map == "mapf":
+            map_file = args.mapf_maps_dir / "map" / map_name
+            return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
+                             map_file=map_file, max_timestep=10000, init_tests=False)
         elif args.map == "warehouse":
             return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
                              max_timestep=10000, init_tests=False)
@@ -607,7 +615,7 @@ async def do_tests_den520d(args: TestArguments):
 @click.option("--agent-seeds", type=int, default=10)
 @click.option("--iteration", type=int, default=10)
 @click.option("-t", "--timeout", type=int, default=10)
-@click.option("--suboptimality", type=float, default=1)
+@click.option("--suboptimality", type=float, default=1.1)
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
 @click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count)
 @click.pass_context
@@ -619,6 +627,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
     else:
         program = program / "MAPF_DP"
     maps_dir = project_root / "maps"
+    mapf_maps_dir = project_root / "MAPF-benchmark"
     result_dir = project_root / "result"
     result_dir.mkdir(parents=True, exist_ok=True)
     os.chdir(result_dir)
@@ -640,6 +649,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
         suboptimality=suboptimality,
         program=program,
         maps_dir=maps_dir,
+        mapf_maps_dir=mapf_maps_dir,
         result_dir=result_dir,
         pool=pool,
     )
@@ -653,7 +663,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
             await do_init_tests(args)
         else:
             await do_tests(args)
-    elif args.map == "den520d" or args.map == "warehouse":
+    elif args.map == "den520d" or args.map == "warehouse" or args.map == "mapf":
         if args.map == "warehouse":
             args.map_names = ["22-57"]
         if init_tests:

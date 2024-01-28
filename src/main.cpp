@@ -296,7 +296,7 @@ int main(int argc, const char *argv[]) {
         if (boost::algorithm::ends_with(filename, ".map")) {
             filename = filename.substr(0, filename.length() - 4);
         }
-        cacheFileName = timingType + "-" + mapName;
+        cacheFileName = timingType + "-mapf-" + mapName;
         graph.generateMAPFBenchmarkGraph(filename, kNeighbor);
         taskFileType = "scen";
     }
