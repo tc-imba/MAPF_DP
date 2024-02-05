@@ -114,8 +114,8 @@ void Graph::saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::
     gridOut << "map" << std::endl;
     for (unsigned int i = 0; i < height; i++) {
         for (unsigned int j = 0; j < width; j++) {
-            if (gridGraph[i][j] == '@') {
-                gridOut << '@';
+            if (gridGraph[i][j] == '@' || gridGraph[i][j] == 'T') {
+                gridOut << gridGraph[i][j];
             } else {
                 gridOut << '.';
             }
