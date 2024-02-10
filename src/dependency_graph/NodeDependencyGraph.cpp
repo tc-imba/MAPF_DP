@@ -585,7 +585,7 @@ std::pair<size_t, size_t> NodeDependencyGraph::feasibilityCheckTest(bool recursi
         feasibilityCheckUnsettledCount += unsettledEdgePairs.size();
     }
 
-    SPDLOG_INFO("feasibility check: {} agents ignored, {} total shared nodes, {} added shared nodes", ignoredAgentCount, unsettledEdgePairsTotal, unsettledEdgePairsAdded);
+//    SPDLOG_INFO("feasibility check: {} agents ignored, {} total shared nodes, {} added shared nodes", ignoredAgentCount, unsettledEdgePairsTotal, unsettledEdgePairsAdded);
 
     if (onlineOpt) {
 //        auto size = unsettledEdgePairs.size();

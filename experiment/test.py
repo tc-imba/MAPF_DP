@@ -34,6 +34,7 @@ class TestArguments(AppArguments):
     mapf_maps_dir: Path
     result_dir: Path
     pool: concurrent.futures.ProcessPoolExecutor
+    naive: bool
 
 
 # workers = multiprocessing.cpu_count()
@@ -48,9 +49,9 @@ completed = set()
 PBAR = tqdm(total=1)
 
 NAIVE_SETTINGS = [
-    (False, False, False),  # online/default,cycle
-    # (False, True, False),  # feasibility,cycle
-    # (False, True, True),  # cycle
+    # (False, False, False),  # online/default,cycle
+    (False, True, False),  # feasibility,cycle
+    (False, True, True),  # cycle
     # (True, False, False),
     # (True, True, False),       # feasibility
     # (True, True, True),
@@ -414,7 +415,7 @@ async def do_tests(args: TestArguments):
                         for _delay_ratio in args.delay_ratios:
                             for _delay_interval in args.delay_intervals:
                                 for _simulator in args.simulators:
-                                    if _simulator != "online":
+                                    if not args.naive or _simulator != "online":
                                         naive_settings = [(False, False, False)]
                                     else:
                                         naive_settings = NAIVE_SETTINGS
@@ -618,9 +619,10 @@ async def do_tests_den520d(args: TestArguments):
 @click.option("--suboptimality", type=float, default=1.1)
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
 @click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count)
+@click.option("--naive", type=bool, default=False, is_flag=True)
 @click.pass_context
 @asyncio_wrapper
-async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs):
+async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs, naive):
     program = project_root / "cmake-build-relwithdebinfo"
     if platform.system() == "Windows":
         program = program / "MAPF_DP.exe"
@@ -652,6 +654,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
         mapf_maps_dir=mapf_maps_dir,
         result_dir=result_dir,
         pool=pool,
+        naive=naive,
     )
     logger.info(args)
     logger.info("Running with {} jobs", jobs)
