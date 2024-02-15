@@ -122,7 +122,7 @@ unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned i
 }
 
 void DiscretePIBTSimulator::initPIBTVariables() {
-    std::string mapFileName = (boost::filesystem::current_path() / (graph.getFileName() + ".map")).string();
+    std::string mapFileName = graph.getFileName() + ".map";
     G = std::make_shared<pibt::Grid>(mapFileName);
     MT = std::make_shared<std::mt19937>(0);
 

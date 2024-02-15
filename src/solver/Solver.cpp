@@ -62,9 +62,9 @@ bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed)
             std::to_string(agentSeed) + "-" +
             getSolverName() + ".cbs";
     //    std::cerr << cacheFilename << std::endl;
-    SPDLOG_INFO("use solver cache: {}", cacheFilename);
     std::ifstream fin(cacheFilename);
     if (fin.is_open()) {
+        SPDLOG_INFO("use solver cache: {}", cacheFilename);
         solution = std::make_shared<CBSNode>();
         for (unsigned int i = 0; i < agents.size(); i++) {
             solution->plans.emplace_back(std::make_shared<AgentPlan>());
@@ -78,6 +78,7 @@ bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed)
         }
         return true;
     }
+    SPDLOG_INFO("no cache: {}", cacheFilename);
     fin.close();
     if (!solve()) {
         std::cout << "failed" << std::endl;

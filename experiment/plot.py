@@ -19,7 +19,7 @@ import scipy.stats as stats
 import scipy.integrate
 
 from experiment.app import app_command, AppArguments
-from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup
+from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup, validate_list
 
 # rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 # rc('font',**{'family':'serif','serif':['Times']})
@@ -43,6 +43,7 @@ def format_log(x, pos=None):
 
 @dataclasses.dataclass
 class PlotArguments(AppArguments):
+    map_names: List[str]
     plot_dir: Path
 
 
@@ -127,7 +128,7 @@ class PlotSettings:
             self.subplot_keys = self.args.obstacles
         elif self.subplot_type == "map-names":
             self.subplot_field = "map_name"
-            self.subplot_keys = ["sparse", "dense"]
+            self.subplot_keys = self.args.map_names
         elif self.subplot_type == "delay-interval":
             self.subplot_field = "delay_interval"
             self.subplot_keys = self.args.delay_intervals
@@ -448,7 +449,12 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
 
     groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
-    subplot_type = "obstacles"
+    if args.map == "random":
+        subplot_type = "obstacles"
+    elif args.map == "mapf":
+        subplot_type = "map-names"
+    else:
+        assert False
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(delay_ratio), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
@@ -620,18 +626,20 @@ def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_
 
 
 @app_command("plot")
+@click.option("--map-names", type=str, default="random", callback=validate_list(str))
 @click.pass_context
-def main(ctx):
+def main(ctx, map_names):
     data_dir = project_root / "data"
     args = PlotArguments(
         **ctx.obj.__dict__,
+        map_names=map_names,
         plot_dir=project_root / "plot"
     )
     click.echo(args)
 
     if args.map == "random":
         # df_discrete = pd.read_csv(data_dir / f"df_{args.timing}.csv")
-        df_discrete = pd.read_csv(data_dir / f"df_discrete_combined.csv")
+        df_discrete = pd.read_csv(data_dir / f"df_discrete.csv")
         # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
     else:
         df_discrete = pd.read_csv(data_dir / f"df_{args.timing}_{args.map}.csv")
@@ -639,11 +647,17 @@ def main(ctx):
 
     if args.timing == "discrete":
         df_discrete["k_neighbor"] = 2
-        plot_cycle(args, df_discrete, 30, 0.1)
-        for agents in args.agents:
-            for delay_ratio in args.delay_ratios:
-                # pass
-                plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
+        if args.map == "random":
+            for agents in args.agents:
+                plot_cycle(args, df_discrete, agents, 0.1)
+                for delay_ratio in args.delay_ratios:
+                    # pass
+                    plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
+        else:
+            for agents in args.agents:
+                for delay_ratio in args.delay_ratios:
+                    for map_name in map_names:
+                        plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
             # plot_cycle(args, df_discrete, agents)
             # for obstacle in args.obstacles:
             #     plot_cdf(args, df_discrete_time, agents, obstacle)

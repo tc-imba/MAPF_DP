@@ -73,15 +73,18 @@ def kill_all_process():
 def run_program(full_prefix, program_args, timeout):
     start = time.perf_counter()
     p = None
+    success = False
     try:
         # logger.debug(" ".join(program_args))
+        # p = subprocess.Popen(program_args)
         p = subprocess.Popen(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.communicate(timeout=timeout)
+        success = True
         # p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         # logger.debug(p.args)
         # logger.debug(p.returncode)
-        # logger.debug(p.stderr)
-        # logger.debug(p.stdout)
+        # logger.debug(p.stderr.readlines())
+        # logger.debug(p.stdout.readlines())
     except subprocess.TimeoutExpired:
         logger.warning('{} timeout', full_prefix)
     except Exception as e:
@@ -92,11 +95,11 @@ def run_program(full_prefix, program_args, timeout):
     except:
         pass
     end = time.perf_counter()
-    return end - start
+    return end - start, success
 
 
 async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
-              iteration=10, map_seed=0, map_name="random", agent_seed=0, max_timestep=300,
+              simulation_seed=0, map_seed=0, map_name="random", agent_seed=0, max_timestep=300,
               map_file: Path = None, task_file: Path = None, agent_skip=0,
               init_tests=False,
               # map_type, objective="maximum",  agents=35, iteration=10,
@@ -115,7 +118,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         map_type = "random"
         cbs_prefix = "%s-%s-30-30-%d-%d-%s-%d-%d-%s" % (
             setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
-        full_prefix = output_prefix + "-%d-%d" % (map_seed, agent_seed)
+        full_prefix = output_prefix + "-%d-%d-%d" % (map_seed, agent_seed, simulation_seed)
     elif setup.map == "warehouse" or setup.map == "mapf":
         map_type = setup.map
         cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
@@ -193,7 +196,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--agent-seed", str(agent_seed),
         "--agent-skip", str(agent_skip),
         "--agents", str(setup.agents),
-        "--iteration", str(iteration),
+        "--iteration", "1",
+        "--simulation-seed", str(simulation_seed),
         "--solver", setup.solver,
         "--obstacles", str(setup.obstacles),
         "--simulator", simulator,
@@ -209,7 +213,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--suboptimality", str(args.suboptimality),
         "--snapshot-order", snapshot_order,
         "--remove-redundant", remove_redundant,
-        "--replan-suboptimality", str(replan_suboptimality)
+        "--replan-suboptimality", str(replan_suboptimality),
     ]
     # if map_type == "hardcoded":
     #     program_args.append("--all")
@@ -235,12 +239,14 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         program_args.append(task_file.as_posix())
 
     # logger.info("{}", " ".join(program_args))
-    elapsed_seconds = await asyncio.get_event_loop().run_in_executor(args.pool, run_program, full_prefix, program_args,
-                                                                     args.timeout)
+    elapsed_seconds, success = await asyncio.get_event_loop().run_in_executor(
+        args.pool, run_program, full_prefix, program_args, args.timeout)
 
     result = 1
     if init_tests:
         try:
+            if not success:
+                raise Exception()
             with cbs_file.open() as file:
                 line = file.readline().strip()
                 if len(line) == 0:
@@ -252,19 +258,22 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                     # logger.error("{}", output_file)
                     raise Exception()
         except Exception as e:
-            # logger.exception(e)
+            logger.exception(e)
             result = 0
 
     if result == 1:
         EXPERIMENT_JOBS_COMPLETED += 1
         PBAR.update()
-        logger.info('{} completed ({}/{}/{}) in {} seconds', full_prefix, EXPERIMENT_JOBS_COMPLETED,
+        logger.info('{} {} ({}/{}/{}) in {} seconds', full_prefix,
+                    success and "completed" or "failed",
+                    EXPERIMENT_JOBS_COMPLETED,
                     EXPERIMENT_JOBS_FAILED,
                     EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
-        completed.add(full_prefix)
-        completed_file = args.result_dir / "completed.csv"
-        with completed_file.open("a") as f:
-            f.write("%s\n" % full_prefix)
+        if success:
+            completed.add(full_prefix)
+            completed_file = args.result_dir / "completed.csv"
+            with completed_file.open("a") as f:
+                f.write("%s\n" % full_prefix)
     else:
         EXPERIMENT_JOBS_FAILED += 1
         PBAR.update(0)
@@ -301,7 +310,7 @@ async def do_init_tests(args: TestArguments):
             delay_ratio=0, delay_start=0, delay_interval=0,
             feasibility="h", cycle="h",
         )
-        return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, iteration=1, init_tests=True)
+        return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, init_tests=True)
 
     async def init_map(map_seed, obstacle, k_neighbor, agent):
         _current = CurrentWrapper()
@@ -367,7 +376,7 @@ async def do_init_tests(args: TestArguments):
 
 async def do_tests(args: TestArguments):
     async def init_case(map_seed, agent_seed, obstacles, k_neighbor, agents, simulator, delay_ratio, delay_interval,
-                        naive_feasibility, naive_cycle, only_cycle):
+                        naive_feasibility, naive_cycle, only_cycle, simulation_seed):
         if not naive_feasibility:
             feasibility = "h"
         else:
@@ -387,7 +396,7 @@ async def do_tests(args: TestArguments):
             delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
             feasibility=feasibility, cycle=cycle,
         )
-        return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, iteration=args.iteration,
+        return await run(args, setup, map_seed=map_seed, agent_seed=agent_seed, simulation_seed=simulation_seed,
                          init_tests=False)
 
     test_file = args.result_dir / "tests.csv"
@@ -420,17 +429,19 @@ async def do_tests(args: TestArguments):
                                     else:
                                         naive_settings = NAIVE_SETTINGS
                                     for (_naive_feasibility, _naive_cycle, _only_cycle) in naive_settings:
-                                        tasks.append(
-                                            init_case(_map_seed, _agent_seed, _obstacle, _k_neighbor, _agent,
-                                                      _simulator, _delay_ratio, _delay_interval,
-                                                      _naive_feasibility, _naive_cycle, _only_cycle))
+                                        for _simulation_seed in range(args.iteration):
+                                            tasks.append(
+                                                init_case(_map_seed, _agent_seed, _obstacle, _k_neighbor, _agent,
+                                                          _simulator, _delay_ratio, _delay_interval,
+                                                          _naive_feasibility, _naive_cycle, _only_cycle,
+                                                          _simulation_seed))
     await asyncio.gather(*tasks)
 
 
 async def do_init_tests_den520d(args: TestArguments):
     # all_tests = []
     logger.info("Initialize tests")
-    test_file = args.result_dir / "tests_den520d.csv"
+    test_file = args.result_dir / f"tests_{args.map}.csv"
     if test_file.exists():
         df = pd.read_csv(test_file, header=None)
         df.columns = TEST_FILE_COLUMNS_DEN520D
@@ -453,7 +464,7 @@ async def do_init_tests_den520d(args: TestArguments):
         simulator = "snapshot_start"
 
 
-    async def init_case(map_name, agent_seed, agents):
+    async def init_case(map_name, agent_seed, agents, agents_per_task_file):
         setup = ExperimentSetup(
             timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
             simulator=simulator, agents=agents, delay_type="agent",
@@ -461,25 +472,29 @@ async def do_init_tests_den520d(args: TestArguments):
             feasibility="h", cycle="h",
         )
 
-        if args.map == "den520d":
-            base_dir = args.maps_dir / "roadmaps" / map_name
-            map_file = base_dir / "map.xml"
-
-            task_per_task_file = int(100 / agents)
+        if args.map == "den520d" or args.map == "mapf":
+            task_per_task_file = int(agents_per_task_file / agents)
             task_file_id = int(agent_seed / task_per_task_file)
-            task_file = base_dir / f"{task_file_id + 1}_task.xml"
             agent_skip = agents * (agent_seed % task_per_task_file)
-            return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
+
+            if args.map == "den520d":
+                base_dir = args.maps_dir / "roadmaps" / map_name
+                map_file = base_dir / "map.xml"
+                task_file = base_dir / f"{task_file_id + 1}_task.xml"
+            elif args.map == "mapf":
+                base_task_dir = args.mapf_maps_dir / "scen-even"
+                map_file = args.mapf_maps_dir / "map" / map_name
+                task_file = base_task_dir / f"{map_name}-even-{task_file_id + 1}.scen"
+            else:
+                assert False
+
+            return await run(args, setup, agent_seed=agent_seed, map_name=map_name,
                              map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
                              init_tests=True)
-        elif args.map == "mapf":
-            map_file = args.mapf_maps_dir / "map" / map_name
-            return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
-                             map_file=map_file, max_timestep=10000, init_tests=True)
-        elif args.map == "warehouse":
-            return await run(args, setup, agent_seed=agent_seed, iteration=1, map_name=map_name,
-                             max_timestep=10000, init_tests=True)
 
+        elif args.map == "warehouse":
+            return await run(args, setup, agent_seed=agent_seed, map_name=map_name,
+                             max_timestep=10000, init_tests=True)
 
     async def init_map(map_name, agent):
         _current = CurrentWrapper()
@@ -501,7 +516,17 @@ async def do_init_tests_den520d(args: TestArguments):
         agent_seeds = args.agent_seeds - completed_seeds
 
         if args.map == "den520d":
-            task_per_task_file = int(100 / agent)
+            agents_per_task_file = 100
+        elif args.map == "mapf":
+            base_task_dir = args.mapf_maps_dir / "scen-even"
+            task_file = base_task_dir / f"{map_name}-even-1.scen"
+            with task_file.open("r") as f:
+                agents_per_task_file = len(f.readlines()) - 2
+        else:
+            agents_per_task_file = 0
+
+        if args.map == "den520d" or args.map == "mapf":
+            task_per_task_file = int(agents_per_task_file / agent)
             max_agent_seed = 25 * task_per_task_file
         else:
             max_agent_seed = math.inf
@@ -512,7 +537,7 @@ async def do_init_tests_den520d(args: TestArguments):
                 _current.current += 1
                 if agent_seed >= max_agent_seed:
                     break
-                result = await init_case(map_name, agent_seed, agent)
+                result = await init_case(map_name, agent_seed, agent, agents_per_task_file)
                 if result == 1:
                     with test_file.open("a") as file:
                         file.write("%s,%d,%d\n" % (map_name, agent_seed, agent))
@@ -533,7 +558,7 @@ async def do_init_tests_den520d(args: TestArguments):
 
 async def do_tests_den520d(args: TestArguments):
     async def init_case(map_name, agent_seed, agents, simulator, delay_ratio, delay_interval,
-                        naive_feasibility, naive_cycle, only_cycle):
+                        naive_feasibility, naive_cycle, only_cycle, agents_per_task_file):
         if not naive_feasibility:
             feasibility = "h"
         else:
@@ -553,34 +578,35 @@ async def do_tests_den520d(args: TestArguments):
             feasibility=feasibility, cycle=cycle,
         )
 
-        if args.map == "den520d":
-
-            base_dir = args.maps_dir / "roadmaps" / map_name
-            map_file = base_dir / "map.xml"
-
-            task_per_task_file = int(100 / agents)
+        if args.map == "den520d" or args.map == "mapf":
+            task_per_task_file = int(agents_per_task_file / agents)
             task_file_id = int(agent_seed / task_per_task_file)
-            task_file = base_dir / f"{task_file_id + 1}_task.xml"
             agent_skip = agents * (agent_seed % task_per_task_file)
 
-            return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
+            if args.map == "den520d":
+                base_dir = args.maps_dir / "roadmaps" / map_name
+                map_file = base_dir / "map.xml"
+                task_file = base_dir / f"{task_file_id + 1}_task.xml"
+            elif args.map == "mapf":
+                base_task_dir = args.mapf_maps_dir / "scen-even"
+                map_file = args.mapf_maps_dir / "map" / map_name
+                task_file = base_task_dir / f"{map_name}-even-{task_file_id + 1}.scen"
+            else:
+                assert False
+
+            return await run(args, setup, agent_seed=agent_seed, simulation_seed=args.iteration, map_name=map_name,
                              map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
                              init_tests=False)
-        elif args.map == "mapf":
-            map_file = args.mapf_maps_dir / "map" / map_name
-            return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
-                             map_file=map_file, max_timestep=10000, init_tests=False)
         elif args.map == "warehouse":
-            return await run(args, setup, agent_seed=agent_seed, iteration=args.iteration, map_name=map_name,
+            return await run(args, setup, agent_seed=agent_seed, simulation_seed=args.iteration, map_name=map_name,
                              max_timestep=10000, init_tests=False)
 
 
-
-    test_file = args.result_dir / "tests_den520d.csv"
+    test_file = args.result_dir / f"tests_{args.map}.csv"
     df = pd.read_csv(test_file, header=None)
     df.columns = TEST_FILE_COLUMNS_DEN520D
 
-    completed_file = args.result_dir / "completed.csv"
+    completed_file = args.result_dir / f"completed.csv"
     if completed_file.exists():
         with completed_file.open("r") as f:
             for line in f.readlines():
@@ -588,6 +614,16 @@ async def do_tests_den520d(args: TestArguments):
 
     tasks = []
     for _map_name in args.map_names:
+        if args.map == "den520d":
+            agents_per_task_file = 100
+        elif args.map == "mapf":
+            base_task_dir = args.mapf_maps_dir / "scen-even"
+            task_file = base_task_dir / f"{_map_name}-even-1.scen"
+            with task_file.open("r") as f:
+                agents_per_task_file = len(f.readlines()) - 2
+        else:
+            agents_per_task_file = 0
+
         for _agent in args.agents:
             df_temp = df[(df["map_name"] == _map_name) & (df["agent"] == _agent)]
             df_temp.sort_values(by="agent_seed")
@@ -606,7 +642,7 @@ async def do_tests_den520d(args: TestArguments):
                                 tasks.append(
                                     init_case(_map_name, _agent_seed, _agent,
                                               _simulator, _delay_ratio, _delay_interval,
-                                              _naive_feasibility, _naive_cycle, _only_cycle))
+                                              _naive_feasibility, _naive_cycle, _only_cycle, agents_per_task_file))
     await asyncio.gather(*tasks)
 
 

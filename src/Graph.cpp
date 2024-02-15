@@ -9,6 +9,7 @@
 //#include "solver/CBSSolver.h"
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
 #include <boost/graph/floyd_warshall_shortest.hpp>
+#include <boost/graph/connected_components.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/graphml.hpp>
 #include <boost/algorithm/string.hpp>
@@ -31,9 +32,24 @@ Graph::Graph() {
 
 void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
     // TODO: cache
+    unsigned int V = nodeNum, E = edgeNum;
 
-    std::ofstream distFileOut;
-    if (!filename.empty()) distFileOut.open(filename + (dp ? ".dp.distance" : ".distance"));
+    if (!filename.empty()) {
+        auto cacheFilename = filename + (dp ? ".dp.distance" : ".distance");
+        std::ifstream fin(cacheFilename);
+        if (fin.is_open()) {
+            SPDLOG_INFO("use distance cache: {}", cacheFilename);
+            for (unsigned int i = 0; i < V; i++) {
+                for (unsigned int j = 0; j < V; j++) {
+                    fin >> distances[i][j];
+                }
+            }
+            return;
+        }
+    }
+
+    std::ofstream fout;
+    if (!filename.empty()) fout.open(filename + (dp ? ".dp.distance" : ".distance"));
 
 //    auto vertices = boost::vertices(g);
     auto edges = boost::edges(g);
@@ -42,7 +58,6 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
     for (auto it = vertices.first; it != vertices.second; ++it) {
         E += boost::out_degree(*it, g);
     }*/
-    unsigned int V = nodeNum, E = edgeNum;
 
     distances.resize(V, std::vector<double>(V, 0));
 //    std::vector<std::vector<double>> distances(V, std::vector<double>(V, 0));
@@ -64,12 +79,15 @@ void Graph::calculateAllPairShortestPath(const std::string &filename, bool dp) {
         boost::floyd_warshall_all_pairs_shortest_paths(g, distances,
                                                        boost::weight_map(boost::get(&Edge::_distance, g)));
     }
-    distFileOut << V << std::endl;
-    for (unsigned int i = 0; i < V; i++) {
-        for (unsigned int j = 0; j < V; j++) {
-            distFileOut << distances[i][j] << " ";
+
+    if (fout.is_open()) {
+        fout << V << std::endl;
+        for (unsigned int i = 0; i < V; i++) {
+            for (unsigned int j = 0; j < V; j++) {
+                fout << distances[i][j] << " ";
+            }
+            fout << std::endl;
         }
-        distFileOut << std::endl;
     }
 }
 
@@ -92,14 +110,17 @@ void Graph::calculateUnweightedAllPairShortestPath() {
 }
 
 bool Graph::isConnected() {
-    for (const auto &row: distances) {
+    /*for (const auto &row: distances) {
         for (const auto &item: row) {
             if (item > (double) distances.size()) {
                 return false;
             }
         }
     }
-    return true;
+    return true;*/
+    std::vector<int> component(boost::num_vertices(g));
+    auto num = boost::connected_components(g, component.data());
+    return num == 1;
 }
 
 void Graph::saveGridGraph(std::vector<std::vector<char>> &gridGraph, const std::string &filename) {
@@ -427,7 +448,7 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
             auto x = v[i] / height, y = v[i] % height;
             gridGraph[x][y] = '@';
             generateUnweightedGraph(gridGraph);
-            calculateUnweightedAllPairShortestPath();
+//            calculateUnweightedAllPairShortestPath();
             if (isConnected()) {
                 currentObstacles++;
             } else {
@@ -893,7 +914,7 @@ std::vector<Agent> Graph::loadScenAgents(const std::string &filename, unsigned i
         iss >> temp >> temp >> temp >> temp >> y1 >> x1 >> y2 >> x2 >> distance;
         agents[i].start = getNodeIdByGridPos(x1, y1);
         agents[i].goal = getNodeIdByGridPos(x2, y2);
-        SPDLOG_INFO("agent {}: {} -> {} ({})", i, agents[i].start, agents[i].goal, distance);
+        SPDLOG_INFO("agent {}: {} ({},{}) -> {} ({},{}), distance: {}", i, agents[i].start, x1, y1, agents[i].goal, x2, y2, distance);
     }
     return agents;
 }
