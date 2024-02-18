@@ -558,7 +558,7 @@ async def do_init_tests_den520d(args: TestArguments):
 
 async def do_tests_den520d(args: TestArguments):
     async def init_case(map_name, agent_seed, agents, simulator, delay_ratio, delay_interval,
-                        naive_feasibility, naive_cycle, only_cycle, agents_per_task_file):
+                        naive_feasibility, naive_cycle, only_cycle, agents_per_task_file, simulation_seed):
         if not naive_feasibility:
             feasibility = "h"
         else:
@@ -594,11 +594,11 @@ async def do_tests_den520d(args: TestArguments):
             else:
                 assert False
 
-            return await run(args, setup, agent_seed=agent_seed, simulation_seed=args.iteration, map_name=map_name,
+            return await run(args, setup, agent_seed=agent_seed, simulation_seed=simulation_seed, map_name=map_name,
                              map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
                              init_tests=False)
         elif args.map == "warehouse":
-            return await run(args, setup, agent_seed=agent_seed, simulation_seed=args.iteration, map_name=map_name,
+            return await run(args, setup, agent_seed=agent_seed, simulation_seed=simulation_seed, map_name=map_name,
                              max_timestep=10000, init_tests=False)
 
 
@@ -639,10 +639,12 @@ async def do_tests_den520d(args: TestArguments):
                             else:
                                 naive_settings = NAIVE_SETTINGS
                             for (_naive_feasibility, _naive_cycle, _only_cycle) in naive_settings:
-                                tasks.append(
-                                    init_case(_map_name, _agent_seed, _agent,
-                                              _simulator, _delay_ratio, _delay_interval,
-                                              _naive_feasibility, _naive_cycle, _only_cycle, agents_per_task_file))
+                                for _simulation_seed in range(args.iteration):
+                                    tasks.append(
+                                        init_case(_map_name, _agent_seed, _agent,
+                                                  _simulator, _delay_ratio, _delay_interval,
+                                                  _naive_feasibility, _naive_cycle, _only_cycle,
+                                                  agents_per_task_file, _simulation_seed))
     await asyncio.gather(*tasks)
 
 
