@@ -393,6 +393,8 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         base_df = raw_dfs[parsed_labels[0]]
         for label in parsed_labels[1:]:
+            if label.startswith("online-h"):
+                continue
             target_df = raw_dfs[label]
             base_df = base_df[['map', 'agent', 'iteration']]
             base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
@@ -400,7 +402,8 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         for label in parsed_labels:
             df = raw_dfs[label]
-            df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+            if not label.startswith("online-h"):
+                df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
             row = parse_merged_df(setups[label], df)
             if row is not None:
                 rows.append(row)
