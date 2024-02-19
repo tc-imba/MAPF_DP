@@ -461,6 +461,7 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
         subplot_type = "map-names"
     else:
         assert False
+    # print(df[['simulator', 'soc']])
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(delay_ratio), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
@@ -602,13 +603,15 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(delay_ratio), y_field="soc", groupby=groupby, legend=True)
+    # print(df[['simulator', 'soc']])
     plot(df, plot_settings)
-    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
-    plot(df, plot_settings)
+    # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+    #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
+    # plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
+
 
 
 def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: int):
@@ -650,18 +653,19 @@ def main(ctx, map_names):
     # else:
     df_discrete_random = pd.read_csv(data_dir / f"df_{args.timing}.csv")
     df_discrete_mapf = pd.read_csv(data_dir / f"df_{args.timing}_mapf.csv")
-    df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
+    # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
     # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time_{args.map}.csv")
 
     if args.timing == "discrete":
-        df_discrete["k_neighbor"] = 2
         if args.map == "random":
+            df_discrete = df_discrete_random
             for agents in args.agents:
                 plot_cycle(args, df_discrete, agents, 0.1)
                 for delay_ratio in args.delay_ratios:
                     # pass
                     plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
         else:
+            df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
             for agents in args.agents:
                 for delay_ratio in args.delay_ratios:
                     plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
@@ -670,8 +674,9 @@ def main(ctx, map_names):
             #     plot_cdf(args, df_discrete_time, agents, obstacle)
             # plot_replan(args, df_discrete, agents)
     else:
-        for agents in args.agents:
-            if args.map == "random":
+        if args.map == "random":
+            df_discrete = df_discrete_random
+            for agents in args.agents:
                 for obstacles in args.obstacles:
                     plot_simulator_2(args, df_discrete, agents, obstacles)
                 plot_redundant(args, df_discrete, agents)

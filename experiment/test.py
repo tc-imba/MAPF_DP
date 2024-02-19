@@ -123,12 +123,12 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         map_type = setup.map
         cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
             setup.timing, setup.map, map_name, setup.agents, agent_seed, setup.solver)
-        full_prefix = output_prefix + "-%d" % agent_seed
+        full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
     elif setup.map == "den520d":
         map_type = "graphml"
         cbs_prefix = "%s-%s-%d-%d-%s" % (
             setup.timing, map_name, setup.agents, agent_seed, setup.solver)
-        full_prefix = output_prefix + "-%d" % agent_seed
+        full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
     else:
         assert False
 
