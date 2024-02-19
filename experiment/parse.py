@@ -385,6 +385,8 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
         # if len(raw_dfs) != len(args.simulators):
         #     continue
 
+        if "online_opt-h-h" in raw_dfs.keys() and "online-h-h" not in raw_dfs.keys():
+            raw_dfs["online-h-h"] = raw_dfs["online_opt-h-h"]
         parsed_labels = list(raw_dfs.keys())
         # logger.debug(parsed_labels)
         # print(parsed_labels)
@@ -392,23 +394,30 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
             continue
 
         base_df = None
+        base_naive_df = None
         for label in parsed_labels:
-            if label.startswith("online-h"):
-                continue
             target_df = raw_dfs[label]
-            if base_df is None:
-                base_df = target_df
+            if label.startswith("online-h"):
+                if base_naive_df is None:
+                    base_naive_df = target_df
+                else:
+                    base_naive_df = base_naive_df[['map', 'agent', 'iteration']]
+                    base_naive_df = base_naive_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
             else:
-                base_df = base_df[['map', 'agent', 'iteration']]
-            base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
-        if base_df is None:
-            base_df = raw_dfs[parsed_labels[0]]
-        else:
-            base_df = base_df[['map', 'agent', 'iteration']]
+                if base_df is None:
+                    base_df = target_df
+                else:
+                    base_df = base_df[['map', 'agent', 'iteration']]
+                    base_df = base_df.merge(target_df, on=['map', 'agent', 'iteration'], how='inner')
+
+        base_df = base_df[['map', 'agent', 'iteration']]
+        base_naive_df = base_naive_df[['map', 'agent', 'iteration']]
 
         for label in parsed_labels:
             df = raw_dfs[label]
-            if not label.startswith("online-h"):
+            if label.startswith("online-h"):
+                df = df.merge(base_naive_df, on=['map', 'agent', 'iteration'], how='inner')
+            else:
                 df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
             row = parse_merged_df(setups[label], df)
             if row is not None:
