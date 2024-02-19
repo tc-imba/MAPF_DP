@@ -143,6 +143,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     output_file = args.result_dir / (output_prefix + ".csv")
     output_time_file = args.result_dir / (output_prefix + ".time")
     cbs_file = args.result_dir / (cbs_prefix + ".cbs")
+    # logger.info(output_file)
 
     if init_tests:
         cbs_file.unlink(missing_ok=True)

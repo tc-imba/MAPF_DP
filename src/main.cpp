@@ -420,7 +420,7 @@ int main(int argc, const char *argv[]) {
                 if (solverType == "eecbs") {
                     std::dynamic_pointer_cast<EECBSSolver>(solver)->suboptimality = suboptimality;
                 }
-                if (i != 0) {
+                if (i != simulationSeed) {
                     solver->init();
                     if (!solver->solveWithCache(filename, agentSeed)) {
                         exit(-1);
