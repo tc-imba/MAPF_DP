@@ -17,3 +17,6 @@
 [submodule "MAPF-benchmark"]
 	path = MAPF-benchmark
 	url = https://github.com/tc-imba/MAPF-benchmark.git
+[submodule "BTPG"]
+	path = BTPG
+	url = https://github.com/tc-imba/BTPG.git

@@ -13,6 +13,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 # EECBS
 add_subdirectory(EECBS)
 
+# BTPG
+add_subdirectory(BTPG)
+
 # PIBT
 add_subdirectory(time-independent-planning)
 
@@ -38,7 +41,7 @@ set(SOURCE_FILES
 )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
-target_link_libraries(MAPF_DP ${Boost_LIBRARIES} lib-time-ind spdlog)
+target_link_libraries(MAPF_DP ${Boost_LIBRARIES} lib-time-ind lib-btpg spdlog)
 IF (WIN32)
     target_link_libraries(MAPF_DP ws2_32)
 ENDIF ()

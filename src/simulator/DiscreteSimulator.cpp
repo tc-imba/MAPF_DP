@@ -28,7 +28,7 @@ void DiscreteSimulator::updateDelayedSet(unsigned int currentTimestep, unsigned 
         delayed.resize(graph.getEdgeNum());
     }
     std::iota(delayed.begin(), delayed.end(), 0);
-    unsigned int newSeed = combineRandomSeed(0, 0, currentTimestep, seed);;
+    unsigned int newSeed = combineRandomSeed(0, 0, currentTimestep, seed);
     std::mt19937 generator(newSeed);
     std::shuffle(delayed.begin(), delayed.end(), generator);
     delayedSet.clear();

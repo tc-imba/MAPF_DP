@@ -596,7 +596,7 @@ def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
 def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio: float):
     df = data[
         (data["feasibility"] == "heuristic") & (data["agents"] == agents) & (data["delay_ratio"] == delay_ratio) &
-        ((data["simulator"] == "online_opt") | ((data["simulator"] == "online") & (data["cycle"] != "proposed")))
+        (data["simulator"] == "online")
         ]
     groupby = ["cycle", "delay_ratio"]
     plot_type = "cycle"
