@@ -46,6 +46,7 @@ unsigned int DiscreteBTPGSimulator::simulate(double &currentTimestep, unsigned i
 #endif
     sim->BTPGTotalTimeStep = 0;
     while (std::find(finishedAgent.begin(), finishedAgent.end(), false) != finishedAgent.end()) {
+        auto start = std::chrono::steady_clock::now();
         sim->BTPGTotalTimeStep++;
         // 2a.Decide which agent can move at this timestep
         std::vector<int> movableAgents;
@@ -53,6 +54,14 @@ unsigned int DiscreteBTPGSimulator::simulate(double &currentTimestep, unsigned i
 //        sim->DecideMovableAgents(movableAgents, robotStopNumbers);
         // print out all the movable agents
         sim->SimulateTimeStep(movableAgents, visited, finishedAgent);
+        auto end = std::chrono::steady_clock::now();
+        if (firstAgentArrivingTimestep == 0) {
+            std::chrono::duration<double> elapsed_seconds = end - start;
+            executionTime += elapsed_seconds.count();
+            if (std::find(finishedAgent.begin(), finishedAgent.end(), true) != finishedAgent.end()) {
+                firstAgentArrivingTimestep = sim->BTPGTotalTimeStep;
+            }
+        }
     }
 #ifdef DEBUG
     std::cout << "Finish BTPG simulation" << std::endl;
@@ -96,10 +105,14 @@ void DiscreteBTPGSimulator::initBTPGVariables() {
     }
     fout.close();
 
+    auto start = std::chrono::steady_clock::now();
     btpg = std::make_shared<btpg::BTPG>(planFileName, algorithmIdx, timeInterval);
     sim = std::make_shared<btpg::Sim>(seed, btpg->getNumAgents());
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    executionTime += elapsed_seconds.count();
 
-    //    remove_all(ph);
+    remove_all(ph);
 }
 
 void DiscreteBTPGSimulator::decideMovableAgents(std::vector<int> &movableAgents, unsigned int currentTimestep,
