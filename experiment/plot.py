@@ -180,6 +180,8 @@ class PlotSettings:
                     label = f"proposed-{subplot_key}"
                 else:
                     label = f"{simulator}-{subplot_key}"
+            elif simulator == "btpg":
+                label = f"{simulator}-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -448,7 +450,7 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
     k_neighbor = 2
     df = data[
         ((data["simulator"] == "default") | (data["simulator"] == "online_opt") |
-         (data["simulator"] == "replan_1.1") | (data["simulator"] == "pibt"))
+         (data["simulator"] == "replan_1.1") | (data["simulator"] == "pibt") | (data["simulator"] == "btpg"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == delay_ratio)
         ]
 
@@ -660,7 +662,7 @@ def main(ctx, map_names):
         if args.map == "random":
             df_discrete = df_discrete_random
             for agents in args.agents:
-                plot_cycle(args, df_discrete, agents, 0.1)
+                # plot_cycle(args, df_discrete, agents, 0.1)
                 for delay_ratio in args.delay_ratios:
                     # pass
                     plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
