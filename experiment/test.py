@@ -35,6 +35,7 @@ class TestArguments(AppArguments):
     result_dir: Path
     pool: concurrent.futures.ProcessPoolExecutor
     naive: bool
+    resume: bool
 
 
 # workers = multiprocessing.cpu_count()
@@ -151,8 +152,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     if output_prefix not in defined_output_prefixes:
         defined_output_prefixes.add(output_prefix)
         # if output_file.exists():
-        output_file.unlink(missing_ok=True)
-        output_time_file.unlink(missing_ok=True)
+        if not args.resume:
+            output_file.unlink(missing_ok=True)
+            output_time_file.unlink(missing_ok=True)
 
     # generate arguments
     simulator = setup.simulator
@@ -659,9 +661,10 @@ async def do_tests_den520d(args: TestArguments):
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
 @click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count)
 @click.option("--naive", type=bool, default=False, is_flag=True)
+@click.option("--resume", type=bool, default=False, is_flag=True)
 @click.pass_context
 @asyncio_wrapper
-async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs, naive):
+async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs, naive, resume):
     program = project_root / "cmake-build-relwithdebinfo"
     if platform.system() == "Windows":
         program = program / "MAPF_DP.exe"
@@ -694,6 +697,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
         result_dir=result_dir,
         pool=pool,
         naive=naive,
+        resume=resume,
     )
     logger.info(args)
     logger.info("Running with {} jobs", jobs)
