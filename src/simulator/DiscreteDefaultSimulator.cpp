@@ -12,6 +12,8 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
     std::unordered_map<unsigned int, int> nodeStates;
     std::vector<unsigned int> savedStart(agents.size());
     std::vector<std::string> agentOutputStates(agents.size());
+    agentRealPaths.clear();
+    agentRealPaths.resize(agents.size());
 
     openOutputFiles();
 
@@ -20,6 +22,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
         agents[i].blocked = true;
         agents[i].delayed = false;
         savedStart[i] = agents[i].current = agents[i].start;
+        agentRealPaths[i].emplace_back(agents[i].current);
     }
 
     bool refresh = true;
@@ -264,6 +267,10 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
 
 
 //        std::cout << count << std::endl;
+
+        for (size_t i = 0; i < agents.size(); i++) {
+            agentRealPaths[i].emplace_back(agents[i].current);
+        }
 
         if (count >= agents.size()) {
             break;

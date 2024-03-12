@@ -2,9 +2,9 @@
 // Created by liu on 18/12/2022.
 //
 
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string_regex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string_regex.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 #include <fstream>
 #include <iostream>
@@ -102,7 +102,7 @@ bool EECBSSolver::solve() {
     auto start = std::chrono::steady_clock::now();
     c.wait();
 
-//    eecbs((int) cstrings.size(), cstrings.data());
+    //    eecbs((int) cstrings.size(), cstrings.data());
 
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
@@ -112,15 +112,14 @@ bool EECBSSolver::solve() {
     success = readSolution(fin);
     fin.close();
 
-//    if (!prioritizedReplan) {
-        remove_all(ph);
-//    }
-//    prioritizedReplan = false;
-//    std::cerr << prioritizedReplan << " " << success << std::endl;
+    //    if (!prioritizedReplan) {
+    remove_all(ph);
+    //    }
+    //    prioritizedReplan = false;
+    //    std::cerr << prioritizedReplan << " " << success << std::endl;
 
     return success;
 }
-
 
 
 void EECBSSolver::saveObstacles(const std::string &filename) {
@@ -138,11 +137,8 @@ void EECBSSolver::saveObstacles(const std::string &filename) {
     std::ofstream fileOut(filename);
     fileOut << result.size() << std::endl;
     for (const auto &row: result) {
-        fileOut << std::get<0>(row) << " "
-                << std::get<1>(row) << " "
-                << std::get<2>(row) << " "
-                << std::get<3>(row) << std::endl;
+        fileOut << std::get<0>(row) << " " << std::get<1>(row) << " " << std::get<2>(row) << " " << std::get<3>(row)
+                << std::endl;
     }
     fileOut.close();
 }
-

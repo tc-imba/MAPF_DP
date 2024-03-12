@@ -2,10 +2,12 @@
 // Created by liu on 27/4/2021.
 //
 
-#include "Solver.h"
 #include <random>
 #include <iostream>
 #include <fstream>
+
+#include "Solver.h"
+#include "../simulator/DiscreteDefaultSimulator.h"
 
 void Solver::init() {
     for (unsigned int i = 0; i < agents.size(); i++) {
@@ -29,6 +31,47 @@ size_t Solver::combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, uns
     boost::hash_combine(result, seed);
     return result;
 }
+
+bool Solver::removeFollowingConflict(std::shared_ptr<Solver> solver) {
+    auto simulator = std::make_unique<DiscreteDefaultSimulator>(solver->graph, solver->agents, 0);
+    simulator->delayRatio = 0;
+    simulator->delayType = "agent";
+    simulator->setSolver(solver);
+    simulator->debug = false;
+
+    double currentTimestep = 0;
+    auto count = simulator->simulate(currentTimestep, 1000, 0, 0);
+    if (count != solver->agents.size()) return false;
+
+    for (size_t i = 0; i < solver->agents.size(); i++) {
+        /*        std::cout << i << std::endl;
+        for (auto loc: solution->plans[i]->path) {
+            std::cout << loc.nodeId << " ";
+        }
+        std::cout << std::endl;
+        for (auto loc: simulator->agentRealPaths[i]) { std::cout << loc << " "; }
+        std::cout << std::endl;*/
+        auto &realPath = simulator->agentRealPaths[i];
+        auto &path = solver->solution->plans[i]->path;
+        while (realPath.size() > 1) {
+            if (realPath[realPath.size() - 1] == realPath[realPath.size() - 2]) {
+                realPath.pop_back();
+            } else
+                break;
+        }
+        path.clear();
+        for (unsigned int j = 0; j < realPath.size(); j++) {
+            path.emplace_back(Label{realPath[j], j, (double) (realPath.size() - j), (double) j});
+        }
+        /*        for (auto loc: solution->plans[i]->path) {
+            std::cout << loc.nodeId << " ";
+        }
+        std::cout << std::endl;*/
+    }
+
+    return true;
+}
+
 
 
 double Solver::approxAverageMakeSpan(CBSNode &cbsNode) {
@@ -55,42 +98,43 @@ double Solver::approxAverageMakeSpan(CBSNode &cbsNode) {
     return result;
 }
 
-bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed) {
+bool Solver::solveWithCache(std::shared_ptr<Solver> solver, const std::string &filename, unsigned int agentSeed) {
     std::string cacheFilename =
             filename + "-" +
-            std::to_string(agents.size()) + "-" +
+            std::to_string(solver->agents.size()) + "-" +
             std::to_string(agentSeed) + "-" +
-            getSolverName() + ".cbs";
+            solver->getSolverName() + ".cbs";
     //    std::cerr << cacheFilename << std::endl;
     std::ifstream fin(cacheFilename);
     if (fin.is_open()) {
         SPDLOG_INFO("use solver cache: {}", cacheFilename);
-        solution = std::make_shared<CBSNode>();
-        for (unsigned int i = 0; i < agents.size(); i++) {
-            solution->plans.emplace_back(std::make_shared<AgentPlan>());
+        solver->solution = std::make_shared<CBSNode>();
+        for (unsigned int i = 0; i < solver->agents.size(); i++) {
+            solver->solution->plans.emplace_back(std::make_shared<AgentPlan>());
             unsigned int pathLength;
             fin >> pathLength;
             for (unsigned int j = 0; j < pathLength; j++) {
                 Label label{};
                 fin >> label.nodeId >> label.state >> label.estimatedTime >> label.heuristic;
-                solution->plans[i]->path.push_back(label);
+                solver->solution->plans[i]->path.push_back(label);
             }
         }
         return true;
     }
     SPDLOG_INFO("no cache: {}", cacheFilename);
     fin.close();
-    if (!solve()) {
+    if (!solver->solve()) {
         std::cout << "failed" << std::endl;
         return false;
     }
+    removeFollowingConflict(solver);
     std::ofstream fout(cacheFilename);
     if (fout.is_open()) {
-        for (unsigned int i = 0; i < agents.size(); i++) {
-            unsigned int pathLength = solution->plans[i]->path.size();
+        for (unsigned int i = 0; i < solver->agents.size(); i++) {
+            unsigned int pathLength = solver->solution->plans[i]->path.size();
             fout << pathLength << std::endl;
             for (unsigned int j = 0; j < pathLength; j++) {
-                auto &label = solution->plans[i]->path[j];
+                auto &label = solver->solution->plans[i]->path[j];
                 fout << label.nodeId << " "
                      << label.state << " "
                      << label.estimatedTime << " "
@@ -98,7 +142,7 @@ bool Solver::solveWithCache(const std::string &filename, unsigned int agentSeed)
             }
         }
     }
-    return success;
+    return solver->success;
 }
 
 bool Solver::validate(unsigned int maxState) {

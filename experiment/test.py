@@ -259,7 +259,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                     # logger.error("{}", output_file)
                     raise Exception()
         except Exception as e:
-            logger.exception(e)
+            # logger.exception(e)
             result = 0
 
     if result == 1:

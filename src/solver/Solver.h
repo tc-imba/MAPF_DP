@@ -150,6 +150,7 @@ public:
     unsigned int currentTimestep;
     double executionTime = 0;
     double partialExecutionTime = 0;
+    double timeout = 0;
     bool prioritizedReplan = false;
 
     Solver() = delete;
@@ -169,9 +170,11 @@ public:
 
     virtual bool solve() = 0;
 
+    static bool removeFollowingConflict(std::shared_ptr<Solver> solver);
+
     double approxAverageMakeSpan(CBSNode &cbsNode);
 
-    bool solveWithCache(const std::string &directory, unsigned int agentSeed);
+    static bool solveWithCache(std::shared_ptr<Solver> solver, const std::string &directory, unsigned int agentSeed);
 
     virtual bool solveWithPrioritizedReplan(bool prioritizedOpt);
 

@@ -377,12 +377,16 @@ int main(int argc, const char *argv[]) {
     solver->debug = debug;
     solver->useDP = useDP;
     solver->allConstraint = allConstraint;
+//    solver->timeout = timeout;
     solver->init();
     bool result;
     if (noCache) {
         result = solver->solve();
+        if (result) {
+            solver->removeFollowingConflict(solver);
+        }
     } else {
-        result = solver->solveWithCache(cacheFileName, agentSeed);
+        result = solver->solveWithCache(solver, cacheFileName, agentSeed);
     }
 
     if (!result) {
@@ -423,7 +427,7 @@ int main(int argc, const char *argv[]) {
                 }
                 if (i != simulationSeed) {
                     solver->init();
-                    if (!solver->solveWithCache(filename, agentSeed)) {
+                    if (!solver->solveWithCache(solver, filename, agentSeed)) {
                         exit(-1);
                     }
                 }

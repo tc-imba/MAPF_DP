@@ -120,6 +120,17 @@ bool Graph::isConnected() {
     return true;*/
     std::vector<int> component(boost::num_vertices(g));
     auto num = boost::connected_components(g, component.data());
+/*    if (num > 1) {
+        for (int i = 0; i < num; i++) {
+            std::string output = "";
+            for (int j=0; j<component.size(); j++) {
+                if (i == component[j]) {
+                    output += "(" + std::to_string((int) g[j].x) + "," + std::to_string((int) g[j].y) + ") ";
+                }
+            }
+            SPDLOG_INFO("component {}: {}", i, output);
+        }
+    }*/
     return num == 1;
 }
 
@@ -395,6 +406,8 @@ void Graph::generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph) {
         for (unsigned int j = 0; j < width; j++) {
             if (gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
                 gridGraphIds[i][j] = boost::add_vertex(g);
+//                g[gridGraphIds[i][j]].x = i;
+//                g[gridGraphIds[i][j]].y = j;
                 g[gridGraphIds[i][j]].type = gridGraph[i][j];
                 V++;
             } else {
@@ -409,7 +422,7 @@ void Graph::generateUnweightedGraph(std::vector<std::vector<char>> &gridGraph) {
                 std::vector<std::pair<unsigned int, unsigned int>> neighbors = {{i + 1, j},
                                                                                 {i,     j + 1}};
                 for (auto [x, y]: neighbors) {
-                    if (x < height && y < width && gridGraph[i][j] != '@' && gridGraph[i][j] != 'T') {
+                    if (x < height && y < width && gridGraph[x][y] != '@' && gridGraph[x][y] != 'T') {
                         auto p = boost::add_edge(gridGraphIds[i][j], gridGraphIds[x][y], g);
                         g[p.first].length = 1;
                         g[p.first].dp = 0;
@@ -451,11 +464,13 @@ void Graph::generateRandomGraph(unsigned int height, unsigned int width, unsigne
 //            calculateUnweightedAllPairShortestPath();
             if (isConnected()) {
                 currentObstacles++;
+//                SPDLOG_INFO("{} {} can be obstacle", x, y);
             } else {
                 gridGraph[x][y] = '.';
                 SPDLOG_DEBUG("{} {} can't be obstacle", x, y);
             }
         }
+        SPDLOG_INFO("{}/{} obstacles generated", currentObstacles, obstacles);
         assert(currentObstacles == obstacles);
         SPDLOG_DEBUG("save grid graph to {}.map", filename);
         saveGridGraph(gridGraph, filename);

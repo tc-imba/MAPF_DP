@@ -10,6 +10,8 @@
 
 class DiscreteDefaultSimulator : public DiscreteSimulator, public DefaultSimulator {
 public:
+    std::vector<std::vector<unsigned int> > agentRealPaths;
+
     DiscreteDefaultSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) :
             Simulator(graph, agents, seed) {}
 
