@@ -388,6 +388,7 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
         if "online_opt-h-h" in raw_dfs.keys() and "online-h-h" not in raw_dfs.keys():
             raw_dfs["online-h-h"] = raw_dfs["online_opt-h-h"]
             setups["online-h-h"] = setups["online_opt-h-h"]
+            setups["online-h-h"].simulator = "online"
         parsed_labels = list(raw_dfs.keys())
         # logger.debug(parsed_labels)
         # print(parsed_labels)
@@ -418,8 +419,8 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
             df = raw_dfs[label]
             if label.startswith("online-h"):
                 df = df.merge(base_naive_df, on=['map', 'agent', 'iteration'], how='inner')
-            else:
-                df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+            # else:
+            #     df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
             row = parse_merged_df(setups[label], df)
             if row is not None:
                 rows.append(row)
