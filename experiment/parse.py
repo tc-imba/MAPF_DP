@@ -387,6 +387,7 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         if "online_opt-h-h" in raw_dfs.keys() and "online-h-h" not in raw_dfs.keys():
             raw_dfs["online-h-h"] = raw_dfs["online_opt-h-h"]
+            setups["online-h-h"] = setups["online_opt-h-h"]
         parsed_labels = list(raw_dfs.keys())
         # logger.debug(parsed_labels)
         # print(parsed_labels)
