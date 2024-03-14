@@ -15,8 +15,8 @@ public:
     int algorithmIdx;
     int timeInterval;
 
-    DiscreteBTPGSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed, int algorithmIdx = 0,
-                          int timeInterval = 60)
+    DiscreteBTPGSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed, int algorithmIdx = 1,
+                          int timeInterval = 60000)
         : Simulator(graph, agents, seed), algorithmIdx(algorithmIdx), timeInterval(timeInterval) {}
 
     unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep, unsigned int delayStart = INT_MAX,

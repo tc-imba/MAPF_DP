@@ -419,8 +419,8 @@ def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
             df = raw_dfs[label]
             if label.startswith("online-h"):
                 df = df.merge(base_naive_df, on=['map', 'agent', 'iteration'], how='inner')
-            # else:
-            #     df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
+            else:
+                df = df.merge(base_df, on=['map', 'agent', 'iteration'], how='inner')
             row = parse_merged_df(setups[label], df)
             if row is not None:
                 rows.append(row)
