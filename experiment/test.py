@@ -484,9 +484,11 @@ async def do_init_tests_den520d(args: TestArguments):
         )
 
         if args.map == "den520d" or args.map == "mapf":
-            task_per_task_file = int(agents_per_task_file / agents)
-            task_file_id = int(agent_seed / task_per_task_file)
-            agent_skip = agents * (agent_seed % task_per_task_file)
+            # task_per_task_file = int(agents_per_task_file / agents)
+            # task_file_id = int(agent_seed / task_per_task_file)
+            # agent_skip = agents * (agent_seed % task_per_task_file)
+            task_file_id = agent_seed
+            agent_skip = 0
 
             if args.map == "den520d":
                 base_dir = args.maps_dir / "roadmaps" / map_name
@@ -537,8 +539,9 @@ async def do_init_tests_den520d(args: TestArguments):
             agents_per_task_file = 0
 
         if args.map == "den520d" or args.map == "mapf":
-            task_per_task_file = int(agents_per_task_file / agent)
-            max_agent_seed = 25 * task_per_task_file
+            # task_per_task_file = int(agents_per_task_file / agent)
+            # max_agent_seed = 25 * task_per_task_file
+            max_agent_seed = 25
         else:
             max_agent_seed = math.inf
 
@@ -590,9 +593,11 @@ async def do_tests_den520d(args: TestArguments):
         )
 
         if args.map == "den520d" or args.map == "mapf":
-            task_per_task_file = int(agents_per_task_file / agents)
-            task_file_id = int(agent_seed / task_per_task_file)
-            agent_skip = agents * (agent_seed % task_per_task_file)
+            # task_per_task_file = int(agents_per_task_file / agents)
+            # task_file_id = int(agent_seed / task_per_task_file)
+            # agent_skip = agents * (agent_seed % task_per_task_file)
+            task_file_id = agent_seed
+            agent_skip = 0
 
             if args.map == "den520d":
                 base_dir = args.maps_dir / "roadmaps" / map_name
