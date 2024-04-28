@@ -239,8 +239,8 @@ std::vector<Constraint> CBSSolver::findConflicts(CBSNode &cbsNode) {
     }
 
 /*    for (unsigned agentId = 0; agentId < cbsNode.plans.size(); agentId++) {
-        const auto &plan = cbsNode.plans[agentId];
-        for (const auto &label : plan.path) {
+        const auto &plans = cbsNode.plans[agentId];
+        for (const auto &label : plans.path) {
 
 *//*            if (result.empty()) {
                 if (it1 != conflictMap.end() && it1->second.front() != agentId) {
@@ -465,8 +465,8 @@ bool CBSSolver::solve() {
 
 /*
 
-void CBSSolver::addPathIntoConstraints(std::shared_ptr<AgentPlan> plan) {
-    for (const auto &label: plan->path) {
+void CBSSolver::addPathIntoConstraints(std::shared_ptr<AgentPlan> plans) {
+    for (const auto &label: plans->path) {
         constraintSet.emplace(label);
     }
 }

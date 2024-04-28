@@ -46,7 +46,7 @@ public:
 
     std::shared_ptr<AgentPlan> focalSearch(CBSNode &cbsNode, unsigned int agentId, double key);
 
-//    void addPathIntoConstraints(std::shared_ptr<AgentPlan> plan);
+//    void addPathIntoConstraints(std::shared_ptr<AgentPlan> plans);
 };
 
 

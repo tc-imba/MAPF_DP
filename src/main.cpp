@@ -10,6 +10,7 @@
 #include "Graph.h"
 #include "simulator/ContinuousDefaultSimulator.h"
 #include "simulator/ContinuousOnlineSimulator.h"
+#include "simulator/ContinuousPIBTSimulator.h"
 #include "simulator/DiscreteDefaultSimulator.h"
 #include "simulator/DiscreteOnlineSimulator.h"
 #include "simulator/DiscretePIBTSimulator.h"
@@ -55,6 +56,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use online with optimization ", "--online-opt");
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("", false, 0, 0, "Use group conflicts optimization", "--group");
+    optionParser.add("", false, 0, 0, "Use group by determined edges optimization", "--group-determined");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("map", false, 1, 0, "Map name (eg., sparse, dense, super_dense)", "--map-name");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
@@ -138,7 +140,7 @@ int main(int argc, const char *argv[]) {
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup, useGroupDetermined;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -186,6 +188,7 @@ int main(int argc, const char *argv[]) {
     onlineOpt = optionParser.isSet("--online-opt");
     noCache = optionParser.isSet("--no-cache");
     useGroup = optionParser.isSet("--group");
+    useGroupDetermined = optionParser.isSet("--group-determined");
 //    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
@@ -450,6 +453,7 @@ int main(int argc, const char *argv[]) {
                 simulator = std::make_unique<DiscreteOnlineSimulator>(graph, agents, i);
                 auto discreteOnlineSimulator = std::dynamic_pointer_cast<DiscreteOnlineSimulator>(simulator);
                 discreteOnlineSimulator->onlineOpt = onlineOpt;
+                discreteOnlineSimulator->groupDetermined= useGroupDetermined;
             }
             auto onlineSimulator = std::dynamic_pointer_cast<OnlineSimulator>(simulator);
             onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
@@ -458,7 +462,7 @@ int main(int argc, const char *argv[]) {
             onlineSimulator->isFeasibilityType = feasibilityType;
         } else if (simulatorType == "pibt") {
             if (timingType == "continuous") {
-                assert(0);
+                simulator = std::make_unique<ContinuousPIBTSimulator>(graph, agents, i);
             } else {
                 simulator = std::make_unique<DiscretePIBTSimulator>(graph, agents, i);
             }

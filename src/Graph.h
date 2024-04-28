@@ -98,6 +98,7 @@ public:
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, Node, Edge> graph_t;
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, GraphMLNode, GraphMLEdge> graphml_graph_t;
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> topo_graph_t;
+    typedef boost::adjacency_list<boost::setS, boost::vecS, boost::directedS> agent_graph_t;
     typedef boost::graph_traits<topo_graph_t>::vertex_descriptor topo_vertex_t;
 
     graph_t g;

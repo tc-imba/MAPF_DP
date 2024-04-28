@@ -26,7 +26,7 @@ from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup, val
 # rc('text', useTex=False)
 
 LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129", "#FF0000", "#330066"]
-LINE_MARKERS = ["o", "s", "^", "+", "o", "s"]
+LINE_MARKERS = ["o", "s", "^", "+", "x", "*"]
 
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
@@ -97,7 +97,7 @@ class PlotSettings:
         elif self.y_field == "soc":
             self.y_label = '\n Sum of Costs'
         elif self.y_field == "makespan_time":
-            self.y_label = 'Average Computation Time \n of Each Timestep (ms)'
+            self.y_label = 'Avg. Comp. Time \n of Each Timestep (ms)'
             if self.plot_type == "cycle":
                 self.y_log = True
         elif self.y_field == "cdf":
@@ -215,12 +215,14 @@ class PlotSettings:
         if self.plot_type == "simulator" or self.plot_type == "cdf":
             if simulator == "default":
                 linestyle = "dashdot"
-            elif simulator == "replan":
+            elif simulator.startswith("replan"):
                 linestyle = "dotted"
             elif simulator == "pibt":
                 linestyle = (0, (3, 5, 1, 5))  # "dashdotted"
             elif simulator == "prioritized":
                 linestyle = "dashed"
+            elif simulator == "btpg":
+                linestyle = (0, (3, 1, 1, 1, 1, 1))
             else:
                 linestyle = "solid"
             # linestyle = simulator == "online" and "-" or (cycle == "naive" and ":" or "-.")
@@ -313,7 +315,7 @@ class PlotSettings:
 def plot(df: pd.DataFrame, settings: PlotSettings):
     fig = plt.figure(figsize=(16, 3), dpi=100)
     # plt.rcParams.update({'font.size': 16, 'font.family': 'cmss10', 'font.weight': 'bold'})
-    plt.rcParams.update({'font.size': 16, "text.usetex": True})
+    plt.rcParams.update({'font.size': 20, "text.usetex": True})
     axes = []
 
     for i, key in enumerate(settings.subplot_keys):
@@ -391,20 +393,23 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             # ax.set_xlim(left=1e-7, right=xmax)
         # ax.set_xticks(np.arange(len(xticks)))
         # ax.set_xticklabels(xticks)
-        ax.set_xlabel(settings.x_label)
+        ax.set_xlabel(settings.x_label, fontsize=26)
         if settings.subplot_type == "delay-ratio":
-            ax.set_title(f"{int(key * 100)}\\% of agents blocked")
+            title = f"{int(key * 100)}\\% of agents blocked"
         elif settings.subplot_type == "delay-interval":
-            ax.set_title(f"k = {int(key)}")
+            title = f"k = {int(key)}"
         elif settings.subplot_type == "obstacles":
-            ax.set_title(f"{int(key / 9)}\\% obstacles")
+            title = f"{int(key / 9)}\\% obstacles"
         elif settings.subplot_type == "map-names":
             if key == "random":
-                ax.set_title("random-grid")
+                title = "random-grid"
             else:
-                ax.set_title(key)
+                title = key
         elif settings.subplot_type == "k_neighbor":
-            ax.set_title(f"$2^{key}$ connected")
+            title = f"$2^{key}$ connected"
+        else:
+            title = ""
+        ax.set_title(title, fontsize=26)
         if settings.y_log:
             ax.set_yscale("log")
             # ax.set_ylim(bottom=1)
@@ -421,23 +426,23 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 
     # plt.ylabel(ylabel)
     ax = axes[0]
-    ax.set_ylabel(settings.y_label)
+    ax.set_ylabel(settings.y_label, fontsize=26)
     bbox_extra_artists = []
     if settings.legend:
         # ax = axes[0]
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if settings.subplot_type in ("obstacles", "delay-interval", "map-names"):
-            ncol = 4
+            ncol = 5
         elif len(handles) % 3 == 0:
             ncol = 3
             # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
             # labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
         else:
             ncol = 2
-        bbox_to_anchor_y = 1.05 + 0.1 * (len(handles) / ncol)
+        bbox_to_anchor_y = 1.2 + 0.1 * (len(handles) / ncol)
         legend = ax.legend(handles, labels, loc='upper center', ncol=ncol, columnspacing=0.5,
-                           bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure)
+                           bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure, fontsize=26)
         bbox_extra_artists.append(legend)
 
     output_file = settings.get_output_file()
@@ -464,6 +469,8 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
     else:
         assert False
     # print(df[['simulator', 'soc']])
+    # df['soc_mul'] = df['soc'] * 40
+    # print(df)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(delay_ratio), y_field="soc", groupby=groupby, legend=True)
     plot(df, plot_settings)
@@ -471,7 +478,7 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     # plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=False)
     plot(df, plot_settings)
 
 

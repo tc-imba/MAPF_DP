@@ -800,10 +800,10 @@ std::vector<Agent> Graph::generateRandomAgents(unsigned int agentNum, size_t see
         agents[i].goal = v2[j];
 /*        agents[i].current = agents[i].start;
         agents[i].timestep = agents[i].waitingTimestep = 0;
-        auto plan = solver.focalSearch(*node, i, 0);
-        if (!plan->path.empty()) {
-            solver.addPathIntoConstraints(plan);
-            node->plans[i] = plan;
+        auto plans = solver.focalSearch(*node, i, 0);
+        if (!plans->path.empty()) {
+            solver.addPathIntoConstraints(plans);
+            node->plans[i] = plans;
             i++;
             std::cout << "agent " << i << " " << v1[j] << " -> " << v2[j]
                       << " (" << getHeuristic(v1[j], v2[j]) << ")" << std::endl;

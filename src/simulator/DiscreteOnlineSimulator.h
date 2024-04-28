@@ -27,6 +27,7 @@ public:
                           unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
 
     bool onlineOpt = false;
+    bool groupDetermined = false;
 
 private:
     void initSimulation();

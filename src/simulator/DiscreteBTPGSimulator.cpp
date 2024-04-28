@@ -91,7 +91,7 @@ void DiscreteBTPGSimulator::initBTPGVariables() {
 
     path ph = path("btpg_results") / unique_path();
     create_directories(ph);
-    std::string planFileName = (ph / "plan.txt").string();
+    std::string planFileName = (ph / "plans.txt").string();
 
     std::ofstream fout(planFileName);
     for (size_t i = 0; i < agents.size(); i++) {
