@@ -8,9 +8,9 @@
 
 #include "../solver/Solver.h"
 #include "ContinuousSimulator.h"
-#include "OnlineSimulator.h"
+#include "PIBTSimulator.h"
 
-class ContinuousPIBTSimulator : public ContinuousSimulator, public OnlineSimulator {
+class ContinuousPIBTSimulator : public ContinuousSimulator, public PIBTSimulator {
 public:
     ContinuousPIBTSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed)
         : Simulator(graph, agents, seed) {}
