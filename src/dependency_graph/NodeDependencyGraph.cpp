@@ -554,7 +554,15 @@ void NodeDependencyGraph::groupAgents(std::list<SDGEdgePair> &unsettledEdgePairs
 
     component.resize(boost::num_vertices(agentGraph));
     componentNum = boost::strong_components(agentGraph, component.data());
-//    std::cout << componentNum << std::endl;
+    /*std::cout << componentNum << std::endl;
+    for (int i = 0; i < componentNum; i++) {
+        int count = 0;
+        for (auto c: component) {
+            if (i == c) count++;
+        }
+        std::cout << count << " ";
+    }
+    std::cout << std::endl;*/
 }
 
 void NodeDependencyGraph::filterUnsettledEdgePairs(std::list<SDGEdgePair> &unsettledEdgePairs) {

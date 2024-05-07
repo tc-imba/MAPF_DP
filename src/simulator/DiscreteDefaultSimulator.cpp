@@ -283,8 +283,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                 break;
             }
             if (firstAgentArrivingTimestep == 0) {
-                executionTime += currentExecutionTime;
+                firstAgentArrivingExecutionTime += currentExecutionTime;
             }
+            executionTime += currentExecutionTime;
             refresh = true;
         }
 

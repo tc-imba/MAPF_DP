@@ -107,12 +107,13 @@ unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned i
             }
         } while (!unstable.empty());
 
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
         if (firstAgentArrivingTimestep == 0) {
-            auto end = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsed_seconds = end - start;
-            executionTime += elapsed_seconds.count();
-            start = end;
+            firstAgentArrivingExecutionTime += elapsed_seconds.count();
         }
+        executionTime += elapsed_seconds.count();
+        start = end;
         currentTimestep++;
         saveExecutionTime();
     }

@@ -506,10 +506,10 @@ int main(int argc, const char *argv[]) {
 #endif
         simulator->setAgents(agents);
         currentTimestep = 0;
-        auto start = std::chrono::steady_clock::now();
+//        auto start = std::chrono::steady_clock::now();
         auto count = simulator->simulate(currentTimestep, currentTimestep + maxTimestep, delayStart, delayInterval);
-        auto end = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end - start;
+//        auto end = std::chrono::steady_clock::now();
+//        std::chrono::duration<double> elapsed_seconds = end - start;
 
         if (count == agentNum) {
             boost::interprocess::file_lock flock(lockFileName.c_str());
@@ -521,7 +521,8 @@ int main(int argc, const char *argv[]) {
                 out << simulator->averageMakeSpan(MakeSpanType::MAXIMUM) << ","
                     << simulator->averageMakeSpan(MakeSpanType::AVERAGE);
             }
-            out << "," << elapsed_seconds.count() << ",";
+            out << ",";
+//            out << "," << elapsed_seconds.count() << ",";
             simulator->print(out);
             out << std::endl;
             simulator->printExecutionTime(mapSeed, agentSeed, i);

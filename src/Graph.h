@@ -11,6 +11,8 @@
 #include <Mathematics/Vector2.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/bundled/core.h>
+#include <spdlog/fmt/bundled/format.h>
 #include <iostream>
 #include <iomanip>
 

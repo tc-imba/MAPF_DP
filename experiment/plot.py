@@ -178,6 +178,8 @@ class PlotSettings:
             elif simulator.startswith("online"):
                 if simulator == "online_opt":
                     label = f"proposed-{subplot_key}"
+                elif simulator == "online_group":
+                    label = f"proposed-new-{subplot_key}"
                 else:
                     label = f"{simulator}-{subplot_key}"
             elif simulator == "btpg":
@@ -393,7 +395,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             # ax.set_xlim(left=1e-7, right=xmax)
         # ax.set_xticks(np.arange(len(xticks)))
         # ax.set_xticklabels(xticks)
-        ax.set_xlabel(settings.x_label, fontsize=26)
+        ax.set_xlabel(settings.x_label, fontsize=22)
         if settings.subplot_type == "delay-ratio":
             title = f"{int(key * 100)}\\% of agents blocked"
         elif settings.subplot_type == "delay-interval":
@@ -429,11 +431,11 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     ax.set_ylabel(settings.y_label, fontsize=26)
     bbox_extra_artists = []
     if settings.legend:
-        # ax = axes[0]
+        ax = axes[-1]
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if settings.subplot_type in ("obstacles", "delay-interval", "map-names"):
-            ncol = 5
+            ncol = 6
         elif len(handles) % 3 == 0:
             ncol = 3
             # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
@@ -454,7 +456,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio: float):
     k_neighbor = 2
     df = data[
-        ((data["simulator"] == "default") | (data["simulator"] == "online_opt") |
+        ((data["simulator"] == "default") | (data["simulator"] == "online_opt") | (data["simulator"] == "online_group") |
          (data["simulator"] == "replan_1.1") | (data["simulator"] == "pibt") | (data["simulator"] == "btpg"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == delay_ratio)
         ]
@@ -674,7 +676,8 @@ def main(ctx, map_names):
                     # pass
                     plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
         else:
-            df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
+            # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
+            df_discrete = df_discrete_mapf
             for agents in args.agents:
                 for delay_ratio in args.delay_ratios:
                     plot_simulator_discrete(args, df_discrete, agents, delay_ratio)

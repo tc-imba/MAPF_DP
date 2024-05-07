@@ -23,7 +23,7 @@ bool CCBSSolver::readSolution(const std::string &filename) {
     auto summary = log->FirstChildElement();
     executionTime = std::strtod(summary->Attribute("time"), nullptr);
 
-//    std::cerr << summary->Attribute("time") << " " << executionTime << std::endl;
+//    std::cerr << summary->Attribute("time") << " " << firstAgentArrivingExecutionTime << std::endl;
 
     auto agentElem = summary;
     for (unsigned int i = 0; i < agents.size(); i++) {
@@ -124,7 +124,7 @@ bool CCBSSolver::solve() {
 
 //    auto end = std::chrono::steady_clock::now();
 //    std::chrono::duration<double> elapsed_seconds = end - start;
-//    executionTime = elapsed_seconds.count();
+//    firstAgentArrivingExecutionTime = elapsed_seconds.count();
 
     success = readSolution(outputFileName);
 

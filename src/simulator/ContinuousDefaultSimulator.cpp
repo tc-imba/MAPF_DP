@@ -373,8 +373,9 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
             }
             bool firstAgentArrived = firstAgentArrivingTimestep > 0;
             if (!firstAgentArrived) {
-                executionTime += currentExecutionTime;
+                firstAgentArrivingExecutionTime += currentExecutionTime;
             }
+            executionTime += currentExecutionTime;
             executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
             refresh = true;
         }

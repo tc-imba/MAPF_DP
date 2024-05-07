@@ -63,6 +63,7 @@ public:
 //    size_t delayInterval = 1;
     double delayRatio = 0.2;
     double firstAgentArrivingTimestep = 0;
+    double firstAgentArrivingExecutionTime = 0;
     double executionTime = 0;
 
     std::vector<std::vector<PathNode>> outputPaths;

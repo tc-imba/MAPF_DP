@@ -55,13 +55,14 @@ unsigned int DiscreteBTPGSimulator::simulate(double &currentTimestep, unsigned i
         // print out all the movable agents
         sim->SimulateTimeStep(movableAgents, visited, finishedAgent);
         auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
         if (firstAgentArrivingTimestep == 0) {
-            std::chrono::duration<double> elapsed_seconds = end - start;
-            executionTime += elapsed_seconds.count();
+            firstAgentArrivingExecutionTime += elapsed_seconds.count();
             if (std::find(finishedAgent.begin(), finishedAgent.end(), true) != finishedAgent.end()) {
                 firstAgentArrivingTimestep = sim->BTPGTotalTimeStep;
             }
         }
+        executionTime += elapsed_seconds.count();
     }
 #ifdef DEBUG
     std::cout << "Finish BTPG simulation" << std::endl;
@@ -110,8 +111,8 @@ void DiscreteBTPGSimulator::initBTPGVariables() {
     sim = std::make_shared<btpg::Sim>(seed, btpg->getNumAgents());
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
+    firstAgentArrivingExecutionTime += elapsed_seconds.count();
     executionTime += elapsed_seconds.count();
-
     remove_all(ph);
 }
 

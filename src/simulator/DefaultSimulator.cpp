@@ -5,7 +5,8 @@
 #include "DefaultSimulator.h"
 
 void DefaultSimulator::print(std::ostream &out) const {
-    out << executionTime << ","
+    out << executionTime
+        << firstAgentArrivingExecutionTime << ","
         << firstAgentArrivingTimestep << ","
         << partialReplanCount << ","
         << partialReplanTime << ","
@@ -97,7 +98,7 @@ double DefaultSimulator::replan() {
         fullReplanCount++;
         fullReplanTime += solver->executionTime;
     }
-//    if (solver->executionTime > 0) {
+//    if (solver->firstAgentArrivingExecutionTime > 0) {
 //        replanCount += currentReplanCount;
 //        fullReplanCount += currentFullReplanCount;
 //        if (firstAgentArrivingTimestep == 0) {
@@ -134,7 +135,7 @@ double DefaultSimulator::replan() {
         //                      << ", goal " << agents[i].goal << std::endl;
         //        }
     }
-//    std::cerr << solver->executionTime << std::endl;
+//    std::cerr << solver->firstAgentArrivingExecutionTime << std::endl;
 
     return solver->partialExecutionTime + solver->executionTime;
 }

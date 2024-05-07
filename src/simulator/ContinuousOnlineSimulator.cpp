@@ -237,11 +237,12 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
         //            }
         //        }
 
+        std::chrono::duration<double> elapsed_seconds = end - start;
         if (firstAgentArrivingTimestep == 0) {
             unblockedAgents += unblocked.size();
-            std::chrono::duration<double> elapsed_seconds = end - start;
-            executionTime += elapsed_seconds.count();
+            firstAgentArrivingExecutionTime += elapsed_seconds.count();
         }
+        executionTime += elapsed_seconds.count();
 
         //        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
         //            updateDelayedSet(currentTimestep, pauseTimestep == 0);
@@ -495,6 +496,7 @@ void ContinuousOnlineSimulator::initSimulation() {
         );
     }*/
 
+    firstAgentArrivingExecutionTime = 0;
     executionTime = 0;
     feasibilityCheckCount = 0;
     cycleCheckCount = 0;

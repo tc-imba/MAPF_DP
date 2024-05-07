@@ -46,6 +46,9 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         }
     }
 
+    // warmup
+    //    depGraph.feasibilityCheckTest(false);
+
     executionTimeStart = std::chrono::steady_clock::now();
     for (; currentTimestep + 1 < maxTimeStep;) {
 
@@ -120,11 +123,21 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
             printSets("deadend     |");
         }
         /** line 12-23 **/
+
+        decltype(start) end;
+        if (currentTimestep == 1) {
+            end = std::chrono::steady_clock::now();
+        }
+
         cycleCheck();
         printSets("cycle       |");
 #endif
 
-        auto end = std::chrono::steady_clock::now();
+        if (currentTimestep > 1) {
+            end = std::chrono::steady_clock::now();
+        }
+
+//        auto end = std::chrono::steady_clock::now();
 
 
 #ifdef DEBUG_CYCLE
@@ -186,11 +199,12 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         //            }
         //        }
 
+        std::chrono::duration<double> elapsed_seconds = end - start;
         if (firstAgentArrivingTimestep == 0) {
             unblockedAgents += unblocked.size();
-            std::chrono::duration<double> elapsed_seconds = end - start;
-            executionTime += elapsed_seconds.count();
+            firstAgentArrivingExecutionTime += elapsed_seconds.count();
         }
+        executionTime += elapsed_seconds.count();
 
         //        if ((pauseTimestep == 0 && delayInterval > 0) || currentTimestep == pauseTimestep) {
         //            updateDelayedSet(currentTimestep, pauseTimestep == 0);
@@ -344,6 +358,7 @@ void DiscreteOnlineSimulator::initSimulation() {
         }
     }*/
 
+    firstAgentArrivingExecutionTime = 0;
     executionTime = 0;
     feasibilityCheckCount = 0;
     cycleCheckCount = 0;

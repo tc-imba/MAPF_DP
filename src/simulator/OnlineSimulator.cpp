@@ -6,6 +6,7 @@
 
 void OnlineSimulator::print(std::ostream &out) const {
     out << executionTime << ","
+        << firstAgentArrivingExecutionTime << ","
         << firstAgentArrivingTimestep << ","
         << cycleCheckCount << ","
         << cycleCheckAgents << ","
