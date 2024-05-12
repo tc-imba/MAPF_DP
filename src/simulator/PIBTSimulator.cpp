@@ -6,7 +6,7 @@
 
 
 void PIBTSimulator::print(std::ostream &out) const {
-    out << executionTime
+    out << executionTime << ","
         << firstAgentArrivingExecutionTime << ","
         << firstAgentArrivingTimestep;
 }

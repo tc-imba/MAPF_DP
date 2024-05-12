@@ -5,7 +5,7 @@
 #include "BTPGSimulator.h"
 
 void BTPGSimulator::print(std::ostream &out) const {
-    out << executionTime
+    out << executionTime << ","
         << firstAgentArrivingExecutionTime << ","
         << firstAgentArrivingTimestep;
 }

@@ -5,7 +5,7 @@
 #include "DefaultSimulator.h"
 
 void DefaultSimulator::print(std::ostream &out) const {
-    out << executionTime
+    out << executionTime << ","
         << firstAgentArrivingExecutionTime << ","
         << firstAgentArrivingTimestep << ","
         << partialReplanCount << ","
