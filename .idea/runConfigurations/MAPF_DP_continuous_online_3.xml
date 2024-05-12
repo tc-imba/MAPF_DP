@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MAPF_DP_continuous_online_3" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--debug --solver ccbs --simulator online --obstacles 270 --iteration 1 --agents 10 --delay-interval 10 --delay-start 1 --delay-ratio 0.3 --delay agent --k-neighbor 3 --conflicts node-node,edge-edge,node-edge --log-file online-node-edge.log" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/test_result" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="MAPF_DP" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="MAPF_DP">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

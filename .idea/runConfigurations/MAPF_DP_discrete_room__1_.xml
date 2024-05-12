@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MAPF_DP_discrete_room (1)" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--map mapf --map-name room-32-32-4 --agent-skip 0 --agents 60 --iteration 1 --solver eecbs --obstacles 270 --simulator online --online-opt --k-neighbor 2 --timing discrete --delay agent --delay-ratio 0.1 --delay-start 0 --delay-interval 1 --max-timestep 1000 --suboptimality 1.1 --map-file $PROJECT_DIR$/MAPF-benchmark/map/room-32-32-4 --task-file $PROJECT_DIR$/MAPF-benchmark/scen-even/room-32-32-4-even-1.scen --no-cache" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/test_result" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="MAPF_DP" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="MAPF_DP">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

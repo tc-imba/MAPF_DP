@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/BTPG" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Continuous-CBS" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/EECBS" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/GeometricTools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/MAPF-benchmark" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/spdlog" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/time-independent-planning" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/time-independent-planning/third_party/grid-pathfinding" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/time-independent-planning/third_party/grid-pathfinding/third_party/googletest" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/time-independent-planning/third_party/openFrameworks" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/time-independent-planning/third_party/openFrameworks/apps/projectGenerator" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/time-independent-planning/third_party/openFrameworks/scripts/apothecary" vcs="Git" />
+  </component>
+</project>

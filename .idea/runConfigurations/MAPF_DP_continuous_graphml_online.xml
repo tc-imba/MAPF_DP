@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MAPF_DP_continuous_graphml_online" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--simulator online --iteration 1 --agents 10 --delay-interval 10 --delay-start 0 --delay-ratio 0.3 --delay agent --timing continuous --map graphml --map-file &quot;D:\MAPF_DP\maps with space\roadmap.xml&quot; --task-file &quot;D:\MAPF_DP\maps with space\roadmap_task.xml&quot; --solver ccbs --simulator-output graphml-online.txt --log-file graphml-online.log --max-timestep 10000" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/test_result" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="MAPF_DP" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="MAPF_DP">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

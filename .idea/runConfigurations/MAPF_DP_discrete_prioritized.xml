@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MAPF_DP_discrete_prioritized" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--prioritized-replan --solver eecbs --simulator replan --obstacles 270 --iteration 10 --agents 30 --delay-interval 10 --delay-start 0 --delay-ratio 0.1 --delay agent --k-neighbor 2 --timing discrete" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/test_result" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="MAPF_DP" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="MAPF_DP">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

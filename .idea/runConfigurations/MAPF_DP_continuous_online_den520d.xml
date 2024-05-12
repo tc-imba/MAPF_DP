@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MAPF_DP_continuous_online_den520d" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--debug --simulator online --iteration 10 --agents 10 --delay-interval 10 --delay-start 0 --delay-ratio 0.3 --delay agent --timing continuous --map graphml --map-file ../maps/roadmaps/sparse/map.xml --task-file ../maps/roadmaps/sparse/1_task.xml --agent-skip 10 --agent-seed 1 --solver ccbs --simulator-output den520d-online.txt --log-file den520d-online.log --max-timestep 10000 --remove-redundant --map-name dense --delta-timestep 0" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/test_result" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="MAPF_DP" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="MAPF_DP">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

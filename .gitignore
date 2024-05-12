@@ -1,7 +1,9 @@
 cmake-build-*
+Continuous-CBS/cmake-build-*
 result*
-.idea
 experiment/__pycache__
+plot
 plot2
 test_result
 compare_plots
+
