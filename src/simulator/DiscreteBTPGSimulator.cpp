@@ -111,8 +111,8 @@ void DiscreteBTPGSimulator::initBTPGVariables() {
     sim = std::make_shared<btpg::Sim>(seed, btpg->getNumAgents());
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
-    firstAgentArrivingExecutionTime += elapsed_seconds.count();
-    executionTime += elapsed_seconds.count();
+//    firstAgentArrivingExecutionTime += elapsed_seconds.count();
+//    executionTime += elapsed_seconds.count();
     remove_all(ph);
 }
 

@@ -152,8 +152,12 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         #     soc_lower += 1
         #     soc_upper += 1
         total_time = npy.mean(df['total_time'])
-        makespan_time = npy.mean(df['total_time'] / df['makespan'])
-        makespan_time_lower, makespan_time_upper = get_confidence_interval(df['total_time'] / df['makespan'])
+        if setup.simulator.startswith(("replan", "prioritized")):
+            makespan_time = npy.mean(df['full_replan_count'] / df['makespan'])
+            makespan_time_lower, makespan_time_upper = get_confidence_interval(df['full_replan_count'] / df['makespan'])
+        else:
+            makespan_time = npy.mean(df['total_time'] / df['makespan'])
+            makespan_time_lower, makespan_time_upper = get_confidence_interval(df['total_time'] / df['makespan'])
         execution_time = 0
         first_agent_arriving = 0
         cycle_count = 0
@@ -227,11 +231,12 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
                 fixed_node_pairs = npy.mean(df['fixed_node_pairs'])
                 added_node_pairs = npy.mean(df['added_node_pairs'])
 
-        elif setup.simulator in ("replan", "prioritized", "prioritized_opt"):
+        elif setup.simulator.startswith(("replan", "prioritized")):
             partial_replan_count = npy.mean(df['partial_replan_count'])
             partial_replan_time = npy.mean(df['partial_replan_time'])
             full_replan_count = npy.mean(df['full_replan_count'])
             full_replan_time = npy.mean(df['full_replan_time'])
+
     except:
         total_time = 0
     if total_time == 0 or npy.isnan(total_time):
