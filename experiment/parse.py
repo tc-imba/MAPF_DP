@@ -312,6 +312,8 @@ def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[D
         "simulator": setup.simulator,
         "obstacles": setup.obstacles,
         "agents": setup.agents,
+        "k_neighbor": setup.k_neighbor,
+        "map_name": setup.map_name,
         "delay_start": setup.delay_start,
         "delay_interval": setup.delay_interval,
         "delay_ratio": setup.delay_ratio,

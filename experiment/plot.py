@@ -644,12 +644,19 @@ def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: in
 
 
 def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
-    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) & (data["simulator"] == "replan")]
+    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) & (data["simulator"] == "replan_1.1")]
+    print(df)
     groupby = ["simulator", "delay_ratio"]
     plot_type = "cdf"
-    subplot_type = "obstacles"
+    if args.map == "random":
+        subplot_type = "obstacles"
+    elif args.map == "mapf":
+        df = df[(df["obstacles"] == 0) | (df["obstacles"] == 270)]
+        subplot_type = "map-names"
+    else:
+        assert False
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="pdf", groupby=groupby, legend=True, extra=str(delay_interval))
+                                 y_field="pdf", plot_value=str(delay_interval), groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -673,7 +680,7 @@ def main(ctx, map_names):
     df_discrete_random = pd.read_csv(data_dir / f"df_{args.timing}.csv")
     df_discrete_mapf = pd.read_csv(data_dir / f"df_{args.timing}_mapf.csv")
     # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
-    # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time_{args.map}.csv")
+    df_discrete_mapf_time = pd.read_csv(data_dir / f"df_{args.timing}_time_mapf.csv")
 
     if args.timing == "discrete":
         if args.map == "random":
@@ -687,9 +694,12 @@ def main(ctx, map_names):
             # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
             df_discrete = df_discrete_mapf
             df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
-            for agents in args.agents:
-                for delay_ratio in args.delay_ratios:
-                    plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
+            # for agents in args.agents:
+            #     for delay_ratio in args.delay_ratios:
+            #         plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
+
+            plot_replan_pdf(args, df_discrete_mapf_time, 10, 1)
+
             # plot_cycle(args, df_discrete, agents)
             # for obstacle in args.obstacles:
             #     plot_cdf(args, df_discrete_time, agents, obstacle)
