@@ -63,7 +63,7 @@ time_header_names = [
     'map', 'agent', 'iteration', 'length', 'data',
 ]
 time_column_names = [
-    "timing", "simulator", "obstacles", "agents",
+    "timing", "simulator", "obstacles", "agents", "k_neighbor", "map_name",
     "delay_start", "delay_interval", "delay_ratio", "delay_type",
     "data",
 ]
