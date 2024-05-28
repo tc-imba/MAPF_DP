@@ -100,6 +100,8 @@ class PlotSettings:
             self.y_label = 'Avg. Comp. Time \n of Each Timestep (ms)'
             if self.plot_type == "cycle":
                 self.y_log = True
+        elif self.y_field == "plan_percent":
+            self.y_label = "Plan Percentage (\\%)"
         elif self.y_field == "cdf":
             self.y_label = "\n Timesteps Completed (\\%)"
         elif self.y_field == "pdf":
@@ -277,6 +279,8 @@ class PlotSettings:
             y = np.array(df["makespan_time"] * 1000)
             y_lower = y - np.array(df["makespan_time_lower"] * 1000)
             y_upper = np.array(df["makespan_time_upper"] * 1000) - y
+        elif self.y_field == "plan_percent":
+            y = np.array(df["full_replan_count"] / df["makespan"] * 100)
         elif self.y_field == "node_pair":
             y = np.array(df["node_pair"])
         elif self.y_field == "cdf" or self.y_field == "pdf":
@@ -480,7 +484,11 @@ def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     # plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=False)
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
+    plot(df, plot_settings)
+    df = df[(df["simulator"] == "replan_1.1")]
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
+                                 plot_value=str(delay_ratio), y_field="plan_percent", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -678,6 +686,7 @@ def main(ctx, map_names):
         else:
             # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
             df_discrete = df_discrete_mapf
+            df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
             for agents in args.agents:
                 for delay_ratio in args.delay_ratios:
                     plot_simulator_discrete(args, df_discrete, agents, delay_ratio)

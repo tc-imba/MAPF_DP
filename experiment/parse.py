@@ -475,8 +475,8 @@ def main(ctx, output_suffix, input_suffix, category, map_names):
     main_df, time_df = parse_data(args)
     main_df.to_csv(args.output_csv, index=False)
     logger.info("write main_df to {}", args.output_csv)
-    # time_df.to_csv(args.time_output_csv, index=False)
-    # logger.info("write time_df to {}", args.time_output_csv)
+    time_df.to_csv(args.time_output_csv, index=False)
+    logger.info("write time_df to {}", args.time_output_csv)
 
     # df_infinite = parse_data(result_dir, "infinite", category)
     # df_periodic = parse_data(result_dir, "periodic", category)
