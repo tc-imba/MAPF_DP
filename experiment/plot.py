@@ -644,8 +644,8 @@ def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: in
 
 
 def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
-    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) & (data["simulator"] == "replan_1.1")]
-    print(df)
+    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) &
+              ((data["simulator"] == "replan_1.1") | (data["simulator"] == "online_group") | (data["simulator"] == "online_opt"))]
     groupby = ["simulator", "delay_ratio"]
     plot_type = "cdf"
     if args.map == "random":
@@ -656,7 +656,7 @@ def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_
     else:
         assert False
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="pdf", plot_value=str(delay_interval), groupby=groupby, legend=True)
+                                 y_field="cdf", plot_value=str(delay_interval), groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -698,7 +698,11 @@ def main(ctx, map_names):
             #     for delay_ratio in args.delay_ratios:
             #         plot_simulator_discrete(args, df_discrete, agents, delay_ratio)
 
-            plot_replan_pdf(args, df_discrete_mapf_time, 10, 1)
+            # plot_replan_pdf(args, df_discrete_mapf_time, 10, 1)
+
+            for agents in args.agents:
+                for delay_interval in args.delay_intervals:
+                    plot_replan_pdf(args, df_discrete_mapf_time, agents, delay_interval)
 
             # plot_cycle(args, df_discrete, agents)
             # for obstacle in args.obstacles:

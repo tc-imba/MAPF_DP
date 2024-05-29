@@ -200,8 +200,10 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         //        }
 
         std::chrono::duration<double> elapsed_seconds = end - start;
-        if (firstAgentArrivingTimestep == 0) {
+//        if (firstAgentArrivingTimestep == 0) {
             unblockedAgents += unblocked.size();
+//        }
+        if (firstAgentArrivingTimestep == 0) {
             firstAgentArrivingExecutionTime += elapsed_seconds.count();
         }
         executionTime += elapsed_seconds.count();
@@ -610,10 +612,10 @@ void DiscreteOnlineSimulator::heuristicCycleCheck() {
 
 void DiscreteOnlineSimulator::cycleCheck() {
     if (ready.empty()) return;
-    if (firstAgentArrivingTimestep == 0) {
+//    if (firstAgentArrivingTimestep == 0) {
         cycleCheckCount++;
         cycleCheckAgents += ready.size();
-    }
+//    }
     // suppose all unblocked agents are at their next state
     for (auto i: unblocked) {
         agents[i].state++;
@@ -642,9 +644,9 @@ void DiscreteOnlineSimulator::cycleCheck() {
 
 
 std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheck() {
-    if (firstAgentArrivingTimestep == 0) {
+//    if (firstAgentArrivingTimestep == 0) {
         feasibilityCheckCount++;
-    }
+//    }
     if (!isFeasibilityType) {
         return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck);
     }
