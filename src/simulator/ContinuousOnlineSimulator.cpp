@@ -156,11 +156,11 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
         //            deadEndCheck();
         //        }
         /** line 12-23 **/
-        printSets("init        |");
+        printSets("init        |", currentTimestep);
         singleAgentCheck();
 
         if (!snapshot) {
-            printSets("cycle       |");
+            printSets("cycle       |", currentTimestep);
             cycleCheck();
         }
 #endif
@@ -227,7 +227,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 
         ready.clear();
         unshared.clear();
-        printSets("final       |");
+        printSets("final       |", currentTimestep);
 
         //        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
 

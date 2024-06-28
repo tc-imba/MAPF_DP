@@ -49,6 +49,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Use delay probability (in solver)", "--dp");
     optionParser.add("", false, 0, 0, "Use naive feasibility check", "--naive-feasibility");
     optionParser.add("", false, 0, 0, "Use naive cycle check", "--naive-cycle");
+    optionParser.add("", false, 0, 0, "Use fast cycle check", "--fast-cycle");
     optionParser.add("", false, 0, 0, "Use only cycle check", "--only-cycle");
     optionParser.add("", false, 0, 0, "Classify feasibility types", "--feasibility-type");
     optionParser.add("", false, 0, 0, "Use prioritized replan", "--prioritized-replan");
@@ -140,7 +141,7 @@ int main(int argc, const char *argv[]) {
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup, useGroupDetermined;
+    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, fastCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup, useGroupDetermined;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -182,6 +183,7 @@ int main(int argc, const char *argv[]) {
     naiveFeasibilityCheck = optionParser.isSet("--naive-feasibility");
     naiveCycleCheck = optionParser.isSet("--naive-cycle");
     onlyCycleCheck = optionParser.isSet("--only-cycle");
+    fastCycleCheck = optionParser.isSet("--fast-cycle");
     feasibilityType = optionParser.isSet("--feasibility-type");
     prioritizedReplan = optionParser.isSet("--prioritized-replan");
     prioritizedOpt = optionParser.isSet("--prioritized-opt");
@@ -459,6 +461,7 @@ int main(int argc, const char *argv[]) {
             onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
             onlineSimulator->isHeuristicCycleCheck = !naiveCycleCheck;
             onlineSimulator->isOnlyCycleCheck = onlyCycleCheck;
+            onlineSimulator->isFastCycleCheck = fastCycleCheck;
             onlineSimulator->isFeasibilityType = feasibilityType;
         } else if (simulatorType == "pibt") {
             if (timingType == "continuous") {

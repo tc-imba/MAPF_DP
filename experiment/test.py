@@ -162,6 +162,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     prioritized_opt = False
     online_opt = False
     group_determined = False
+    fast_cycle = False
     remove_redundant = "none"
     snapshot_order = "none"
     replan_suboptimality = 1
@@ -194,6 +195,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         elif setup.simulator == "online_group":
             online_opt = True
             group_determined = True
+        elif setup.simulator == "online_fast_cycle":
+            online_opt = True
+            fast_cycle = True
 
     program_args = [
         args.program.as_posix(),
@@ -241,6 +245,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         program_args.append("--online-opt")
     if group_determined:
         program_args.append("--group-determined")
+    if fast_cycle:
+        program_args.append("--fast-cycle")
 
     if map_file:
         program_args.append("--map-file")

@@ -119,7 +119,7 @@ bool Graph::isConnected() {
     }
     return true;*/
     std::vector<int> component(boost::num_vertices(g));
-    auto num = boost::connected_components(g, component.data());
+        auto num = boost::connected_components(g, component.data());
 /*    if (num > 1) {
         for (int i = 0; i < num; i++) {
             std::string output = "";

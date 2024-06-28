@@ -68,6 +68,7 @@ public:
     bool debug = false;
     bool onlineOpt = false;
     bool groupDetermined = false;
+    bool isFastCycleCheck = false;
     std::shared_ptr<Solver> solver = nullptr;
     std::vector<std::vector<unsigned int>> pathTopoNodeIds;
     Graph::topo_graph_t topoGraph;

@@ -47,9 +47,11 @@ private:
 
     void heuristicCycleCheck();
 
+    bool fastCycleCheck();
+
     void cycleCheck();
 
-    std::pair<size_t, size_t> feasibilityCheck();
+    std::pair<size_t, size_t> feasibilityCheck(bool fast = false);
 };
 
 

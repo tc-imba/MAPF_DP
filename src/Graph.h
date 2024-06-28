@@ -18,7 +18,7 @@
 
 struct Agent {
     unsigned int start, goal, current;
-    unsigned int state;
+    unsigned int state, newState;
     double timestep;
     double arrivingTimestep;
     bool blocked;

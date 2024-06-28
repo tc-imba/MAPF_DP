@@ -36,11 +36,11 @@ void OnlineSimulator::printState(std::ostream &os, size_t i, unsigned int state)
 }
 
 
-void OnlineSimulator::printSets(const std::string &title) {
+void OnlineSimulator::printSets(const std::string &title, double currentTimestep) {
     if (debug) {
         std::ostringstream oss;
         auto size = ready.size() + moved.size() + blocked.size() + unblocked.size() + unshared.size();
-        oss << title << " " << size << " ";
+        oss << title << " timestep: " << currentTimestep << " agents: " << size << " ";
         oss << "ready: ";
         for (auto j: ready) {
             oss << j << " ";

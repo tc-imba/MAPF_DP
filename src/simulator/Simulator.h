@@ -28,6 +28,7 @@ protected:
     double maxDelayTimestep = 0;
     std::chrono::steady_clock::time_point executionTimeStart;
     std::vector<std::pair<bool, double> > executionTimeVec;
+    std::vector<std::pair<unsigned int, unsigned int>> agentCountVec;
     std::set<double> arrivingTimestepSet;
 
     enum class AgentState {

@@ -12,6 +12,7 @@ public:
     bool isHeuristicFeasibilityCheck = true;
     bool isHeuristicCycleCheck = true;
     bool isOnlyCycleCheck = false;
+    bool isFastCycleCheck = false;
     bool isFeasibilityType = false;
 
     size_t feasibilityCheckCount = 0;
@@ -31,7 +32,7 @@ public:
 
     void printState(std::ostream &os, size_t i, unsigned int state) override;
 
-    void printSets(const std::string &title);
+    void printSets(const std::string &title, double currentTimestep);
 
 protected:
     struct SharedNodePair {

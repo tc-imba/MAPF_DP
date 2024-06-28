@@ -9,8 +9,8 @@ const std::string Simulator::AgentStateLiterals[] = {
         "block", "unblock", "move", "delay", "complete", "fail",
 };
 
-size_t Simulator::combineRandomSeed(
-        unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int _seed) {
+size_t Simulator::combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep,
+                                    unsigned int _seed) {
     size_t result = 0;
     boost::hash_combine(result, nodeId1 ^ nodeId2);
     boost::hash_combine(result, timestep);
@@ -26,11 +26,11 @@ double Simulator::averageMakeSpan(MakeSpanType makeSpanType) {
         } else if (makeSpanType == MakeSpanType::AVERAGE) {
             result += agent.timestep / (double) agents.size();
         }
-//        std::cout << agent.timestep << std::endl;
+        //        std::cout << agent.timestep << std::endl;
 
-//            std::cerr << agent.timestep << " ";
+        //            std::cerr << agent.timestep << " ";
     }
-//        std::cerr << std::endl;
+    //        std::cerr << std::endl;
     return result;
 }
 
@@ -57,7 +57,7 @@ void Simulator::updateDelayedIntervals(double startTimestep, double endTimestep)
     for (unsigned int i = 0; i < ((double) delayedShuffleVec.size()) * delayRatio; i++) {
         auto interval = boost::icl::interval<double>::right_open(startTimestep, endTimestep);
         delayedIntervals[delayedShuffleVec[i]] += interval;
-//        std::cout << delayedShuffleVec[i] << " " << delayedIntervals[delayedShuffleVec[i]] << std::endl;
+        //        std::cout << delayedShuffleVec[i] << " " << delayedIntervals[delayedShuffleVec[i]] << std::endl;
     }
 }
 
@@ -72,9 +72,7 @@ double Simulator::getAgentArrivingTime(double currentTimestep, double delayLengt
                                        const Graph::Edge &edge) {
     double arrivingTimestep = currentTimestep;
     double remainDistance = edge.length;
-    if (delayLength == 0) {
-        return arrivingTimestep + remainDistance;
-    }
+    if (delayLength == 0) { return arrivingTimestep + remainDistance; }
     size_t intervalSetIndex = 0;
     if (delayType == "agent") {
         intervalSetIndex = agentId;
@@ -85,9 +83,9 @@ double Simulator::getAgentArrivingTime(double currentTimestep, double delayLengt
     while (remainDistance > 0) {
         double targetTimestep = arrivingTimestep + remainDistance;
         ensureDelayedIntervals(targetTimestep, delayLength);
-        auto moveInterval = boost::icl::interval<double>::right_open(arrivingTimestep,
-                                                                     arrivingTimestep + remainDistance);
-//        std::cout << intervalSet << std::endl;
+        auto moveInterval =
+                boost::icl::interval<double>::right_open(arrivingTimestep, arrivingTimestep + remainDistance);
+        //        std::cout << intervalSet << std::endl;
         auto collideInterval = intervalSet.find(moveInterval);
         if (collideInterval == intervalSet.end()) {
             // no delay anymore
@@ -95,7 +93,7 @@ double Simulator::getAgentArrivingTime(double currentTimestep, double delayLengt
             arrivingTimestep = targetTimestep;
             break;
         }
-//        std::cout << currentTimestep << " " << edge.length << " " << arrivingTimestep << std::endl;
+        //        std::cout << currentTimestep << " " << edge.length << " " << arrivingTimestep << std::endl;
         if (collideInterval->lower() > arrivingTimestep) {
             outputPaths[agentId].push_back(PathNode{arrivingTimestep, agents[agentId].state, AgentState::MOVE});
             remainDistance -= collideInterval->lower() - arrivingTimestep;
@@ -144,21 +142,21 @@ void Simulator::updateDelayedSet(unsigned int timestep) {
 int Simulator::countCompletedAgents() {
     int count = 0;
     for (unsigned int i = 0; i < agents.size(); i++) {
-//        std::cout << i << " " << agents[i].current << " " << agents[i].goal << std::endl;
-        if (agents[i].current == agents[i].goal) {
-            count++;
-        }
+        //        std::cout << i << " " << agents[i].current << " " << agents[i].goal << std::endl;
+        if (agents[i].current == agents[i].goal) { count++; }
     }
     return count;
 }
 
 void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration) {
-    timeOutputFile.open(timeOutputFileName, std::ios_base::app);
+    timeOutputFile.open(timeOutputFileName, std::ios_base::out | std::ios_base::trunc);
     if (timeOutputFile.is_open()) {
-        timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size() << std::endl;
+        timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size()
+                       << std::endl;
         timeOutputFile << std::scientific << std::setprecision(12);
-        for (auto &p : executionTimeVec) {
-            timeOutputFile << (int) p.first << " " << p.second << std::endl;
+        for (unsigned int i = 0; i < executionTimeVec.size(); i++) {
+            timeOutputFile << (int) executionTimeVec[i].first << " " << executionTimeVec[i].second << " "
+                           << agentCountVec[i].first << " " << agentCountVec[i].second << " " << std::endl;
         }
         timeOutputFile.close();
     }
@@ -199,4 +197,3 @@ void Simulator::advanceTimestep(double &currentTimestep) {
         arrivingTimestepSet.erase(arrivingTimestepSet.begin(), ++it);
     }
 }
-

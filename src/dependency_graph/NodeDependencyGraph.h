@@ -11,7 +11,7 @@
 class NodeDependencyGraph : public DependencyGraph {
 public:
 //    std::vector<SDGEdge> savedAddedEdges;
-    std::map<SDGEdgePair, SDGEdge> savedAddedEdges;
+    std::map<SDGEdgePair, SDGEdge> savedAddedEdges, ignoredEdges;
     std::vector<int> component;
     int componentNum = 0;
 
@@ -42,7 +42,13 @@ public:
 
     void filterUnsettledEdgePairs(std::list<SDGEdgePair> &unsettledEdgePairs);
 
-    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive, bool ignore = true);
+    void orderUnsettledEdgePairs(std::list<SDGEdgePair> &unsettledEdgePairs);
+
+    std::pair<size_t, size_t> feasibilityCheckTest(bool recursive, bool ignore = true, bool fast = false);
+
+    void addSavedEdges();
+
+    void removeSavedEdges();
 
 protected:
     SDGEdgePair orderEdgesByStart(const SDGEdgePair &edgePair);
