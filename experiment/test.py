@@ -657,7 +657,7 @@ async def do_tests_den520d(args: TestArguments):
                 for _delay_ratio in args.delay_ratios:
                     for _delay_interval in args.delay_intervals:
                         for _simulator in args.simulators:
-                            if _simulator != "online":
+                            if not _simulator.startswith("online"):
                                 naive_settings = [(False, False, False)]
                             else:
                                 naive_settings = NAIVE_SETTINGS
