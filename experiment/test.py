@@ -442,10 +442,10 @@ async def do_tests(args: TestArguments):
                         for _delay_ratio in args.delay_ratios:
                             for _delay_interval in args.delay_intervals:
                                 for _simulator in args.simulators:
-                                    if not args.naive or _simulator != "online":
-                                        naive_settings = [(False, False, False)]
-                                    else:
+                                    if args.naive and _simulator.startswith("online"):
                                         naive_settings = NAIVE_SETTINGS
+                                    else:
+                                        naive_settings = [(False, False, False)]
                                     for (_naive_feasibility, _naive_cycle, _only_cycle) in naive_settings:
                                         for _simulation_seed in range(args.iteration):
                                             tasks.append(
@@ -657,10 +657,10 @@ async def do_tests_den520d(args: TestArguments):
                 for _delay_ratio in args.delay_ratios:
                     for _delay_interval in args.delay_intervals:
                         for _simulator in args.simulators:
-                            if not _simulator.startswith("online"):
-                                naive_settings = [(False, False, False)]
-                            else:
+                            if args.naive and _simulator.startswith("online"):
                                 naive_settings = NAIVE_SETTINGS
+                            else:
+                                naive_settings = [(False, False, False)]
                             for (_naive_feasibility, _naive_cycle, _only_cycle) in naive_settings:
                                 for _simulation_seed in range(args.iteration):
                                     tasks.append(
