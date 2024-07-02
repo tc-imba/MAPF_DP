@@ -51,11 +51,12 @@ PBAR = tqdm(total=1)
 
 NAIVE_SETTINGS = [
     # (False, False, False),  # online/default,cycle
-    (False, True, False),  # feasibility,cycle
-    (False, True, True),  # cycle
+    # (False, True, False),  # feasibility,cycle
+    # (False, True, True),  # cycle
     # (True, False, False),
     # (True, True, False),       # feasibility
     # (True, True, True),
+    (True, False, False),    # naive feasibility
 ]
 
 class CurrentWrapper:

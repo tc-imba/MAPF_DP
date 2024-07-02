@@ -149,7 +149,7 @@ int Simulator::countCompletedAgents() {
 }
 
 void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration) {
-    timeOutputFile.open(timeOutputFileName, std::ios_base::out | std::ios_base::trunc);
+    timeOutputFile.open(timeOutputFileName, std::ios_base::out | std::ios_base::app);
     if (timeOutputFile.is_open()) {
         timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size()
                        << std::endl;

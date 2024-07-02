@@ -181,7 +181,9 @@ class PlotSettings:
                 if simulator == "online_opt":
                     label = f"proposed-{subplot_key}"
                 elif simulator == "online_group":
-                    label = f"proposed-new-{subplot_key}"
+                    label = f"proposed-group-{subplot_key}"
+                elif simulator == "online_fast_cycle":
+                    label = f"proposed-fast-cycle-{subplot_key}"
                 else:
                     label = f"{simulator}-{subplot_key}"
             elif simulator == "btpg":
@@ -460,7 +462,8 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
 def plot_simulator_discrete(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio: float):
     k_neighbor = 2
     df = data[
-        ((data["simulator"] == "default") | (data["simulator"] == "online_opt") | (data["simulator"] == "online_group") |
+        ((data["simulator"] == "default") | (data["simulator"] == "online_opt") |
+         (data["simulator"] == "online_group") | (data["simulator"] == "online_fast_cycle") |
          (data["simulator"] == "replan_1.1") | (data["simulator"] == "pibt") | (data["simulator"] == "btpg"))
         & (data["agents"] == agents) & (data["k_neighbor"] == k_neighbor) & (data["delay_ratio"] == delay_ratio)
         ]
@@ -645,7 +648,8 @@ def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: in
 
 def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
     df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) &
-              ((data["simulator"] == "replan_1.1") | (data["simulator"] == "online_group") | (data["simulator"] == "online_opt"))]
+              ((data["simulator"] == "replan_1.1") | (data["simulator"] == "online_group") |
+               (data["simulator"] == "online_opt") | (data["simulator"] == "online_fast_cycle"))]
     groupby = ["simulator", "delay_ratio"]
     plot_type = "cdf"
     if args.map == "random":
