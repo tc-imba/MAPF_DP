@@ -11,8 +11,9 @@
 class NodeDependencyGraph : public DependencyGraph {
 public:
 //    std::vector<SDGEdge> savedAddedEdges;
-    std::map<SDGEdgePair, SDGEdge> savedAddedEdges, ignoredEdges;
+    std::map<SDGEdgePair, SDGEdge> savedAddedEdges, newSavedAddedEdges, ignoredEdges;
     std::vector<int> component;
+
     int componentNum = 0;
 
     NodeDependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep) : DependencyGraph(graph, agents, paths, firstAgentArrivingTimestep){};

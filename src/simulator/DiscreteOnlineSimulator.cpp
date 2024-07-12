@@ -15,8 +15,8 @@
 unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                                unsigned int delayStart, unsigned int delayInterval) {
     initSimulation();
-    executionTimeVec.clear();
-    agentCountVec.clear();
+//    executionTimeVec.clear();
+//    agentCountVec.clear();
     openOutputFiles();
     std::vector<std::string> agentOutputStates(agents.size());
 
@@ -48,8 +48,12 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
     // warmup
     //    depGraph.feasibilityCheckTest(false);
 
-    executionTimeStart = std::chrono::steady_clock::now();
     for (; currentTimestep + 1 < maxTimeStep;) {
+        if (verboseOutput) {
+            timestepJson.clear();
+            timestepJson["timestep"] = currentTimestep;
+            executionTimeStart = std::chrono::steady_clock::now();
+        }
 
         //        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
         updateDelayedSet(currentTimestep, delayStart, delayInterval);
@@ -176,7 +180,12 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         ready.clear();
         unshared.clear();
         printSets("final       |", currentTimestep);
-        agentCountVec.emplace_back(blocked.size(), unblocked.size());
+        if (verboseOutput) {
+            timestepJson["blockedAgents"] = blocked.size();
+            timestepJson["unblockedAgents"] = unblocked.size();
+        }
+
+//        agentCountVec.emplace_back(blocked.size(), unblocked.size());
 
 
         //        std::cout << unblocked.size() << " " << savedReady.size() + savedUnshared.size() << std::endl;
@@ -226,7 +235,8 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
 
                 auto it = nodeAgentMap.find(nextNodeId);
                 if (it != nodeAgentMap.end() && it->second != i) {
-                    std::cout << i << " " << it->second << " " << nextNodeId << std::endl;
+                    SPDLOG_ERROR("agent {}: ({},{})->({},{}) conflict", i, state, currentNodeId, state + 1, nextNodeId);
+                    std::cout << "agent " << i << " and " << it->second << " conflict at " << nextNodeId << std::endl;
                     exit(0);
                 }
 
@@ -282,10 +292,14 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
             }
         }
 
-        if (count >= agents.size()) { break; }
-        saveExecutionTime();
+        if (count >= agents.size()) {break; }
+        if (verboseOutput) {
+            writeTimestepOutput();
+        }
     }
-    saveExecutionTime();
+    if (verboseOutput) {
+        writeTimestepOutput();
+    }
 
     /*    bool unfinish = false;
     for (unsigned int i = 0; i < agents.size(); i++) {
@@ -573,18 +587,44 @@ void DiscreteOnlineSimulator::heuristicCycleCheck() {
 
 bool DiscreteOnlineSimulator::fastCycleCheck() {
     std::vector<bool> canAdd(agents.size(), false);
-    for (unsigned int i = 0; i < agents.size(); i++) { agents[i].newState = agents[i].state; }
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        agents[i].newState = agents[i].state;
+    }
     for (auto i: ready) {
         agents[i].newState++;
         canAdd[i] = true;
     }
+    /*
+    // prevent collision at next node
+    std::unordered_map<size_t, size_t> nodeAgentCurrentMap;
+    for (unsigned int i = 0; i < agents.size(); i++) {
+        if (!canAdd[i]) {
+            agents[i].newState = agents[i].state;
+            auto nodeId = paths[i][agents[i].newState];
+            nodeAgentCurrentMap.emplace(nodeId, i);
+        }
+    }
+    for (auto i: ready) {
+        auto nodeId = paths[i][agents[i].newState];
+        auto it = nodeAgentCurrentMap.find(nodeId);
+        if (it == nodeAgentCurrentMap.end()) {
+            nodeAgentCurrentMap.emplace_hint(it, nodeId, i);
+        } else {
+            canAdd[i] = false;
+            agents[i].newState = agents[i].state;
+        }
+    }*/
+
     auto result = feasibilityCheck(true);
     if (result.first != agents.size() || result.second != agents.size()) {
         SPDLOG_WARN("initial plan not feasible!");
         std::cerr << "warning: initial plan not feasible!" << std::endl;
-        result = feasibilityCheck(false);
-        if (result.first != agents.size() || result.second != agents.size()) {
-            return false;
+        if (depGraph.savedAddedEdges.empty()) {
+            result = feasibilityCheck(false);
+            //        exit(-1);
+            if (result.first != agents.size() || result.second != agents.size()) {
+                return false;
+            }
         }
         /*for (auto i: ready) { blocked.insert(i); }
         ready.clear();
@@ -601,10 +641,15 @@ bool DiscreteOnlineSimulator::fastCycleCheck() {
     //        canAdd[i] = true;
     //    }
     for (const auto &[edgePair, edge]: depGraph.savedAddedEdges) {
+//        SPDLOG_DEBUG("savedAddedEdges: {} {} -> {}", edgePair.first,
+//                     edgePair.second, edge);
         auto agentId = edge.dest.agentId;
         auto state = edge.dest.state;
+        if (agents[edge.source.agentId].state >= edge.source.state) {
+            continue;
+        }
         if (canAdd[agentId] && agents[agentId].newState >= state) {
-            SPDLOG_DEBUG("unsettled edge conflict on agent {} (saved)  : {} {} -> {}", agentId, edgePair.first,
+            SPDLOG_DEBUG("unsettled edge conflict on agent {} (saved) : {} {} -> {}", agentId, edgePair.first,
                          edgePair.second, edge);
             canAdd[agentId] = false;
         }
@@ -612,6 +657,9 @@ bool DiscreteOnlineSimulator::fastCycleCheck() {
     for (const auto &[edgePair, edge]: depGraph.ignoredEdges) {
         auto agentId = edge.dest.agentId;
         auto state = edge.dest.state;
+        if (agents[edge.source.agentId].state >= edge.source.state) {
+            continue;
+        }
         if (canAdd[agentId] && agents[agentId].newState >= state) {
             SPDLOG_DEBUG("unsettled edge conflict on agent {} (ignored): {} {} -> {}", agentId, edgePair.first,
                          edgePair.second, edge);
@@ -635,6 +683,12 @@ bool DiscreteOnlineSimulator::fastCycleCheck() {
 
 
 void DiscreteOnlineSimulator::cycleCheck() {
+//    depGraph.feasibilityCheckUnsettledEdgePairsCount = 0;
+    depGraph.feasibilityCheckLoopCount = 0;
+    depGraph.feasibilityCheckRecursionCount = 0;
+    depGraph.feasibilityCheckTopoCount = 0;
+    feasibilityCheckCount = 0;
+
     if (ready.empty()) return;
     //    if (firstAgentArrivingTimestep == 0) {
     cycleCheckCount++;
@@ -661,6 +715,16 @@ void DiscreteOnlineSimulator::cycleCheck() {
     for (auto i: unblocked) { agents[i].state--; }
     for (auto i: unshared) { agents[i].state--; }
     //    std::cerr << "end cycle check: ";
+
+    if (verboseOutput) {
+        timestepJson["feasibilityCheckCount"] = feasibilityCheckCount;
+        timestepJson["feasibilityCheckUnsettledEdgePairsCount"] = depGraph.feasibilityCheckUnsettledEdgePairsCount;
+        timestepJson["feasibilityCheckLoopCount"] = depGraph.feasibilityCheckLoopCount;
+        timestepJson["feasibilityCheckRecursionCount"] = depGraph.feasibilityCheckRecursionCount;
+        timestepJson["feasibilityCheckTopoCount"] = depGraph.feasibilityCheckTopoCount;
+
+    }
+
 }
 
 
@@ -668,7 +732,9 @@ std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheck(bool fast) {
     //    if (firstAgentArrivingTimestep == 0) {
     feasibilityCheckCount++;
     //    }
-    if (!isFeasibilityType) { return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck, true, fast); }
+    return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck, true, fast);
+
+    /*if (!isFeasibilityType) { return depGraph.feasibilityCheckTest(!isHeuristicFeasibilityCheck, true, fast); }
     //    feasibilityCheckIterationTemp = 0;
     auto heuristicResult = depGraph.feasibilityCheckTest(false, true, fast);
     //    feasibilityCheckIteration[0] += feasibilityCheckIterationTemp;
@@ -697,5 +763,5 @@ std::pair<size_t, size_t> DiscreteOnlineSimulator::feasibilityCheck(bool fast) {
     //        return heuristicResult;
     //    } else {
     //        return exhaustiveResult;
-    //    }
+    //    }*/
 }

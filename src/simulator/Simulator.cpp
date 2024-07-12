@@ -148,19 +148,27 @@ int Simulator::countCompletedAgents() {
     return count;
 }
 
-void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration) {
-    timeOutputFile.open(timeOutputFileName, std::ios_base::out | std::ios_base::app);
-    if (timeOutputFile.is_open()) {
-        timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size()
-                       << std::endl;
-        timeOutputFile << std::scientific << std::setprecision(12);
-        for (unsigned int i = 0; i < executionTimeVec.size(); i++) {
-            timeOutputFile << (int) executionTimeVec[i].first << " " << executionTimeVec[i].second << " "
-                           << agentCountVec[i].first << " " << agentCountVec[i].second << " " << std::endl;
-        }
-        timeOutputFile.close();
-    }
+void Simulator::writeSimulationOutput() {
+    resultJson["averageCost"] = averageMakeSpan(MakeSpanType::AVERAGE);
+    resultJson["makespan"] = averageMakeSpan(MakeSpanType::MAXIMUM);
+    resultJson["executionTime"] = executionTime;
+    resultJson["firstAgentArrivingExecutionTime"] = firstAgentArrivingExecutionTime;
+    resultJson["firstAgentArrivingTimestep"] = firstAgentArrivingTimestep;
 }
+
+//void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration) {
+//    timeOutputFile.open(timeOutputFileName, std::ios_base::out | std::ios_base::app);
+//    if (timeOutputFile.is_open()) {
+//        timeOutputFile << mapSeed << " " << agentSeed << " " << iteration << " " << executionTimeVec.size()
+//                       << std::endl;
+//        timeOutputFile << std::scientific << std::setprecision(12);
+//        for (unsigned int i = 0; i < executionTimeVec.size(); i++) {
+//            timeOutputFile << (int) executionTimeVec[i].first << " " << executionTimeVec[i].second << " "
+//                           << agentCountVec[i].first << " " << agentCountVec[i].second << " " << std::endl;
+//        }
+//        timeOutputFile.close();
+//    }
+//}
 
 void Simulator::printAgent(size_t i, const std::string &message) {
     std::ostringstream oss;
@@ -177,11 +185,14 @@ void Simulator::printAgent(size_t i, const std::string &message) {
     SPDLOG_DEBUG("{}", oss.str());
 }
 
-void Simulator::saveExecutionTime() {
-    bool firstAgentArrived = firstAgentArrivingTimestep > 0;
+void Simulator::writeTimestepOutput() {
+//    bool firstAgentArrived = firstAgentArrivingTimestep > 0;
     auto now = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = now - executionTimeStart;
-    executionTimeVec.emplace_back(firstAgentArrived, elapsed_seconds.count());
+    executionTimeStart = now;
+    timestepJson["executionTime"] = elapsed_seconds.count();
+    outputJson["details"].push_back(timestepJson);
+//    executionTimeVec.emplace_back(firstAgentArrived, elapsed_seconds.count());
 }
 
 void Simulator::advanceTimestep(double &currentTimestep) {

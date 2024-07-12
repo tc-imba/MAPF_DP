@@ -952,8 +952,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckTest(bool rec
     //    SPDLOG_DEBUG("begin feasibility check, unsettled size: {}", unsettledEdgePairs.size());
     SPDLOG_DEBUG("begin feasibility check, unsettled group size: {}", unsettledEdgePairGroups.size());
 
-    if (firstAgentArrivingTimestep == 0) {
-        feasibilityCheckUnsettledCount += unsettledEdgePairGroups.size();
+    if (firstAgentArrivingTimestep == 0) { feasibilityCheckUnsettledEdgePairsCount += unsettledEdgePairGroups.size();
     }
 
     //    return feasibilityCheckHelper(sharedNodesList, recursive);

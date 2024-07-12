@@ -63,6 +63,9 @@ protected:
     const double &firstAgentArrivingTimestep;
     std::vector<std::vector<double>> timestamps;
 
+    // connectedGraph[k][i,j] = h means that
+    // staring from l_{i,j}, the smallest reachable state l_{k,h}
+    std::vector<std::vector<unsigned int> > connectedGraph;
 
 public:
     bool debug = false;
@@ -77,7 +80,7 @@ public:
     std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
     std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
 
-    size_t feasibilityCheckUnsettledCount = 0;
+    size_t feasibilityCheckUnsettledEdgePairsCount = 0;
     size_t feasibilityCheckTopoCount = 0;
     size_t feasibilityCheckLoopCount = 0;
     size_t feasibilityCheckRecursionCount = 0;
@@ -92,6 +95,12 @@ public:
     bool isEdgeInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
 
     bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
+
+    bool isPathInTopoGraph(const SDGEdge &edge);
+
+    bool addEdgeTopoGraph(const SDGEdge &edge);
+
+    bool removeEdgeTopoGraph(const SDGEdge &edge);
 };
 
 /*template <> struct fmt::formatter<DependencyGraph::SDGNode>: formatter<string_view> {

@@ -7,6 +7,7 @@
 
 #include "../solver/Solver.h"
 #include <boost/icl/interval_set.hpp>
+#include <nlohmann/json.hpp>
 
 #include <random>
 #include <iostream>
@@ -27,8 +28,8 @@ protected:
     std::vector<boost::icl::interval_set<double> > delayedIntervals;
     double maxDelayTimestep = 0;
     std::chrono::steady_clock::time_point executionTimeStart;
-    std::vector<std::pair<bool, double> > executionTimeVec;
-    std::vector<std::pair<unsigned int, unsigned int>> agentCountVec;
+//    std::vector<std::pair<bool, double> > executionTimeVec;
+//    std::vector<std::pair<unsigned int, unsigned int>> agentCountVec;
     std::set<double> arrivingTimestepSet;
 
     enum class AgentState {
@@ -55,7 +56,6 @@ public:
     bool debug = false;
     std::string delayType;
     std::string outputFileName;
-    std::string timeOutputFileName;
 
     std::ofstream outputFile;
     std::ofstream timeOutputFile;
@@ -66,6 +66,9 @@ public:
     double firstAgentArrivingTimestep = 0;
     double firstAgentArrivingExecutionTime = 0;
     double executionTime = 0;
+
+    nlohmann::json outputJson, resultJson, timestepJson;
+    bool verboseOutput = true;
 
     std::vector<std::vector<PathNode>> outputPaths;
 
@@ -96,26 +99,26 @@ public:
 
     void openOutputFiles() {
         if (!outputFileName.empty()) outputFile.open(outputFileName);
-//        if (!timeOutputFileName.empty()) timeOutputFile.open(timeOutputFileName);
     }
 
     void closeOutputFiles() {
         if (outputFile.is_open()) outputFile.close();
-//        if (timeOutputFile.is_open()) timeOutputFile.close();
     }
 
     virtual unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
                          unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) = 0;
 
+    virtual void writeSimulationOutput();
+
     virtual void print(std::ostream &out) const = 0;
 
     virtual void printState(std::ostream &os, size_t i, unsigned int state) = 0;
 
-    void printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration);
+//    void printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration);
 
     void printAgent(size_t i, const std::string& message);
 
-    void saveExecutionTime();
+    void writeTimestepOutput();
 
     void advanceTimestep(double &currentTimestep);
 

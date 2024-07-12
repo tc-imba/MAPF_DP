@@ -11,10 +11,10 @@
 #include "simulator/ContinuousDefaultSimulator.h"
 #include "simulator/ContinuousOnlineSimulator.h"
 #include "simulator/ContinuousPIBTSimulator.h"
+#include "simulator/DiscreteBTPGSimulator.h"
 #include "simulator/DiscreteDefaultSimulator.h"
 #include "simulator/DiscreteOnlineSimulator.h"
 #include "simulator/DiscretePIBTSimulator.h"
-#include "simulator/DiscreteBTPGSimulator.h"
 #include "solver/CBSSolver.h"
 #include "solver/CCBSSolver.h"
 #include "solver/EECBSSolver.h"
@@ -40,11 +40,14 @@ int main(int argc, const char *argv[]) {
 
     optionParser.overview = "Multi Agent Path Finding with Delay Probability";
     optionParser.syntax = "./MAPF_DP [OPTIONS]";
-    optionParser.example = "./MAPF_DP --map random --map-seed 0 --agent-seed 0 --simulation-seed 0 --agents 20 --iteration 10 --simulator online --delay-start 1 --delay-ratio 0.3 --delay-interval 10 --obstacles 270 --delay agent\n";
+    optionParser.example =
+            "./MAPF_DP --map random --map-seed 0 --agent-seed 0 --simulation-seed 0 --agents 20 --iteration 10 "
+            "--simulator online --delay-start 1 --delay-ratio 0.3 --delay-interval 10 --obstacles 270 --delay agent\n";
     optionParser.footer = "";
 
     optionParser.add("", false, 0, 0, "Display this Message.", "-h", "--help");
     optionParser.add("", false, 0, 0, "Debug Mode", "-d", "--debug");
+    optionParser.add("", false, 0, 0, "Verbose Output", "-v", "--verbose");
     optionParser.add("", false, 0, 0, "All Constraints", "--all");
     optionParser.add("", false, 0, 0, "Use delay probability (in solver)", "--dp");
     optionParser.add("", false, 0, 0, "Use naive feasibility check", "--naive-feasibility");
@@ -64,13 +67,16 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 1, 0, "Task file", "--task-file");
     optionParser.add("", false, 1, 0, "Log file", "--log-file");
     optionParser.add("maximum", false, 1, 0, "Objective type (maximum / average)", "--objective");
-    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt / snapshot)", "--simulator");
+    optionParser.add("default", false, 1, 0, "Simulator type (default / online / replan / pibt / snapshot)",
+                     "--simulator");
     optionParser.add("continuous", false, 1, 0, "Timing type (discrete / continuous)", "--timing");
     optionParser.add("node-node,edge-edge,node-edge", false, 1, 0, "Conflict types", "--conflicts");
-    optionParser.add("none", false, 1, 0, "Remove redundant unsettled edges in continuous online (none / physical / graph)", "--remove-redundant");
+    optionParser.add("none", false, 1, 0,
+                     "Remove redundant unsettled edges in continuous online (none / physical / graph)",
+                     "--remove-redundant");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
+    optionParser.add("json", false, 1, 0, "Output Format",  "--output-format");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "--simulator-output");
-    optionParser.add("", false, 1, 0, "Time Output Filename", "--time-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs", "--solver");
     optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
@@ -121,9 +127,10 @@ int main(int argc, const char *argv[]) {
     optionParser.add("1", false, 1, 0, "Suboptimality of CBS", "--suboptimality", validSuboptimality);
 
     auto validReplanSuboptimality = new ez::ezOptionValidator("d", "ge", "1");
-    optionParser.add("1", false, 1, 0, "Suboptimality of CBS in Replan", "--replan-suboptimality", validReplanSuboptimality);
+    optionParser.add("1", false, 1, 0, "Suboptimality of CBS in Replan", "--replan-suboptimality",
+                     validReplanSuboptimality);
 
-    auto validMaxTimestep = new ez::ezOptionValidator("u4", "ge", "0");
+    auto validMaxTimestep = new ez::ezOptionValidator("d", "ge", "0");
     optionParser.add("300", false, 1, 0, "Max Timestep", "--max-timestep", validMaxTimestep);
 
     auto validDeltaTimestep = new ez::ezOptionValidator("d", "ge", "0");
@@ -137,11 +144,13 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName, simulatorOutputFileName, timeOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
-    unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor, maxTimestep;
+    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName, outputFormat,
+            simulatorOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
+    unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
     long delayStart, delayInterval;
-    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep;
-    bool debug, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, fastCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup, useGroupDetermined;
+    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep,  maxTimestep;
+    bool debug, verboseOutput, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, fastCycleCheck,
+            feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup, useGroupDetermined;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -153,8 +162,8 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--conflicts")->getString(conflictTypes);
     optionParser.get("--remove-redundant")->getString(removeRedundant);
     optionParser.get("--output")->getString(outputFileName);
+    optionParser.get("--output-format")->getString(outputFormat);
     optionParser.get("--simulator-output")->getString(simulatorOutputFileName);
-    optionParser.get("--time-output")->getString(timeOutputFileName);
     optionParser.get("--solver")->getString(solverType);
     optionParser.get("--solver-binary")->getString(solverBinaryFile);
     optionParser.get("--snapshot-order")->getString(snapshotOrder);
@@ -175,9 +184,10 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--k-neighbor")->getULong(kNeighbor);
     optionParser.get("--suboptimality")->getDouble(suboptimality);
     optionParser.get("--replan-suboptimality")->getDouble(replanSuboptimality);
-    optionParser.get("--max-timestep")->getULong(maxTimestep);
+    optionParser.get("--max-timestep")->getDouble(maxTimestep);
     optionParser.get("--delta-timestep")->getDouble(deltaTimestep);
     debug = optionParser.isSet("--debug");
+    verboseOutput = optionParser.isSet("--verbose");
     allConstraint = optionParser.isSet("--all");
     useDP = optionParser.isSet("--dp");
     naiveFeasibilityCheck = optionParser.isSet("--naive-feasibility");
@@ -191,7 +201,7 @@ int main(int argc, const char *argv[]) {
     noCache = optionParser.isSet("--no-cache");
     useGroup = optionParser.isSet("--group");
     useGroupDetermined = optionParser.isSet("--group-determined");
-//    removeRedundant = optionParser.isSet("--remove-redundant");
+    //    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
     std::shared_ptr<spdlog::logger> file_logger;
@@ -205,18 +215,10 @@ int main(int argc, const char *argv[]) {
             exit(-1);
         }
     }
-    if (debug) {
-        spdlog::set_level(spdlog::level::debug);
-    }
-    if (window == 0) {
-        window = INT_MAX;
-    }
-    if (delayInterval < 0) {
-        delayInterval = INT_MAX;
-    }
-    if (delayStart < 0) {
-        delayStart = INT_MAX;
-    }
+    if (debug) { spdlog::set_level(spdlog::level::debug); }
+    if (window == 0) { window = INT_MAX; }
+    if (delayInterval < 0) { delayInterval = INT_MAX; }
+    if (delayStart < 0) { delayStart = INT_MAX; }
     bool nodeNodeConflict = conflictTypes.find("node-node") != std::string::npos;
     bool edgeEdgeConflict = conflictTypes.find("edge-edge") != std::string::npos;
     bool nodeEdgeConflict = conflictTypes.find("node-edge") != std::string::npos;
@@ -228,9 +230,7 @@ int main(int argc, const char *argv[]) {
         } else if (solverType == "eecbs") {
             solverBinaryPath = solverBinaryPath / "EECBS" / "eecbs";
         }
-        if (!solverBinaryPath.empty()) {
-            solverBinaryFile = solverBinaryPath.string();
-        }
+        if (!solverBinaryPath.empty()) { solverBinaryFile = solverBinaryPath.string(); }
     } else {
         auto solverBinaryPath = boost::filesystem::path(solverBinaryFile);
         solverBinaryFile = boost::filesystem::canonical(solverBinaryPath).string();
@@ -240,15 +240,19 @@ int main(int argc, const char *argv[]) {
     std::ofstream fout;
     auto buf = std::make_unique<char[]>(4096);
     if (!outputFileName.empty()) {
-        fout.open(outputFileName, std::ios_base::app);
+        if (outputFormat == "bson") {
+            fout.open(outputFileName, std::ios_base::binary);
+        } else {
+            fout.open(outputFileName);
+        }
         fout.rdbuf()->pubsetbuf(buf.get(), 4096);
         std::cerr << "redirect output to " << outputFileName << std::endl;
     }
     std::ostream &out = fout.is_open() ? fout : std::cout;
 
-    std::string lockFileName = outputFileName + ".lock";
-    std::ofstream lockFile(lockFileName, std::ios_base::app);
-    lockFile.close();
+//    std::string lockFileName = outputFileName + ".lock";
+//    std::ofstream lockFile(lockFileName, std::ios_base::app);
+//    lockFile.close();
 
 
     Graph graph;
@@ -273,8 +277,7 @@ int main(int argc, const char *argv[]) {
     std::string filename, cacheFileName, taskFileType;
     if (mapType == "random") {
         filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" +
-                   std::to_string(obstacles) +
-                   "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
+                   std::to_string(obstacles) + "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
         cacheFileName = filename;
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {
@@ -291,28 +294,22 @@ int main(int argc, const char *argv[]) {
         graph.generateDOTGraph(filename);
     } else if (mapType == "graphml") {
         filename = mapFile;
-        if (boost::algorithm::ends_with(filename, ".xml")) {
-            filename = filename.substr(0, filename.length() - 4);
-        }
+        if (boost::algorithm::ends_with(filename, ".xml")) { filename = filename.substr(0, filename.length() - 4); }
         cacheFileName = timingType + "-" + mapName;
         graph.generateGraphMLGraph(filename);
         taskFileType = "xml";
     } else if (mapType == "mapf") {
         filename = mapFile;
-        if (boost::algorithm::ends_with(filename, ".map")) {
-            filename = filename.substr(0, filename.length() - 4);
-        }
+        if (boost::algorithm::ends_with(filename, ".map")) { filename = filename.substr(0, filename.length() - 4); }
         cacheFileName = timingType + "-mapf-" + mapName;
         graph.generateMAPFBenchmarkGraph(filename, kNeighbor);
         taskFileType = "scen";
     }
-    if (useDP) {
-        graph.generateDelayProbability(mapSeed, minDP, maxDP);
-    }
+    if (useDP) { graph.generateDelayProbability(mapSeed, minDP, maxDP); }
     // only use in individual
-//    graph.calculateAllPairShortestPath(filename, useDP);
+    //    graph.calculateAllPairShortestPath(filename, useDP);
 
-//     exit(0);
+    //     exit(0);
 
     std::vector<Agent> agents;
     if (taskFile.empty()) {
@@ -343,7 +340,7 @@ int main(int argc, const char *argv[]) {
             if (boost::algorithm::ends_with(taskFilename, ".scen")) {
                 taskFilename = taskFilename.substr(0, taskFilename.length() - 5);
             }
-//            exit(0);
+            //            exit(0);
             agents = graph.loadScenAgents(taskFilename, agentNum, agentSkip);
         } else {
             assert(0);
@@ -382,27 +379,17 @@ int main(int argc, const char *argv[]) {
     solver->debug = debug;
     solver->useDP = useDP;
     solver->allConstraint = allConstraint;
-//    solver->timeout = timeout;
+    //    solver->timeout = timeout;
     solver->init();
     bool result;
     if (noCache) {
         result = solver->solve();
-        if (result) {
-            solver->removeFollowingConflict(solver);
-        }
+        if (result) { solver->removeFollowingConflict(solver); }
     } else {
         result = solver->solveWithCache(solver, cacheFileName, agentSeed);
     }
 
-    if (!result) {
-        exit(-1);
-    }
-
-    //    if (!timeOutputFileName.empty()) {
-    //        // delete old file
-    //        std::ofstream tempFile(timeOutputFileName);
-    //        tempFile.close();
-    //    }
+    if (!result) { exit(-1); }
 
     //    double approx = solver->approxAverageMakeSpan(*solver->solution);
     //    std::shared_ptr<ContinuousOnlineSimulator> onlineSimulator;
@@ -411,9 +398,7 @@ int main(int argc, const char *argv[]) {
     unsigned int finished = 0;
 
     for (unsigned int i = simulationSeed; finished < iteration; i++) {
-        if (useDP) {
-            graph.generateDelayProbability(i, minDP, maxDP);
-        }
+        if (useDP) { graph.generateDelayProbability(i, minDP, maxDP); }
 
         if (simulatorType == "default" || simulatorType == "replan") {
             if (timingType == "continuous") {
@@ -426,15 +411,13 @@ int main(int argc, const char *argv[]) {
                 defaultSimulator->replanMode = true;
                 defaultSimulator->prioritizedReplan = prioritizedReplan;
                 defaultSimulator->prioritizedOpt = prioritizedOpt;
-//                defaultSimulator->replanSuboptimality = replanSuboptimality;
+                //                defaultSimulator->replanSuboptimality = replanSuboptimality;
                 if (solverType == "eecbs") {
                     std::dynamic_pointer_cast<EECBSSolver>(solver)->suboptimality = suboptimality;
                 }
                 if (i != simulationSeed) {
                     solver->init();
-                    if (!solver->solveWithCache(solver, filename, agentSeed)) {
-                        exit(-1);
-                    }
+                    if (!solver->solveWithCache(solver, filename, agentSeed)) { exit(-1); }
                 }
                 if (solverType == "eecbs") {
                     std::dynamic_pointer_cast<EECBSSolver>(solver)->suboptimality = replanSuboptimality;
@@ -455,7 +438,7 @@ int main(int argc, const char *argv[]) {
                 simulator = std::make_unique<DiscreteOnlineSimulator>(graph, agents, i);
                 auto discreteOnlineSimulator = std::dynamic_pointer_cast<DiscreteOnlineSimulator>(simulator);
                 discreteOnlineSimulator->onlineOpt = onlineOpt;
-                discreteOnlineSimulator->groupDetermined= useGroupDetermined;
+                discreteOnlineSimulator->groupDetermined = useGroupDetermined;
             }
             auto onlineSimulator = std::dynamic_pointer_cast<OnlineSimulator>(simulator);
             onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
@@ -483,7 +466,7 @@ int main(int argc, const char *argv[]) {
         simulator->setSolver(solver);
         simulator->debug = debug;
         simulator->outputFileName = simulatorOutputFileName;
-        simulator->timeOutputFileName = timeOutputFileName;
+        simulator->verboseOutput = verboseOutput;
 
         /*        if (mapType == "hardcoded") {
             CBSNodePtr solution = std::make_shared<CBSNode>();
@@ -509,39 +492,33 @@ int main(int argc, const char *argv[]) {
 #endif
         simulator->setAgents(agents);
         currentTimestep = 0;
-//        auto start = std::chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
         auto count = simulator->simulate(currentTimestep, currentTimestep + maxTimestep, delayStart, delayInterval);
-//        auto end = std::chrono::steady_clock::now();
-//        std::chrono::duration<double> elapsed_seconds = end - start;
-
+        auto end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
         if (count == agentNum) {
-            boost::interprocess::file_lock flock(lockFileName.c_str());
-            flock.lock();
-            out << mapSeed << "," << agentSeed << "," << i << ",";
-            if (delayInterval == INT_MAX) {
-                out << count << "," << finished;
-            } else {
-                out << simulator->averageMakeSpan(MakeSpanType::MAXIMUM) << ","
-                    << simulator->averageMakeSpan(MakeSpanType::AVERAGE);
-            }
-            out << ",";
-//            out << "," << elapsed_seconds.count() << ",";
-            simulator->print(out);
-            out << std::endl;
-            simulator->printExecutionTime(mapSeed, agentSeed, i);
-            finished++;
-            flock.unlock();
+            simulator->resultJson["success"] = true;
         } else {
+            simulator->resultJson["success"] = false;
             std::cerr << count << " " << agentNum << std::endl;
-            finished++;
-            //            exit(-1);
         }
+        simulator->resultJson["mapSeed"] = mapSeed;
+        simulator->resultJson["agentSeed"] = agentSeed;
+        simulator->resultJson["iteration"] = i;
+        simulator->resultJson["totalTime"] = elapsed_seconds.count();
+        simulator->writeSimulationOutput();
+        simulator->outputJson["result"] = simulator->resultJson;
+        if (outputFormat == "json") {
+            out << std::setw(2) << std::scientific << std::setprecision(12) << simulator->outputJson << std::endl;
+        } else if (outputFormat == "bson") {
+            std::vector<std::uint8_t> v = nlohmann::json::to_bson(simulator->outputJson);
+            out.write(reinterpret_cast<const char *>(v.data()), v.size());
+        }
+        finished++;
     }
 
 
-    if (fout.is_open()) {
-        fout.close();
-    }
+    if (fout.is_open()) { fout.close(); }
 
     return 0;
 }

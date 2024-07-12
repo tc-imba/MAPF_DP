@@ -61,8 +61,8 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
         }
     }
 
-    executionTimeStart = std::chrono::steady_clock::now();
     for (; currentTimestep + 1 < maxTimeStep; ) {
+        executionTimeStart = std::chrono::steady_clock::now();
         if (refresh) {
             refresh = false;
             nodes.clear();
@@ -289,9 +289,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             refresh = true;
         }
 
-        saveExecutionTime();
+        writeTimestepOutput();
     }
-    saveExecutionTime();
+    writeTimestepOutput();
 //    std::cout << "window " << window << ": " << averageMakeSpan() << std::endl;
 
 /*    bool unfinish = false;

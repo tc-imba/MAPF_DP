@@ -17,8 +17,8 @@ unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned i
     int num_activate = 0;
     bool flg_stop = false;
 
-    executionTimeStart = std::chrono::steady_clock::now();
     while (!flg_stop) {
+        executionTimeStart = std::chrono::steady_clock::now();
         SPDLOG_DEBUG("begin timestep {}", currentTimestep);
         updateDelayedSet(currentTimestep, delayStart, delayInterval);
 
@@ -115,9 +115,9 @@ unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned i
         executionTime += elapsed_seconds.count();
         start = end;
         currentTimestep++;
-        saveExecutionTime();
+        writeTimestepOutput();
     }
-    saveExecutionTime();
+    writeTimestepOutput();
     convertResult();
     return countCompletedAgents();
 }

@@ -4,6 +4,19 @@
 
 #include "OnlineSimulator.h"
 
+void OnlineSimulator::writeSimulationOutput() {
+    Simulator::writeSimulationOutput();
+    resultJson["cycleCheckCount"] = cycleCheckCount;
+    resultJson["cycleCheckAgents"] = cycleCheckAgents;
+    resultJson["unblockedAgents"] = unblockedAgents;
+//    resultJson["feasibilityCheckCount"] = feasibilityCheckCount;
+//    resultJson["feasibilityCheckUnsettledEdgePairsCount"] = feasibilityCheckUnsettledCount;
+//    resultJson["feasibilityCheckLoopCount"] = feasibilityCheckLoopCount;
+//    resultJson["feasibilityCheckTopoCount"] = feasibilityCheckTopoCount;
+//    resultJson["feasibilityCheckRecursionCount"] = feasibilityCheckRecursionCount;
+}
+
+
 void OnlineSimulator::print(std::ostream &out) const {
     out << executionTime << ","
         << firstAgentArrivingExecutionTime << ","

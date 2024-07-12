@@ -31,7 +31,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
     }
 
     initSimulation();
-    executionTimeVec.clear();
+//    executionTimeVec.clear();
 
     // check whether the initial plans is feasible
     auto start = std::chrono::steady_clock::now();
@@ -682,8 +682,9 @@ void ContinuousOnlineSimulator::singleAgentCheck() {
                 NodeEdgeDependencyGraph::SDGEdge edge = {{i, agents[i].state + 2},
                                                          {j, agents[j].state + 1}};
                 //                std::cout << "test:" << edge << std::endl;
-                auto [nodeId1, nodeId2] = depGraph.getTopoEdgeBySDGEdge(edge);
-                if (depGraph.isPathInTopoGraph(nodeId2, nodeId1)) {
+//                auto [nodeId1, nodeId2] = depGraph.getTopoEdgeBySDGEdge(edge);
+//                if (depGraph.isPathInTopoGraph(nodeId2, nodeId1)) {
+                if (depGraph.isPathInTopoGraph(edge)) {
                     fail = true;
                     break;
                 }

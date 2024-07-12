@@ -16,6 +16,8 @@ public:
     bool isFeasibilityType = false;
 
     size_t feasibilityCheckCount = 0;
+//    size_t feasibilityCheckCountFast = 0;
+//    size_t feasibilityCheckCountNormal = 0;
     size_t feasibilityCheckTypes[4] = {0, 0, 0, 0};
     size_t cycleCheckCount = 0;
     size_t cycleCheckAgents = 0;
@@ -27,6 +29,8 @@ public:
     size_t feasibilityCheckTopoCount = 0;
     size_t feasibilityCheckLoopCount = 0;
     size_t feasibilityCheckRecursionCount = 0;
+
+    void writeSimulationOutput() override;
 
     void print(std::ostream &out) const override;
 

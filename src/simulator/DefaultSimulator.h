@@ -17,6 +17,7 @@ public:
     size_t fullReplanCount = 0;
     double fullReplanTime = 0;
 
+    void writeSimulationOutput() override;
 
     void print(std::ostream &out) const override;
 

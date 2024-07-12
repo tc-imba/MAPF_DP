@@ -376,7 +376,7 @@ unsigned int ContinuousDefaultSimulator::simulate(double &currentTimestep, unsig
                 firstAgentArrivingExecutionTime += currentExecutionTime;
             }
             executionTime += currentExecutionTime;
-            executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
+//            executionTimeVec.emplace_back(firstAgentArrived, currentExecutionTime);
             refresh = true;
         }
     }

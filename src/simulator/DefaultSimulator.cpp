@@ -4,6 +4,15 @@
 
 #include "DefaultSimulator.h"
 
+void DefaultSimulator::writeSimulationOutput() {
+    Simulator::writeSimulationOutput();
+    resultJson["partialReplanCount"] = partialReplanCount;
+    resultJson["partialReplanTime"] = partialReplanTime;
+    resultJson["fullReplanCount"] = fullReplanCount;
+    resultJson["fullReplanTime"] = fullReplanTime;
+}
+
+
 void DefaultSimulator::print(std::ostream &out) const {
     out << executionTime << ","
         << firstAgentArrivingExecutionTime << ","
