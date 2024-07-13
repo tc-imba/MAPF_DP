@@ -6,6 +6,7 @@
 #define MAPF_DP_NODEEDGEDEPENDENCYGRAPH_H
 
 #include "DependencyGraph.h"
+#include "TopoGraph.h"
 
 class NodeEdgeDependencyGraph : public DependencyGraph {
 public:

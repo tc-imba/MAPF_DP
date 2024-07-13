@@ -684,7 +684,7 @@ void ContinuousOnlineSimulator::singleAgentCheck() {
                 //                std::cout << "test:" << edge << std::endl;
 //                auto [nodeId1, nodeId2] = depGraph.getTopoEdgeBySDGEdge(edge);
 //                if (depGraph.isPathInTopoGraph(nodeId2, nodeId1)) {
-                if (depGraph.isPathInTopoGraph(edge)) {
+                if (depGraph.topoGraph->hasReversedPath(edge)) {
                     fail = true;
                     break;
                 }

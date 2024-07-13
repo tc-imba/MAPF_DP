@@ -8,6 +8,7 @@
 #include "../Graph.h"
 #include "../solver/Solver.h"
 
+class TopoGraph;
 
 class DependencyGraph {
 public:
@@ -56,25 +57,24 @@ public:
     typedef std::pair<SDGEdge, SDGEdge> SDGEdgePair;
 
 protected:
+    std::vector<std::vector<double>> timestamps;
 
+public:
     Graph &graph;
     std::vector<Agent> &agents;
     std::vector<std::vector<unsigned int>> &paths;
     const double &firstAgentArrivingTimestep;
-    std::vector<std::vector<double>> timestamps;
 
-    // connectedGraph[k][i,j] = h means that
-    // staring from l_{i,j}, the smallest reachable state l_{k,h}
-    std::vector<std::vector<unsigned int> > connectedGraph;
-
-public:
     bool debug = false;
     bool onlineOpt = false;
     bool groupDetermined = false;
     bool isFastCycleCheck = false;
     std::shared_ptr<Solver> solver = nullptr;
     std::vector<std::vector<unsigned int>> pathTopoNodeIds;
-    Graph::topo_graph_t topoGraph;
+//    Graph::topo_graph_t topoGraph;
+
+    std::string topoGraphType = "array";
+    std::unique_ptr<TopoGraph> topoGraph = nullptr;
 
     //    std::vector<std::vector<unsigned int>> paths;
     std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
@@ -85,22 +85,26 @@ public:
     size_t feasibilityCheckLoopCount = 0;
     size_t feasibilityCheckRecursionCount = 0;
 
-    DependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep) : graph(graph), agents(agents), paths(paths), firstAgentArrivingTimestep(firstAgentArrivingTimestep){};
+    DependencyGraph(Graph &graph, std::vector<Agent> &agents, std::vector<std::vector<unsigned int>> &paths, const double &firstAgentArrivingTimestep);
+
+    ~DependencyGraph();
+
+    virtual void init();
 
     std::pair<unsigned int, unsigned int> getTopoEdgeBySDGEdge(const SDGEdge &edge) const {
         return std::make_pair(pathTopoNodeIds[edge.source.agentId][edge.source.state],
                               pathTopoNodeIds[edge.dest.agentId][edge.dest.state]);
     };
 
-    bool isEdgeInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
+//    bool isEdgeInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
+//
+//    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
+//
+//    bool isPathInTopoGraph(const SDGEdge &edge);
+//
+//    bool addEdgeTopoGraph(const SDGEdge &edge);
 
-    bool isPathInTopoGraph(unsigned int nodeId1, unsigned int nodeId2);
-
-    bool isPathInTopoGraph(const SDGEdge &edge);
-
-    bool addEdgeTopoGraph(const SDGEdge &edge);
-
-    bool removeEdgeTopoGraph(const SDGEdge &edge);
+//    bool removeEdgeTopoGraph(const SDGEdge &edge);
 };
 
 /*template <> struct fmt::formatter<DependencyGraph::SDGNode>: formatter<string_view> {

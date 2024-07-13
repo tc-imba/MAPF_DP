@@ -28,7 +28,7 @@ add_subdirectory(Continuous-CBS)
 
 # MAPF-DP
 add_definitions("-D SPDLOG_ACTIVE_LEVEL=1")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 file(GLOB SIMULATOR_SOURCE_FILES "src/simulator/*.cpp")
 file(GLOB SOLVER_SOURCE_FILES "src/solver/*.cpp")
 file(GLOB DEPENDENCY_GRAPH_SOURCE_FILES "src/dependency_graph/*.cpp")

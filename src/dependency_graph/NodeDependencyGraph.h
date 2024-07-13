@@ -6,6 +6,7 @@
 #define MAPF_DP_NODEDEPENDENCYGRAPH_H
 
 #include "DependencyGraph.h"
+#include "TopoGraph.h"
 
 
 class NodeDependencyGraph : public DependencyGraph {
@@ -47,9 +48,9 @@ public:
 
     std::pair<size_t, size_t> feasibilityCheckTest(bool recursive, bool ignore = true, bool fast = false);
 
-    void addSavedEdges();
-
-    void removeSavedEdges();
+//    void addSavedEdges();
+//
+//    void removeSavedEdges();
 
 protected:
     SDGEdgePair orderEdgesByStart(const SDGEdgePair &edgePair);

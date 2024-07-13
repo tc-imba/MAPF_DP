@@ -6,15 +6,7 @@
 #include <boost/range/join.hpp>
 
 void NodeEdgeDependencyGraph::init() {
-    paths.clear();
-    paths.resize(agents.size());
-    timestamps.clear();
-    timestamps.resize(agents.size());
-    deadEndStates.clear();
-    deadEndStates.resize(agents.size());
-    pathTopoNodeIds.clear();
-    pathTopoNodeIds.resize(agents.size());
-    topoGraph.clear();
+//    topoGraph.clear();
     sdgData.resize(agents.size());
 
     unsigned int topoGraphNodeNum = 0;
@@ -28,16 +20,18 @@ void NodeEdgeDependencyGraph::init() {
                 timestamps[i].emplace_back(newNodeTimestamp);
                 if (!pathTopoNodeIds[i].empty()) {
                     // add an edge state to topo graph
-                    pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
+                    pathTopoNodeIds[i].emplace_back(topoGraphNodeNum++);
+//                    pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
                 }
                 // add a node state to topo graph
-                pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
+                pathTopoNodeIds[i].emplace_back(topoGraphNodeNum++);
+//                pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
             }
         }
         // when j % 2 == 0, it is a node state; when j % 2 == 1, it is an edge state
-        for (size_t j = 0; j < pathTopoNodeIds[i].size() - 1; j++) {
-            boost::add_edge(pathTopoNodeIds[i][j], pathTopoNodeIds[i][j + 1], topoGraph);
-        }
+//        for (size_t j = 0; j < pathTopoNodeIds[i].size() - 1; j++) {
+//            boost::add_edge(pathTopoNodeIds[i][j], pathTopoNodeIds[i][j + 1], topoGraph);
+//        }
         topoGraphNodeNum += pathTopoNodeIds[i].size();
         sdgData[i].resize(pathTopoNodeIds[i].size());
     }
@@ -58,8 +52,8 @@ void NodeEdgeDependencyGraph::init() {
     }
 
     generateUnsettledEdges();
-
     initUnsettledEdges();
+    topoGraph->init();
 }
 
 
@@ -250,10 +244,8 @@ void NodeEdgeDependencyGraph::initUnsettledEdges() {
             for (const auto &node: item.determinedEdgeSources) {
                 SDGEdge selectedEdge = {node, {i, state}};
                 SPDLOG_DEBUG("add settled edge: {}", selectedEdge);
-                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(selectedEdge);
-                if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
-                    boost::add_edge(nodeId1, nodeId2, topoGraph);
-                }
+                topoGraph->addEdge(selectedEdge);
+
             }
         }
     }
@@ -560,20 +552,20 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
                 if (debug) {
                     SPDLOG_DEBUG("select unsettled edge pair: {} {} -> {}", _edgePair.first, _edgePair.second, selectedEdge);
                 }
-                auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(selectedEdge);
-                bool alreadyAdded = isEdgeInTopoGraph(nodeId1, nodeId2);
+                // TODO: this may not be correct in ArrayTopoGraph
+                bool alreadyAdded = topoGraph->hasEdge(selectedEdge);
                 if (alreadyAdded) {
                     SPDLOG_DEBUG("unsettled edge already added: {}", selectedEdge);
                 } else {
                     result.emplace_back(selectedEdge);
                 }
-                if (isPathInTopoGraph(nodeId2, nodeId1)) {
+                if (topoGraph->hasReversedPath(selectedEdge)) {
                     SPDLOG_ERROR("error: path exists in topo graph!");
                     //                    exit(-1);
                 }
                 if (!dryRun) {
                     if (!alreadyAdded) {
-                        boost::add_edge(nodeId1, nodeId2, topoGraph);
+                        topoGraph->addEdge(selectedEdge);
                     }
                     //                    unsettledEdgePairsMap.erase(it);
                     unsettledEdgePairsMap.erase(_edgePair);
@@ -628,14 +620,12 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 if (edge1Settled) edge2Available = false;
                 if (edge2Settled) edge1Available = false;
                 if (edge1Available) {
-                    auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edgePair.first);
-                    if (isPathInTopoGraph(nodeId2, nodeId1)) {
+                    if (topoGraph->hasReversedPath(edgePair.first)) {
                         edge1Available = false;
                     }
                 }
                 if (edge2Available) {
-                    auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edgePair.second);
-                    if (isPathInTopoGraph(nodeId2, nodeId1)) {
+                    if (topoGraph->hasReversedPath(edgePair.second)) {
                         edge2Available = false;
                     }
                 }
@@ -724,8 +714,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 // no edge can be selected
                 SPDLOG_DEBUG("no edge can be selected from unsettled edge pair group of size {}", (*it)->size());
                 for (auto &edge: addedEdges) {
-                    auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
+                    topoGraph->removeEdge(edge);
                     SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
                 }
                 auto &edgePair = (*it)->begin()->first;
@@ -738,12 +727,11 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 for (auto &[edgePair, _]: **it) {
                     auto &edge = edgeIndex == 0 ? edgePair.first : edgePair.second;
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-                    if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
+                    if (topoGraph->addEdge(edge)) {
                         addedEdges.emplace_back(edge);
-                        boost::add_edge(nodeId1, nodeId2, topoGraph);
                         SPDLOG_DEBUG("temporarily select unsettled edge pair: {} {} -> {}", edgePair.first, edgePair.second, edge);
                     }
-                    if (isPathInTopoGraph(nodeId2, nodeId1)) {
+                    if (topoGraph->hasReversedPath(edge)) {
                         std::cout << "error" << std::endl;
                     }
                     if (debug) {
@@ -838,10 +826,9 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
             for (auto &[_edgePair, __]: *edgePairGroup) {
                 auto &edge = edgeIndex == 0 ? _edgePair.first : _edgePair.second;
                 auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-                if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
+                if (topoGraph->addEdge(edge)) {
                     addedEdges.emplace_back(edge);
                     recursiveAddedEdges.emplace_back(edge);
-                    boost::add_edge(nodeId1, nodeId2, topoGraph);
                     SPDLOG_DEBUG("temporarily select unsettled edge pair: {} {} -> {}", _edgePair.first, _edgePair.second, edge);
                 }
             }
@@ -864,8 +851,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                     feasibilityCheckRecursionCount++;
                 }
                 for (const auto &edge: recursiveAddedEdges) {
-                    auto [_nodeId1, _nodeId2] = getTopoEdgeBySDGEdge(edge);
-                    boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
+                    topoGraph->removeEdge(edge);
                     addedEdges.pop_back();
                     SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
                 }
@@ -877,8 +863,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
 
                 if (result.first == agents.size() && result.second == agents.size()) {
                     for (auto &edge: addedEdges) {
-                        auto [_nodeId1, _nodeId2] = getTopoEdgeBySDGEdge(edge);
-                        boost::remove_edge(_nodeId1, _nodeId2, topoGraph);
+                        topoGraph->removeEdge(edge);
                         SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
                     }
                     if (save) {
@@ -897,9 +882,8 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 for (auto &[_edgePair, __]: *edgePairGroup) {
                     auto &edge = edgeIndex == 1 ? _edgePair.first : _edgePair.second;
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-                    if (!isEdgeInTopoGraph(nodeId1, nodeId2)) {
+                    if (topoGraph->addEdge(edge)) {
                         addedEdges.emplace_back(edge);
-                        boost::add_edge(nodeId1, nodeId2, topoGraph);
                         SPDLOG_DEBUG("temporarily select unsettled edge pair (recursive): {} {} -> {}", _edgePair.first, _edgePair.second, edge);
                     }
                 }
@@ -908,8 +892,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
         }
     }
     for (auto &edge: addedEdges) {
-        auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-        boost::remove_edge(nodeId1, nodeId2, topoGraph);
+        topoGraph->removeEdge(edge);
         SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
     }
     if (!addedEdges.empty() && save) {
@@ -1056,8 +1039,7 @@ bool NodeEdgeDependencyGraph::singleAgentCheck(size_t i) {
             NodeEdgeDependencyGraph::SDGEdge edge = {{i, agents[i].state + 2},
                                                      {j, agents[j].state + 1}};
             //                std::cout << "test:" << edge << std::endl;
-            auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
-            if (isPathInTopoGraph(nodeId2, nodeId1)) {
+            if (topoGraph->hasReversedPath(edge)) {
                 return false;
             }
             // we can also do a feasibility check here!
@@ -1072,8 +1054,7 @@ bool NodeEdgeDependencyGraph::singleAgentCheck(size_t i) {
 
 void NodeEdgeDependencyGraph::addSavedEdges() {
     for (auto &edge: savedAddedEdges) {
-        auto [_nodeId1, _nodeId2] = getTopoEdgeBySDGEdge(edge);
-        boost::add_edge(_nodeId1, _nodeId2, topoGraph);
+        topoGraph->addEdge(edge);
         SPDLOG_DEBUG("add saved settled edge: {}", edge);
     }
 }
