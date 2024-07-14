@@ -28,7 +28,7 @@ bool ArrayTopoGraph::addEdge(const DependencyGraph::SDGEdge &edge) {
     if (connectedGraph[i][ipjp] <= j) { return true; }
 
     // set G[i'][x][i] = min{G[i'][x][i], j} for all x <= j'
-    for (int x = (int) jp; x >= 0; x--) {
+    for (unsigned int x = jp; x != depGraph.agents[ip].state - 1; x--) {
         auto ipx = depGraph.pathTopoNodeIds[ip][x];
         if (connectedGraph[i][ipx] > j) {
             connectedGraph[i][ipx] = j;
@@ -42,7 +42,7 @@ bool ArrayTopoGraph::addEdge(const DependencyGraph::SDGEdge &edge) {
     const auto ij = depGraph.pathTopoNodeIds[i][j];
     for (unsigned int k = 0; k < depGraph.agents.size(); k++) {
         if (k == i) { continue; }
-        for (int x = (int) jp; x >= 0; x--) {
+        for (unsigned int x = jp; x != depGraph.agents[ip].state - 1; x--) {
             auto ipx = depGraph.pathTopoNodeIds[ip][x];
             if (connectedGraph[k][ipx] > connectedGraph[k][ij]) {
                 connectedGraph[k][ipx] = connectedGraph[k][ij];
@@ -56,7 +56,7 @@ bool ArrayTopoGraph::addEdge(const DependencyGraph::SDGEdge &edge) {
     // for any G[a][b][c] (where a \neq i and i'), if G[a][b][i'] <= j', set G[a][b][c] = min{G[i][j][c], G[a][b][c]}.
     for (unsigned int a = 0; a < depGraph.agents.size(); a++) {
         if (a == i || a == ip) { continue; }
-        for (unsigned int b = 0; b < depGraph.paths[a].size(); b++) {
+        for (unsigned int b = depGraph.agents[a].state; b < depGraph.paths[a].size(); b++) {
             auto ab = depGraph.pathTopoNodeIds[a][b];
             //            SPDLOG_INFO("G[{}][{}][{}]={}, jp={}", a, b, ip, connectedGraph[ip][ab], jp);
             if (connectedGraph[ip][ab] <= jp) {

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "Graph.h"
 #include "simulator/ContinuousDefaultSimulator.h"
@@ -75,7 +76,7 @@ int main(int argc, const char *argv[]) {
                      "Remove redundant unsettled edges in continuous online (none / physical / graph)",
                      "--remove-redundant");
     optionParser.add("", false, 1, 0, "Statistics Output Filename", "-o", "--output");
-    optionParser.add("json", false, 1, 0, "Output Format",  "--output-format");
+    optionParser.add("json", false, 1, 0, "Output Format", "--output-format");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "--simulator-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
     optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs", "--solver");
@@ -144,13 +145,15 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName, outputFormat,
-            simulatorOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile, snapshotOrder;
+    std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName,
+            outputFormat, simulatorOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile,
+            snapshotOrder;
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
     long delayStart, delayInterval;
-    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep,  maxTimestep;
-    bool debug, verboseOutput, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck, fastCycleCheck,
-            feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup, useGroupDetermined;
+    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep, maxTimestep;
+    bool debug, verboseOutput, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck,
+            fastCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup,
+            useGroupDetermined;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -204,16 +207,18 @@ int main(int argc, const char *argv[]) {
     //    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
-    std::shared_ptr<spdlog::logger> file_logger;
-    if (!logFile.empty()) {
-        try {
-            file_logger = spdlog::basic_logger_st("file_logger", logFile, true);
-            file_logger->flush_on(spdlog::level::debug);
-            spdlog::set_default_logger(file_logger);
-        } catch (const spdlog::spdlog_ex &ex) {
-            std::cerr << "Log initialization failed: " << ex.what() << std::endl;
-            exit(-1);
+    std::shared_ptr<spdlog::logger> logger;
+    try {
+        if (!logFile.empty()) {
+            logger = spdlog::basic_logger_st("file_logger", logFile, true);
+        } else {
+            logger = spdlog::stderr_color_mt("stderr");
         }
+        logger->flush_on(spdlog::level::debug);
+        spdlog::set_default_logger(logger);
+    } catch (const spdlog::spdlog_ex &ex) {
+        std::cerr << "Log initialization failed: " << ex.what() << std::endl;
+        exit(-1);
     }
     if (debug) { spdlog::set_level(spdlog::level::debug); }
     if (window == 0) { window = INT_MAX; }
@@ -250,9 +255,9 @@ int main(int argc, const char *argv[]) {
     }
     std::ostream &out = fout.is_open() ? fout : std::cout;
 
-//    std::string lockFileName = outputFileName + ".lock";
-//    std::ofstream lockFile(lockFileName, std::ios_base::app);
-//    lockFile.close();
+    //    std::string lockFileName = outputFileName + ".lock";
+    //    std::ofstream lockFile(lockFileName, std::ios_base::app);
+    //    lockFile.close();
 
 
     Graph graph;

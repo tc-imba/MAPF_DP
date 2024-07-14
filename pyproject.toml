@@ -19,6 +19,9 @@ loguru = "^0.7.0"
 rich = "^13.4.2"
 seaborn = "^0.12.2"
 psutil = "^5.9.5"
+motor = "^3.5.1"
+pydantic = "^2.8.2"
+aiofiles = "^24.1.0"
 
 
 [build-system]

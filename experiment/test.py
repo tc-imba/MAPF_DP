@@ -3,6 +3,7 @@ import math
 import os
 import time
 from typing import List
+import bson
 
 import click
 import subprocess
@@ -14,6 +15,9 @@ import pandas as pd
 import dataclasses
 from tqdm import tqdm
 import psutil
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import IndexModel, ASCENDING, DESCENDING
+import aiofiles
 
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup, validate_list
@@ -22,6 +26,7 @@ from experiment.logger import logger
 
 @dataclasses.dataclass
 class TestArguments(AppArguments):
+    experiment_name: str
     map_seeds: int
     map_names: List[str]
     agent_seeds: int
@@ -35,7 +40,7 @@ class TestArguments(AppArguments):
     result_dir: Path
     pool: concurrent.futures.ProcessPoolExecutor
     naive: bool
-    resume: bool
+    overwrite: bool
 
 
 # workers = multiprocessing.cpu_count()
@@ -56,8 +61,19 @@ NAIVE_SETTINGS = [
     # (True, False, False),
     # (True, True, False),       # feasibility
     # (True, True, True),
-    (True, False, False),    # naive feasibility
+    (True, False, False),  # naive feasibility
 ]
+
+mongo_client = AsyncIOMotorClient()
+db = mongo_client["MAPF_DP"]
+results_collection = db["results"]
+
+
+async def init_db():
+    index1 = IndexModel([("experiment", DESCENDING),
+                         ("case", ASCENDING)], name="experiment_case", unique=True)
+    await results_collection.create_indexes([index1])
+
 
 class CurrentWrapper:
     def __init__(self):
@@ -134,28 +150,42 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     else:
         assert False
 
+    doc_filter = {
+        "experiment": args.experiment_name,
+        "case": full_prefix,
+    }
     if init_tests:
         output_prefix = full_prefix
-    elif full_prefix in completed:
-        EXPERIMENT_JOBS_COMPLETED += 1
-        logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
-                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
-        PBAR.update()
-        return 1
-    output_file = args.result_dir / (output_prefix + ".csv")
-    output_time_file = args.result_dir / (output_prefix + ".time")
+    elif not args.overwrite:
+        doc = await results_collection.find_one(doc_filter)
+        if doc is not None:
+            EXPERIMENT_JOBS_COMPLETED += 1
+            logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                        EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
+            PBAR.update()
+            return 1
+
+    async with aiofiles.tempfile.NamedTemporaryFile(prefix="MAPF_DP.", delete=False) as f:
+        output_file_path = f.name
+    # output_file = await
+    # output_file_path = output_file
+    # output_file, output_file_path = await aiofiles.tempfile.mkstemp(prefix="MAPF_DP.")
+    # os.close(output_file)
+
+    # output_file = args.result_dir / (output_prefix + ".csv")
+    # output_time_file = args.result_dir / (output_prefix + ".time")
     cbs_file = args.result_dir / (cbs_prefix + ".cbs")
     # logger.info(output_file)
 
     if init_tests:
         cbs_file.unlink(missing_ok=True)
 
-    if output_prefix not in defined_output_prefixes:
-        defined_output_prefixes.add(output_prefix)
-        # if output_file.exists():
-        if not args.resume:
-            output_file.unlink(missing_ok=True)
-            output_time_file.unlink(missing_ok=True)
+    # if output_prefix not in defined_output_prefixes:
+    #     defined_output_prefixes.add(output_prefix)
+    #     # if output_file.exists():
+    #     if not args.resume:
+    #         output_file.unlink(missing_ok=True)
+    #         output_time_file.unlink(missing_ok=True)
 
     # generate arguments
     simulator = setup.simulator
@@ -221,8 +251,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--delay-start", str(setup.delay_start),
         "--delay-interval", str(setup.delay_interval),
         "--max-timestep", str(max_timestep),
-        "--output", output_file.as_posix(),
-        "--time-output", output_time_file.as_posix(),
+        "--output-format", "bson", "-v",
+        "--output", output_file_path,
+        # "--time-output", output_time_file.as_posix(),
         "--suboptimality", str(args.suboptimality),
         "--snapshot-order", snapshot_order,
         "--remove-redundant", remove_redundant,
@@ -260,6 +291,18 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     elapsed_seconds, success = await asyncio.get_event_loop().run_in_executor(
         args.pool, run_program, full_prefix, program_args, args.timeout)
 
+    decoded_data = {}
+    if success:
+        try:
+            async with aiofiles.open(output_file_path, "rb") as f:
+                output_data = await f.read()
+            decoded_data = bson.decode(output_data)
+        except Exception as e:
+            logger.exception(e)
+            success = False
+
+    os.unlink(output_file_path)
+
     result = 1
     if init_tests:
         try:
@@ -270,14 +313,29 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                 if len(line) == 0:
                     # logger.error("{}", cbs_file)
                     raise Exception()
-            with output_file.open() as file:
-                line = file.readline().strip()
-                if len(line) == 0:
-                    # logger.error("{}", output_file)
-                    raise Exception()
+            # with output_file.open() as file:
+            #     line = file.readline().strip()
+            #     if len(line) == 0:
+            #         # logger.error("{}", output_file)
+            #         raise Exception()
         except Exception as e:
             # logger.exception(e)
             result = 0
+    else:
+        if not decoded_data.get("result", {}).get("success", False):
+            success = False
+        doc = {
+            "experiment": args.experiment_name,
+            "case": full_prefix,
+            "setup": setup.dict(),
+            "success": success,
+            **decoded_data,
+        }
+        if args.overwrite:
+            await results_collection.replace_one(doc_filter, doc, upsert=True)
+        else:
+            insert_result = await results_collection.insert_one(doc)
+            logger.info("insert: {}", insert_result.inserted_id)
 
     if result == 1:
         EXPERIMENT_JOBS_COMPLETED += 1
@@ -287,18 +345,17 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                     EXPERIMENT_JOBS_COMPLETED,
                     EXPERIMENT_JOBS_FAILED,
                     EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
-        if success:
-            completed.add(full_prefix)
-            completed_file = args.result_dir / "completed.csv"
-            with completed_file.open("a") as f:
-                f.write("%s\n" % full_prefix)
+        # if success:
+        #     completed.add(full_prefix)
+        #     completed_file = args.result_dir / "completed.csv"
+        #     with completed_file.open("a") as f:
+        #         f.write("%s\n" % full_prefix)
     else:
         EXPERIMENT_JOBS_FAILED += 1
         PBAR.update(0)
         logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix, EXPERIMENT_JOBS_COMPLETED,
                     EXPERIMENT_JOBS_FAILED,
                     EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED + 1, elapsed_seconds)
-
     return result
 
 
@@ -481,7 +538,6 @@ async def do_init_tests_den520d(args: TestArguments):
     else:
         simulator = "snapshot_start"
 
-
     async def init_case(map_name, agent_seed, agents, agents_per_task_file):
         setup = ExperimentSetup(
             timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
@@ -624,7 +680,6 @@ async def do_tests_den520d(args: TestArguments):
             return await run(args, setup, agent_seed=agent_seed, simulation_seed=simulation_seed, map_name=map_name,
                              max_timestep=10000, init_tests=False)
 
-
     test_file = args.result_dir / f"tests_{args.map}.csv"
     df = pd.read_csv(test_file, header=None)
     df.columns = TEST_FILE_COLUMNS_DEN520D
@@ -681,10 +736,12 @@ async def do_tests_den520d(args: TestArguments):
 @click.option("--init-tests", type=bool, default=False, is_flag=True)
 @click.option("-j", "--jobs", type=int, default=multiprocessing.cpu_count)
 @click.option("--naive", type=bool, default=False, is_flag=True)
-@click.option("--resume", type=bool, default=False, is_flag=True)
+@click.option("--overwrite", type=bool, default=False, is_flag=True)
+@click.option("--experiment-name", type=str, default="test1")
 @click.pass_context
 @asyncio_wrapper
-async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs, naive, resume):
+async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, suboptimality, init_tests, jobs, naive,
+               overwrite, experiment_name):
     program = project_root / "cmake-build-relwithdebinfo"
     if platform.system() == "Windows":
         program = program / "MAPF_DP.exe"
@@ -704,6 +761,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
     pool = concurrent.futures.ProcessPoolExecutor(max_workers=jobs)
     args = TestArguments(
         **ctx.obj.__dict__,
+        experiment_name=experiment_name,
         map_seeds=map_seeds,
         map_names=map_names,
         agent_seeds=agent_seeds,
@@ -717,13 +775,15 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
         result_dir=result_dir,
         pool=pool,
         naive=naive,
-        resume=resume,
+        overwrite=overwrite,
     )
     logger.info(args)
     logger.info("Running with {} jobs", jobs)
     # click.echo(args)
 
     kill_all_process()
+    await init_db()
+
     if args.map == "random":
         if init_tests:
             await do_init_tests(args)

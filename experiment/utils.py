@@ -2,6 +2,7 @@ import asyncio
 import dataclasses
 from functools import wraps
 from pathlib import Path
+from pydantic import BaseModel
 
 project_root = Path(__file__).parent.parent
 
@@ -30,8 +31,7 @@ def validate_list(cast_func):
     return wrapper
 
 
-@dataclasses.dataclass
-class ExperimentSetup:
+class ExperimentSetup(BaseModel):
     timing: str
     map: str
     map_name: str
