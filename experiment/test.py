@@ -165,14 +165,15 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             PBAR.update()
             return 1
 
-    async with aiofiles.tempfile.NamedTemporaryFile(prefix="MAPF_DP.", delete=False) as f:
-        output_file_path = f.name
+    # async with aiofiles.tempfile.NamedTemporaryFile(prefix="MAPF_DP.", delete=False) as f:
+    #     output_file_path = f.name
+    #     await f.close()
     # output_file = await
     # output_file_path = output_file
     # output_file, output_file_path = await aiofiles.tempfile.mkstemp(prefix="MAPF_DP.")
     # os.close(output_file)
 
-    # output_file = args.result_dir / (output_prefix + ".csv")
+    output_file = args.result_dir / (full_prefix + ".bson")
     # output_time_file = args.result_dir / (output_prefix + ".time")
     cbs_file = args.result_dir / (cbs_prefix + ".cbs")
     # logger.info(output_file)
@@ -252,7 +253,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--delay-interval", str(setup.delay_interval),
         "--max-timestep", str(max_timestep),
         "--output-format", "bson", "-v",
-        "--output", output_file_path,
+        "--output", output_file.as_posix(),
         # "--time-output", output_time_file.as_posix(),
         "--suboptimality", str(args.suboptimality),
         "--snapshot-order", snapshot_order,
@@ -294,14 +295,13 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     decoded_data = {}
     if success:
         try:
-            async with aiofiles.open(output_file_path, "rb") as f:
+            async with aiofiles.open(str(output_file), "rb") as f:
                 output_data = await f.read()
             decoded_data = bson.decode(output_data)
         except Exception as e:
             logger.exception(e)
             success = False
 
-    os.unlink(output_file_path)
 
     result = 1
     if init_tests:
