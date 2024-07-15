@@ -372,6 +372,7 @@ void DiscreteOnlineSimulator::initSimulation() {
     depGraph.onlineOpt = onlineOpt;
     depGraph.groupDetermined = groupDetermined;
     depGraph.isFastCycleCheck = isFastCycleCheck;
+    depGraph.topoGraphType = topoGraphType;
     depGraph.init();
 }
 

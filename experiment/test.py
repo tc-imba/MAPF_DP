@@ -198,6 +198,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     remove_redundant = "none"
     snapshot_order = "none"
     replan_suboptimality = 1
+    dep_graph = "boost"
 
     if setup.simulator.startswith("replan_"):
         simulator = "replan"
@@ -227,6 +228,10 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         elif setup.simulator == "online_group":
             online_opt = True
             group_determined = True
+        elif setup.simulator == "online_group_array":
+            online_opt = True
+            group_determined = True
+            dep_graph = "array"
         elif setup.simulator == "online_fast_cycle":
             online_opt = True
             fast_cycle = True
@@ -259,6 +264,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--snapshot-order", snapshot_order,
         "--remove-redundant", remove_redundant,
         "--replan-suboptimality", str(replan_suboptimality),
+        "--dep-graph", dep_graph,
     ]
     # if map_type == "hardcoded":
     #     program_args.append("--all")

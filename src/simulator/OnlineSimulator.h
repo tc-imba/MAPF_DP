@@ -14,6 +14,7 @@ public:
     bool isOnlyCycleCheck = false;
     bool isFastCycleCheck = false;
     bool isFeasibilityType = false;
+    std::string topoGraphType = "array";
 
     size_t feasibilityCheckCount = 0;
 //    size_t feasibilityCheckCountFast = 0;

@@ -82,6 +82,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs", "--solver");
     optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
     optionParser.add("none", false, 1, 0, "(none, start, end, collision)", "--snapshot-order");
+    optionParser.add("array", false, 1, 0, "(boost / array)", "--dep-graph");
 
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit, deprecated)", "-w", "--window", validWindowSize);
@@ -147,7 +148,7 @@ int main(int argc, const char *argv[]) {
 
     std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName,
             outputFormat, simulatorOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile,
-            snapshotOrder;
+            snapshotOrder, topoGraphType;
     unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
     long delayStart, delayInterval;
     double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep, maxTimestep;
@@ -170,6 +171,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--solver")->getString(solverType);
     optionParser.get("--solver-binary")->getString(solverBinaryFile);
     optionParser.get("--snapshot-order")->getString(snapshotOrder);
+    optionParser.get("--dep-graph")->getString(topoGraphType);
     optionParser.get("--window")->getULong(window);
     optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
@@ -227,6 +229,11 @@ int main(int argc, const char *argv[]) {
     bool nodeNodeConflict = conflictTypes.find("node-node") != std::string::npos;
     bool edgeEdgeConflict = conflictTypes.find("edge-edge") != std::string::npos;
     bool nodeEdgeConflict = conflictTypes.find("node-edge") != std::string::npos;
+
+    if (topoGraphType != "boost" && topoGraphType != "array") {
+        SPDLOG_ERROR("--dep-graph must be boost or array!");
+        exit(-1);
+    }
 
     if (solverBinaryFile.empty()) {
         auto solverBinaryPath = boost::dll::program_location().parent_path();
@@ -444,6 +451,7 @@ int main(int argc, const char *argv[]) {
                 auto discreteOnlineSimulator = std::dynamic_pointer_cast<DiscreteOnlineSimulator>(simulator);
                 discreteOnlineSimulator->onlineOpt = onlineOpt;
                 discreteOnlineSimulator->groupDetermined = useGroupDetermined;
+                discreteOnlineSimulator->topoGraphType = topoGraphType;
             }
             auto onlineSimulator = std::dynamic_pointer_cast<OnlineSimulator>(simulator);
             onlineSimulator->isHeuristicFeasibilityCheck = !naiveFeasibilityCheck;
