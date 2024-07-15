@@ -118,7 +118,7 @@ template <>
 struct fmt::formatter<DependencyGraph::SDGNode> : nested_formatter<size_t> {
     auto format(const DependencyGraph::SDGNode &node, format_context& ctx) const {
         return write_padded(ctx, [=](auto out) {
-            return format_to(out, "({},{})", nested(node.agentId), nested(node.state));
+            return fmt::format_to(out, "({},{})", nested(node.agentId), nested(node.state));
         });
     }
 };
@@ -127,7 +127,7 @@ template <>
 struct fmt::formatter<DependencyGraph::SDGEdge> : nested_formatter<DependencyGraph::SDGNode> {
     auto format(const DependencyGraph::SDGEdge &edge, format_context& ctx) const {
         return write_padded(ctx, [=](auto out) {
-            return format_to(out, "{}->{}", nested(edge.source), nested(edge.dest));
+            return fmt::format_to(out, "{}->{}", nested(edge.source), nested(edge.dest));
         });
     }
 };
