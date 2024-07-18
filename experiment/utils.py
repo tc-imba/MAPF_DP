@@ -64,3 +64,10 @@ class ExperimentSetup(BaseModel):
         else:
             assert False
         return output_prefix
+
+    def get_filter_dict(self):
+        filter_dict = self.dict()
+        if self.map != "random":
+            filter_dict.pop("obstacles", None)
+        return {f"setup.{k}": v for k, v in filter_dict.items()}
+
