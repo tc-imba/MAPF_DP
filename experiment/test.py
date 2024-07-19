@@ -39,6 +39,7 @@ class TestArguments(AppArguments):
     mapf_maps_dir: Path
     result_dir: Path
     pool: concurrent.futures.ProcessPoolExecutor
+    semaphore: asyncio.Semaphore
     naive: bool
     overwrite: bool
 
@@ -53,6 +54,7 @@ TEST_FILE_COLUMNS_DEN520D = ["map_name", "agent_seed", "agent"]
 defined_output_prefixes = set()
 completed = set()
 PBAR = tqdm(total=1)
+
 
 NAIVE_SETTINGS = [
     # (False, False, False),  # online/default,cycle
@@ -129,264 +131,266 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
               # naive_feasibility=False, naive_cycle=False, only_cycle=False, feasibility_type=False,
               # timeout=600, init_tests=False
               ):
+
     global EXPERIMENT_JOBS, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED, PBAR
     EXPERIMENT_JOBS += 1
     PBAR.total = EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED
     PBAR.update(0)
 
-    output_prefix = setup.get_output_prefix()
-    if setup.map == "random":
-        map_type = "random"
-        cbs_prefix = "%s-%s-30-30-%d-%d-%s-%d-%d-%s" % (
-            setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
-        full_prefix = output_prefix + "-%d-%d-%d" % (map_seed, agent_seed, simulation_seed)
-    elif setup.map == "warehouse" or setup.map == "mapf":
-        map_type = setup.map
-        cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
-            setup.timing, setup.map, map_name, setup.agents, agent_seed, setup.solver)
-        full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
-    elif setup.map == "den520d":
-        map_type = "graphml"
-        cbs_prefix = "%s-%s-%d-%d-%s" % (
-            setup.timing, map_name, setup.agents, agent_seed, setup.solver)
-        full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
-    else:
-        assert False
+    async with args.semaphore:
+        output_prefix = setup.get_output_prefix()
+        if setup.map == "random":
+            map_type = "random"
+            cbs_prefix = "%s-%s-30-30-%d-%d-%s-%d-%d-%s" % (
+                setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
+            full_prefix = output_prefix + "-%d-%d-%d" % (map_seed, agent_seed, simulation_seed)
+        elif setup.map == "warehouse" or setup.map == "mapf":
+            map_type = setup.map
+            cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
+                setup.timing, setup.map, map_name, setup.agents, agent_seed, setup.solver)
+            full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
+        elif setup.map == "den520d":
+            map_type = "graphml"
+            cbs_prefix = "%s-%s-%d-%d-%s" % (
+                setup.timing, map_name, setup.agents, agent_seed, setup.solver)
+            full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
+        else:
+            assert False
 
-    if init_tests:
-        doc_filter = {
-            "case": full_prefix,
-        }
-        collection = cases_collection
+        if init_tests:
+            doc_filter = {
+                "case": full_prefix,
+            }
+            collection = cases_collection
 
-    else:
-        doc_filter = {
-            "experiment": args.experiment_name,
-            "case": full_prefix,
-        }
-        collection = results_collection
+        else:
+            doc_filter = {
+                "experiment": args.experiment_name,
+                "case": full_prefix,
+            }
+            collection = results_collection
 
-    if not args.overwrite:
-        doc = await collection.find_one(doc_filter)
-        if doc is not None:
-            EXPERIMENT_JOBS_COMPLETED += 1
-            logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
-                        EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
-            PBAR.update()
-            return 1
+        if not args.overwrite:
+            doc = await collection.find_one(doc_filter)
+            if doc is not None:
+                EXPERIMENT_JOBS_COMPLETED += 1
+                logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                            EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED)
+                PBAR.update()
+                return 1
 
-    # async with aiofiles.tempfile.NamedTemporaryFile(prefix="MAPF_DP.", delete=False) as f:
-    #     output_file_path = f.name
-    #     await f.close()
-    # output_file = await
-    # output_file_path = output_file
-    # output_file, output_file_path = await aiofiles.tempfile.mkstemp(prefix="MAPF_DP.")
-    # os.close(output_file)
+        # async with aiofiles.tempfile.NamedTemporaryFile(prefix="MAPF_DP.", delete=False) as f:
+        #     output_file_path = f.name
+        #     await f.close()
+        # output_file = await
+        # output_file_path = output_file
+        # output_file, output_file_path = await aiofiles.tempfile.mkstemp(prefix="MAPF_DP.")
+        # os.close(output_file)
 
-    output_file = args.result_dir / (full_prefix + ".bson")
-    # output_time_file = args.result_dir / (output_prefix + ".time")
-    cbs_file = args.result_dir / (cbs_prefix + ".cbs")
-    # logger.info(output_file)
+        output_file = args.result_dir / (full_prefix + ".bson")
+        # output_time_file = args.result_dir / (output_prefix + ".time")
+        cbs_file = args.result_dir / (cbs_prefix + ".cbs")
+        # logger.info(output_file)
 
-    if init_tests:
-        cbs_file.unlink(missing_ok=True)
+        if init_tests:
+            cbs_file.unlink(missing_ok=True)
 
-    # if output_prefix not in defined_output_prefixes:
-    #     defined_output_prefixes.add(output_prefix)
-    #     # if output_file.exists():
-    #     if not args.resume:
-    #         output_file.unlink(missing_ok=True)
-    #         output_time_file.unlink(missing_ok=True)
+        # if output_prefix not in defined_output_prefixes:
+        #     defined_output_prefixes.add(output_prefix)
+        #     # if output_file.exists():
+        #     if not args.resume:
+        #         output_file.unlink(missing_ok=True)
+        #         output_time_file.unlink(missing_ok=True)
 
-    # generate arguments
-    simulator = setup.simulator
-    prioritized_replan = False
-    prioritized_opt = False
-    online_opt = True
-    group_determined = False
-    fast_cycle = False
-    remove_redundant = "none"
-    snapshot_order = "none"
-    replan_suboptimality = 1
-    dep_graph = "boost"
+        # generate arguments
+        simulator = setup.simulator
+        prioritized_replan = False
+        prioritized_opt = False
+        online_opt = True
+        group_determined = False
+        fast_cycle = False
+        remove_redundant = "none"
+        snapshot_order = "none"
+        replan_suboptimality = 1
+        dep_graph = "boost"
 
-    if setup.simulator.startswith("replan_"):
-        simulator = "replan"
-        replan_suboptimality = float(setup.simulator[7:])
+        if setup.simulator.startswith("replan_"):
+            simulator = "replan"
+            replan_suboptimality = float(setup.simulator[7:])
 
-    if setup.simulator.startswith("prioritized"):
-        simulator = "replan"
-        prioritized_replan = True
-        if setup.simulator == "prioritized_opt":
-            prioritized_opt = True
-    elif setup.simulator.startswith("snapshot"):
-        simulator = "snapshot"
-        if setup.simulator == "snapshot_start":
-            snapshot_order = "start"
-        elif setup.simulator == "snapshot_end":
-            snapshot_order = "end"
-        elif setup.simulator == "snapshot_collision":
-            snapshot_order = "collision"
-    elif setup.simulator.startswith("online"):
-        simulator = "online"
-        if setup.simulator == "online_remove_redundant_physical":
-            remove_redundant = "physical"
-        elif setup.simulator == "online_remove_redundant_graph":
-            remove_redundant = "graph"
-        elif setup.simulator == "online_group":
-            group_determined = True
-        elif setup.simulator == "online_array":
-            dep_graph = "array"
-        elif setup.simulator == "online_group_array":
-            group_determined = True
-            dep_graph = "array"
-        elif setup.simulator == "online_fast_cycle":
-            fast_cycle = True
+        if setup.simulator.startswith("prioritized"):
+            simulator = "replan"
+            prioritized_replan = True
+            if setup.simulator == "prioritized_opt":
+                prioritized_opt = True
+        elif setup.simulator.startswith("snapshot"):
+            simulator = "snapshot"
+            if setup.simulator == "snapshot_start":
+                snapshot_order = "start"
+            elif setup.simulator == "snapshot_end":
+                snapshot_order = "end"
+            elif setup.simulator == "snapshot_collision":
+                snapshot_order = "collision"
+        elif setup.simulator.startswith("online"):
+            simulator = "online"
+            if setup.simulator == "online_remove_redundant_physical":
+                remove_redundant = "physical"
+            elif setup.simulator == "online_remove_redundant_graph":
+                remove_redundant = "graph"
+            elif setup.simulator == "online_group":
+                group_determined = True
+            elif setup.simulator == "online_array":
+                dep_graph = "array"
+            elif setup.simulator == "online_group_array":
+                group_determined = True
+                dep_graph = "array"
+            elif setup.simulator == "online_fast_cycle":
+                fast_cycle = True
 
-    program_args = [
-        args.program.as_posix(),
-        "--map", map_type,
-        "--objective", objective,
-        "--map-seed", str(map_seed),
-        "--map-name", str(map_name),
-        "--agent-seed", str(agent_seed),
-        "--agent-skip", str(agent_skip),
-        "--agents", str(setup.agents),
-        "--iteration", "1",
-        "--simulation-seed", str(simulation_seed),
-        "--solver", setup.solver,
-        "--obstacles", str(setup.obstacles),
-        "--simulator", simulator,
-        "--k-neighbor", str(setup.k_neighbor),
-        "--timing", setup.timing,
-        "--delay", setup.delay_type,
-        "--delay-ratio", str(setup.delay_ratio),
-        "--delay-start", str(setup.delay_start),
-        "--delay-interval", str(setup.delay_interval),
-        "--max-timestep", str(max_timestep),
-        "--output-format", "bson",
-        "--output", output_file.as_posix(),
-        # "--time-output", output_time_file.as_posix(),
-        "--suboptimality", str(args.suboptimality),
-        "--snapshot-order", snapshot_order,
-        "--remove-redundant", remove_redundant,
-        "--replan-suboptimality", str(replan_suboptimality),
-        "--dep-graph", dep_graph,
-    ]
-    # if map_type == "hardcoded":
-    #     program_args.append("--all")
-    if not init_tests:
-        program_args.append("-v")
-    if setup.feasibility != "h":
-        program_args.append("--naive-feasibility")
-    if setup.cycle != "h":
-        program_args.append("--naive-cycle")
-    if setup.cycle == "o":
-        program_args.append("--only-cycle")
-    # if feasibility_type:
-    #     args.append("--feasibility-type")
-    if prioritized_replan:
-        program_args.append("--prioritized-replan")
-    if prioritized_opt:
-        program_args.append("--prioritized-opt")
-    if online_opt:
-        program_args.append("--online-opt")
-    if group_determined:
-        program_args.append("--group-determined")
-    if fast_cycle:
-        program_args.append("--fast-cycle")
+        program_args = [
+            args.program.as_posix(),
+            "--map", map_type,
+            "--objective", objective,
+            "--map-seed", str(map_seed),
+            "--map-name", str(map_name),
+            "--agent-seed", str(agent_seed),
+            "--agent-skip", str(agent_skip),
+            "--agents", str(setup.agents),
+            "--iteration", "1",
+            "--simulation-seed", str(simulation_seed),
+            "--solver", setup.solver,
+            "--obstacles", str(setup.obstacles),
+            "--simulator", simulator,
+            "--k-neighbor", str(setup.k_neighbor),
+            "--timing", setup.timing,
+            "--delay", setup.delay_type,
+            "--delay-ratio", str(setup.delay_ratio),
+            "--delay-start", str(setup.delay_start),
+            "--delay-interval", str(setup.delay_interval),
+            "--max-timestep", str(max_timestep),
+            "--output-format", "bson",
+            "--output", output_file.as_posix(),
+            # "--time-output", output_time_file.as_posix(),
+            "--suboptimality", str(args.suboptimality),
+            "--snapshot-order", snapshot_order,
+            "--remove-redundant", remove_redundant,
+            "--replan-suboptimality", str(replan_suboptimality),
+            "--dep-graph", dep_graph,
+        ]
+        # if map_type == "hardcoded":
+        #     program_args.append("--all")
+        if not init_tests:
+            program_args.append("-v")
+        if setup.feasibility != "h":
+            program_args.append("--naive-feasibility")
+        if setup.cycle != "h":
+            program_args.append("--naive-cycle")
+        if setup.cycle == "o":
+            program_args.append("--only-cycle")
+        # if feasibility_type:
+        #     args.append("--feasibility-type")
+        if prioritized_replan:
+            program_args.append("--prioritized-replan")
+        if prioritized_opt:
+            program_args.append("--prioritized-opt")
+        if online_opt:
+            program_args.append("--online-opt")
+        if group_determined:
+            program_args.append("--group-determined")
+        if fast_cycle:
+            program_args.append("--fast-cycle")
 
-    if map_file:
-        program_args.append("--map-file")
-        program_args.append(map_file.as_posix())
-    if task_file:
-        program_args.append("--task-file")
-        program_args.append(task_file.as_posix())
+        if map_file:
+            program_args.append("--map-file")
+            program_args.append(map_file.as_posix())
+        if task_file:
+            program_args.append("--task-file")
+            program_args.append(task_file.as_posix())
 
-    # logger.info("{}", " ".join(program_args))
-    elapsed_seconds, success = await asyncio.get_event_loop().run_in_executor(
-        args.pool, run_program, full_prefix, program_args, args.timeout)
+        # logger.info("{}", " ".join(program_args))
+        elapsed_seconds, success = await asyncio.get_event_loop().run_in_executor(
+            args.pool, run_program, full_prefix, program_args, args.timeout)
 
-    decoded_data = {}
-    if success:
-        try:
-            async with aiofiles.open(str(output_file), "rb") as f:
-                output_data = await f.read()
-            decoded_data = bson.decode(output_data)
-        except Exception as e:
-            logger.error("{} {}", e.__class__, str(e))
+        decoded_data = {}
+        if success:
+            try:
+                async with aiofiles.open(str(output_file), "rb") as f:
+                    output_data = await f.read()
+                decoded_data = bson.decode(output_data)
+            except Exception as e:
+                logger.error("{} {}", e.__class__, str(e))
+                success = False
+
+        result = 1
+        if not decoded_data.get("result", {}).get("success", False):
             success = False
 
-    result = 1
-    if not decoded_data.get("result", {}).get("success", False):
-        success = False
+        seeds = {
+            "map_seed": map_seed,
+            "agent_seed": agent_seed,
+            "simulation_seed": simulation_seed,
+        }
 
-    seeds = {
-        "map_seed": map_seed,
-        "agent_seed": agent_seed,
-        "simulation_seed": simulation_seed,
-    }
-
-    if init_tests:
-        try:
-            if not success:
-                raise Exception()
-            with cbs_file.open() as file:
-                line = file.readline().strip()
-                if len(line) == 0:
-                    # logger.error("{}", cbs_file)
+        if init_tests:
+            try:
+                if not success:
                     raise Exception()
-            # with output_file.open() as file:
-            #     line = file.readline().strip()
-            #     if len(line) == 0:
-            #         # logger.error("{}", output_file)
-            #         raise Exception()
-        except Exception as e:
-            # logger.exception(e)
-            result = 0
-        if result == 1:
+                with cbs_file.open() as file:
+                    line = file.readline().strip()
+                    if len(line) == 0:
+                        # logger.error("{}", cbs_file)
+                        raise Exception()
+                # with output_file.open() as file:
+                #     line = file.readline().strip()
+                #     if len(line) == 0:
+                #         # logger.error("{}", output_file)
+                #         raise Exception()
+            except Exception as e:
+                # logger.exception(e)
+                result = 0
+            if result == 1:
+                doc = {
+                    "case": full_prefix,
+                    "setup": setup.dict(),
+                    "seeds": seeds,
+                    "success": success,
+                    **decoded_data,
+                }
+            else:
+                doc = None
+
+        else:
             doc = {
+                "experiment": args.experiment_name,
                 "case": full_prefix,
                 "setup": setup.dict(),
                 "seeds": seeds,
                 "success": success,
                 **decoded_data,
             }
+
+        if doc is not None:
+            if args.overwrite:
+                upsert_result = await collection.replace_one(doc_filter, doc, upsert=True)
+                logger.info("upsert: {}", upsert_result.raw_result)
+            else:
+                insert_result = await collection.insert_one(doc)
+                logger.info("insert: {}", insert_result.inserted_id)
+
+        if result == 1 and success:
+            EXPERIMENT_JOBS_COMPLETED += 1
+            PBAR.update(1)
+            logger.info('{} success ({}/{}/{}) in {} seconds', full_prefix,
+                        EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                        EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
         else:
-            doc = None
-
-    else:
-        doc = {
-            "experiment": args.experiment_name,
-            "case": full_prefix,
-            "setup": setup.dict(),
-            "seeds": seeds,
-            "success": success,
-            **decoded_data,
-        }
-
-    if doc is not None:
-        if args.overwrite:
-            upsert_result = await collection.replace_one(doc_filter, doc, upsert=True)
-            logger.info("upsert: {}", upsert_result.raw_result)
-        else:
-            insert_result = await collection.insert_one(doc)
-            logger.info("insert: {}", insert_result.inserted_id)
-
-    if result == 1 and success:
-        EXPERIMENT_JOBS_COMPLETED += 1
-        PBAR.update(1)
-        logger.info('{} success ({}/{}/{}) in {} seconds', full_prefix,
-                    EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
-                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
-    else:
-        EXPERIMENT_JOBS_FAILED += 1
-        PBAR.total = EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED
-        PBAR.update(0)
-        logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix,
-                    EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
-                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
-    return result
+            EXPERIMENT_JOBS_FAILED += 1
+            PBAR.total = EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED
+            PBAR.update(0)
+            logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix,
+                        EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                        EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
+        return result
 
 
 async def do_init_tests(args: TestArguments):
@@ -795,6 +799,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
         solver = "ccbs"
 
     pool = concurrent.futures.ProcessPoolExecutor(max_workers=jobs)
+    semaphore = asyncio.Semaphore(jobs * 2)
     args = TestArguments(
         **ctx.obj.__dict__,
         experiment_name=experiment_name,
@@ -810,6 +815,7 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
         mapf_maps_dir=mapf_maps_dir,
         result_dir=result_dir,
         pool=pool,
+        semaphore=semaphore,
         naive=naive,
         overwrite=overwrite,
     )
