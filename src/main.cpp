@@ -515,10 +515,10 @@ int main(int argc, const char *argv[]) {
             simulator->resultJson["success"] = false;
             std::cerr << count << " " << agentNum << std::endl;
         }
-        simulator->resultJson["mapSeed"] = mapSeed;
-        simulator->resultJson["agentSeed"] = agentSeed;
+//        simulator->resultJson["map_seed"] = mapSeed;
+//        simulator->resultJson["agent_seed"] = agentSeed;
         simulator->resultJson["iteration"] = i;
-        simulator->resultJson["totalTime"] = elapsed_seconds.count();
+        simulator->resultJson["total_time"] = elapsed_seconds.count();
         simulator->writeSimulationOutput();
         simulator->outputJson["result"] = simulator->resultJson;
         if (outputFormat == "json") {

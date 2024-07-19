@@ -6,10 +6,10 @@
 
 void DefaultSimulator::writeSimulationOutput() {
     Simulator::writeSimulationOutput();
-    resultJson["partialReplanCount"] = partialReplanCount;
-    resultJson["partialReplanTime"] = partialReplanTime;
-    resultJson["fullReplanCount"] = fullReplanCount;
-    resultJson["fullReplanTime"] = fullReplanTime;
+    resultJson["partial_replan_count"] = partialReplanCount;
+    resultJson["partial_replan_time"] = partialReplanTime;
+    resultJson["full_replan_count"] = fullReplanCount;
+    resultJson["full_replan_time"] = fullReplanTime;
 }
 
 

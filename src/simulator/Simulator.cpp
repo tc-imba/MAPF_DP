@@ -149,11 +149,11 @@ int Simulator::countCompletedAgents() {
 }
 
 void Simulator::writeSimulationOutput() {
-    resultJson["averageCost"] = averageMakeSpan(MakeSpanType::AVERAGE);
+    resultJson["average_cost"] = averageMakeSpan(MakeSpanType::AVERAGE);
     resultJson["makespan"] = averageMakeSpan(MakeSpanType::MAXIMUM);
-    resultJson["executionTime"] = executionTime;
-    resultJson["firstAgentArrivingExecutionTime"] = firstAgentArrivingExecutionTime;
-    resultJson["firstAgentArrivingTimestep"] = firstAgentArrivingTimestep;
+    resultJson["execution_time"] = executionTime;
+    resultJson["first_agent_arriving_executionTime"] = firstAgentArrivingExecutionTime;
+    resultJson["first_agent_arriving_timestep"] = firstAgentArrivingTimestep;
 }
 
 //void Simulator::printExecutionTime(size_t mapSeed, size_t agentSeed, size_t iteration) {
@@ -190,7 +190,7 @@ void Simulator::writeTimestepOutput() {
     auto now = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = now - executionTimeStart;
     executionTimeStart = now;
-    timestepJson["executionTime"] = elapsed_seconds.count();
+    timestepJson["execution_time"] = elapsed_seconds.count();
     outputJson["details"].push_back(timestepJson);
 //    executionTimeVec.emplace_back(firstAgentArrived, elapsed_seconds.count());
 }

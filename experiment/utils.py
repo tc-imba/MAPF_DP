@@ -45,7 +45,7 @@ class ExperimentSetup(BaseModel):
     feasibility: str
     cycle: str
 
-    obstacles: int = 90
+    obstacles: int = 0
     k_neighbor: int = 2
 
     def get_output_prefix(self):

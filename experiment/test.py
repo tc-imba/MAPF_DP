@@ -67,13 +67,16 @@ NAIVE_SETTINGS = [
 mongo_client = AsyncIOMotorClient()
 db = mongo_client["MAPF_DP"]
 results_collection = db["results"]
+cases_collection = db["cases"]
 
 
 async def init_db():
-    index1 = IndexModel([("experiment", DESCENDING),
+    index1 = IndexModel([("experiment", ASCENDING),
                          ("case", ASCENDING)], name="experiment_case", unique=True)
     await results_collection.create_indexes([index1])
 
+    index2 = IndexModel([("case", ASCENDING)], name="case", unique=True)
+    await cases_collection.create_indexes([index2])
 
 class CurrentWrapper:
     def __init__(self):
@@ -150,14 +153,21 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     else:
         assert False
 
-    doc_filter = {
-        "experiment": args.experiment_name,
-        "case": full_prefix,
-    }
     if init_tests:
-        output_prefix = full_prefix
-    elif not args.overwrite:
-        doc = await results_collection.find_one(doc_filter)
+        doc_filter = {
+            "case": full_prefix,
+        }
+        collection = cases_collection
+
+    else:
+        doc_filter = {
+            "experiment": args.experiment_name,
+            "case": full_prefix,
+        }
+        collection = results_collection
+
+    if not args.overwrite:
+        doc = await collection.find_one(doc_filter)
         if doc is not None:
             EXPERIMENT_JOBS_COMPLETED += 1
             logger.info('{} skipped ({}/{}/{})', full_prefix, EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
@@ -192,7 +202,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     simulator = setup.simulator
     prioritized_replan = False
     prioritized_opt = False
-    online_opt = False
+    online_opt = True
     group_determined = False
     fast_cycle = False
     remove_redundant = "none"
@@ -223,17 +233,14 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             remove_redundant = "physical"
         elif setup.simulator == "online_remove_redundant_graph":
             remove_redundant = "graph"
-        elif setup.simulator == "online_opt":
-            online_opt = True
         elif setup.simulator == "online_group":
-            online_opt = True
             group_determined = True
+        elif setup.simulator == "online_array":
+            dep_graph = "array"
         elif setup.simulator == "online_group_array":
-            online_opt = True
             group_determined = True
             dep_graph = "array"
         elif setup.simulator == "online_fast_cycle":
-            online_opt = True
             fast_cycle = True
 
     program_args = [
@@ -257,7 +264,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         "--delay-start", str(setup.delay_start),
         "--delay-interval", str(setup.delay_interval),
         "--max-timestep", str(max_timestep),
-        "--output-format", "bson", "-v",
+        "--output-format", "bson",
         "--output", output_file.as_posix(),
         # "--time-output", output_time_file.as_posix(),
         "--suboptimality", str(args.suboptimality),
@@ -268,6 +275,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     ]
     # if map_type == "hardcoded":
     #     program_args.append("--all")
+    if not init_tests:
+        program_args.append("-v")
     if setup.feasibility != "h":
         program_args.append("--naive-feasibility")
     if setup.cycle != "h":
@@ -305,11 +314,19 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                 output_data = await f.read()
             decoded_data = bson.decode(output_data)
         except Exception as e:
-            logger.exception(e)
+            logger.error("{} {}", e.__class__, str(e))
             success = False
 
-
     result = 1
+    if not decoded_data.get("result", {}).get("success", False):
+        success = False
+
+    seeds = {
+        "map_seed": map_seed,
+        "agent_seed": agent_seed,
+        "simulation_seed": simulation_seed,
+    }
+
     if init_tests:
         try:
             if not success:
@@ -327,41 +344,48 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         except Exception as e:
             # logger.exception(e)
             result = 0
+        if result == 1:
+            doc = {
+                "case": full_prefix,
+                "setup": setup.dict(),
+                "seeds": seeds,
+                "success": success,
+                **decoded_data,
+            }
+        else:
+            doc = None
+
     else:
-        if not decoded_data.get("result", {}).get("success", False):
-            success = False
         doc = {
             "experiment": args.experiment_name,
             "case": full_prefix,
             "setup": setup.dict(),
+            "seeds": seeds,
             "success": success,
             **decoded_data,
         }
+
+    if doc is not None:
         if args.overwrite:
-            await results_collection.replace_one(doc_filter, doc, upsert=True)
+            upsert_result = await collection.replace_one(doc_filter, doc, upsert=True)
+            logger.info("upsert: {}", upsert_result.raw_result)
         else:
-            insert_result = await results_collection.insert_one(doc)
+            insert_result = await collection.insert_one(doc)
             logger.info("insert: {}", insert_result.inserted_id)
 
-    if result == 1:
+    if result == 1 and success:
         EXPERIMENT_JOBS_COMPLETED += 1
-        PBAR.update()
-        logger.info('{} {} ({}/{}/{}) in {} seconds', full_prefix,
-                    success and "completed" or "failed",
-                    EXPERIMENT_JOBS_COMPLETED,
-                    EXPERIMENT_JOBS_FAILED,
+        PBAR.update(1)
+        logger.info('{} success ({}/{}/{}) in {} seconds', full_prefix,
+                    EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
                     EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
-        # if success:
-        #     completed.add(full_prefix)
-        #     completed_file = args.result_dir / "completed.csv"
-        #     with completed_file.open("a") as f:
-        #         f.write("%s\n" % full_prefix)
     else:
         EXPERIMENT_JOBS_FAILED += 1
+        PBAR.total = EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED
         PBAR.update(0)
-        logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix, EXPERIMENT_JOBS_COMPLETED,
-                    EXPERIMENT_JOBS_FAILED,
-                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED + 1, elapsed_seconds)
+        logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix,
+                    EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
+                    EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
     return result
 
 
@@ -580,22 +604,23 @@ async def do_init_tests_den520d(args: TestArguments):
 
     async def init_map(map_name, agent):
         _current = CurrentWrapper()
-        row = df.loc[(df["map_name"] == map_name) & (df["agent"] == agent)]
-        if len(row) > 0:
-            row = row.iloc[0]
-            _current.current = row["agent_seed"] + 1
-            completed_seeds = min(args.agent_seeds, row["count"])
-        else:
-            completed_seeds = 0
-        if completed_seeds > 0:
-            setup = ExperimentSetup(
-                timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
-                simulator=simulator, agents=agent, delay_type="agent",
-                delay_ratio=0, delay_start=0, delay_interval=0,
-                feasibility="h", cycle="h",
-            )
-            logger.info('{} tests skipped for {}-{}-*', completed_seeds, setup.get_output_prefix(), map_name)
-        agent_seeds = args.agent_seeds - completed_seeds
+        # row = df.loc[(df["map_name"] == map_name) & (df["agent"] == agent)]
+        # if len(row) > 0:
+        #     row = row.iloc[0]
+        #     _current.current = row["agent_seed"] + 1
+        #     completed_seeds = min(args.agent_seeds, row["count"])
+        # else:
+        #     completed_seeds = 0
+        # if completed_seeds > 0:
+        #     setup = ExperimentSetup(
+        #         timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
+        #         simulator=simulator, agents=agent, delay_type="agent",
+        #         delay_ratio=0, delay_start=0, delay_interval=0,
+        #         feasibility="h", cycle="h",
+        #     )
+        #     logger.info('{} tests skipped for {}-{}-*', completed_seeds, setup.get_output_prefix(), map_name)
+        # agent_seeds = args.agent_seeds - completed_seeds
+        agent_seeds = args.agent_seeds
 
         if args.map == "den520d":
             agents_per_task_file = 100
@@ -622,8 +647,8 @@ async def do_init_tests_den520d(args: TestArguments):
                     break
                 result = await init_case(map_name, agent_seed, agent, agents_per_task_file)
                 if result == 1:
-                    with test_file.open("a") as file:
-                        file.write("%s,%d,%d\n" % (map_name, agent_seed, agent))
+                    # with test_file.open("a") as file:
+                    #     file.write("%s,%d,%d\n" % (map_name, agent_seed, agent))
                     break
 
         tasks = []
@@ -686,15 +711,15 @@ async def do_tests_den520d(args: TestArguments):
             return await run(args, setup, agent_seed=agent_seed, simulation_seed=simulation_seed, map_name=map_name,
                              max_timestep=10000, init_tests=False)
 
-    test_file = args.result_dir / f"tests_{args.map}.csv"
-    df = pd.read_csv(test_file, header=None)
-    df.columns = TEST_FILE_COLUMNS_DEN520D
-
-    completed_file = args.result_dir / f"completed.csv"
-    if completed_file.exists():
-        with completed_file.open("r") as f:
-            for line in f.readlines():
-                completed.add(line.strip())
+    # test_file = args.result_dir / f"tests_{args.map}.csv"
+    # df = pd.read_csv(test_file, header=None)
+    # df.columns = TEST_FILE_COLUMNS_DEN520D
+    #
+    # completed_file = args.result_dir / f"completed.csv"
+    # if completed_file.exists():
+    #     with completed_file.open("r") as f:
+    #         for line in f.readlines():
+    #             completed.add(line.strip())
 
     tasks = []
     for _map_name in args.map_names:
@@ -709,12 +734,17 @@ async def do_tests_den520d(args: TestArguments):
             agents_per_task_file = 0
 
         for _agent in args.agents:
-            df_temp = df[(df["map_name"] == _map_name) & (df["agent"] == _agent)]
-            df_temp.sort_values(by="agent_seed")
-            if len(df_temp) < args.agent_seeds:
+            doc_filter = {
+                "setup.timing": args.timing,
+                "setup.map": args.map,
+                "setup.map_name": _map_name,
+                "setup.agents": _agent,
+            }
+            agent_seeds_arr = [document["seeds"]["agent_seed"] async for document in cases_collection.find(doc_filter)]
+            if len(agent_seeds_arr) < args.agent_seeds:
                 logger.warning("{} {} no enough seeds", _map_name, _agent)
-            for i in range(min(len(df_temp), args.agent_seeds)):
-                _agent_seed = df_temp["agent_seed"].iloc[i]
+            for i in range(min(len(agent_seeds_arr), args.agent_seeds)):
+                _agent_seed = agent_seeds_arr[i]
                 for _delay_ratio in args.delay_ratios:
                     for _delay_interval in args.delay_intervals:
                         for _simulator in args.simulators:

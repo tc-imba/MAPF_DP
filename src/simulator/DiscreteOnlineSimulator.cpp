@@ -181,8 +181,8 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         unshared.clear();
         printSets("final       |", currentTimestep);
         if (verboseOutput) {
-            timestepJson["blockedAgents"] = blocked.size();
-            timestepJson["unblockedAgents"] = unblocked.size();
+            timestepJson["blocked_agents"] = blocked.size();
+            timestepJson["unblocked_agents"] = unblocked.size();
         }
 
 //        agentCountVec.emplace_back(blocked.size(), unblocked.size());
@@ -718,11 +718,11 @@ void DiscreteOnlineSimulator::cycleCheck() {
     //    std::cerr << "end cycle check: ";
 
     if (verboseOutput) {
-        timestepJson["feasibilityCheckCount"] = feasibilityCheckCount;
-        timestepJson["feasibilityCheckUnsettledEdgePairsCount"] = depGraph.feasibilityCheckUnsettledEdgePairsCount;
-        timestepJson["feasibilityCheckLoopCount"] = depGraph.feasibilityCheckLoopCount;
-        timestepJson["feasibilityCheckRecursionCount"] = depGraph.feasibilityCheckRecursionCount;
-        timestepJson["feasibilityCheckTopoCount"] = depGraph.feasibilityCheckTopoCount;
+        timestepJson["feasibility_check_count"] = feasibilityCheckCount;
+        timestepJson["feasibility_check_unsettled_edge_pairs_ount"] = depGraph.feasibilityCheckUnsettledEdgePairsCount;
+        timestepJson["feasibility_check_loop_count"] = depGraph.feasibilityCheckLoopCount;
+        timestepJson["feasibility_check_recursion_count"] = depGraph.feasibilityCheckRecursionCount;
+        timestepJson["feasibility_check_find_cycle_count"] = depGraph.feasibilityCheckTopoCount;
 
     }
 

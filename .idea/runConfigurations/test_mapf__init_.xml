@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="experiment.test" />
-    <option name="PARAMETERS" value="-j 10 --timing discrete --map mapf --map-names room-32-32-4,warehouse-10-20-10-2-1 --agent-seeds 50 --agents 10,20,30,40 --simulators default --delay-ratios 0.1 --delay-intervals 10 --init-tests --timeout 30 --suboptimality 1.1" />
+    <option name="PARAMETERS" value="-j 10 --timing discrete --map mapf --map-names room-32-32-4,warehouse-10-20-10-2-1,random-32-32-10,random-32-32-20 --agent-seeds 25 --agents 60 --simulators default --delay-ratios 0.1 --delay-intervals 10 --init-tests --timeout 60 --suboptimality 1.1" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="true" />

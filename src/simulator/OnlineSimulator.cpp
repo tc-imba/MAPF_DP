@@ -6,9 +6,9 @@
 
 void OnlineSimulator::writeSimulationOutput() {
     Simulator::writeSimulationOutput();
-    resultJson["cycleCheckCount"] = cycleCheckCount;
-    resultJson["cycleCheckAgents"] = cycleCheckAgents;
-    resultJson["unblockedAgents"] = unblockedAgents;
+    resultJson["cycle_check_count"] = cycleCheckCount;
+    resultJson["cycle_check_agents"] = cycleCheckAgents;
+    resultJson["unblocked_agents"] = unblockedAgents;
 //    resultJson["feasibilityCheckCount"] = feasibilityCheckCount;
 //    resultJson["feasibilityCheckUnsettledEdgePairsCount"] = feasibilityCheckUnsettledCount;
 //    resultJson["feasibilityCheckLoopCount"] = feasibilityCheckLoopCount;
