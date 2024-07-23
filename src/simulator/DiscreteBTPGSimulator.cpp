@@ -63,6 +63,7 @@ unsigned int DiscreteBTPGSimulator::simulate(double &currentTimestep, unsigned i
             }
         }
         executionTime += elapsed_seconds.count();
+        writeTimestepOutput();
     }
 #ifdef DEBUG
     std::cout << "Finish BTPG simulation" << std::endl;

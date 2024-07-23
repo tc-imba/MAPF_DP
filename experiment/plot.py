@@ -1,4 +1,8 @@
+import json
+
 from matplotlib import rcParams
+import matplotlib
+matplotlib.use('Agg')
 
 # rcParams['font.family'] = 'serif'
 # rcParams['font.sans-serif'] = ['Times']
@@ -11,13 +15,15 @@ import click
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+
+
 from matplotlib.ticker import ScalarFormatter, LogLocator, LogFormatter
 import numpy as np
 from motor.motor_asyncio import AsyncIOMotorClient
 from tqdm import tqdm
 import scipy.stats as stats
 import scipy.integrate
+from loguru import logger
 
 from experiment.app import app_command, AppArguments
 from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup, validate_list
@@ -26,8 +32,14 @@ from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup, val
 # rc('font',**{'family':'serif','serif':['Times']})
 # rc('text', useTex=False)
 
-LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129", "#FF0000", "#330066"]
-LINE_MARKERS = ["o", "s", "^", "+", "x", "*"]
+# LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129", "#FF0000", "#330066"]
+jet = plt.get_cmap('jet')
+LINE_COLORS_NUMBER = 8
+color_norm = matplotlib.colors.Normalize(vmin=0, vmax=LINE_COLORS_NUMBER)
+scalar_map = matplotlib.cm.ScalarMappable(norm=color_norm, cmap=jet)
+LINE_COLORS = [scalar_map.to_rgba(i) for i in range(LINE_COLORS_NUMBER)]
+
+LINE_MARKERS = ["o", "s", "^", "+", "x", "*", ".", ",", "v", "1"]
 
 # plt.rcParams['font.family'] = 'serif'
 # plt.rcParams['font.serif'] = ['Times New Roman'] + plt.rcParams['font.serif']
@@ -83,7 +95,7 @@ class PlotSettings:
     x_label: str = ""
 
     def __post_init__(self):
-        self.y_log = False
+        # self.y_log = False
         if self.y_field == "time":
             if self.plot_type == "simulator" or self.plot_type == "replan":
                 if self.args.timing == "continuous":
@@ -99,9 +111,9 @@ class PlotSettings:
                 assert False
         elif self.y_field == "makespan":
             self.y_label = '\n Makespan'
-        elif self.y_field == "averageCost":
+        elif self.y_field == "average_cost":
             self.y_label = '\n Sum of Costs'
-        elif self.y_field == "makespanTime":
+        elif self.y_field == "makespan_time":
             self.y_label = 'Avg. Comp. Time \n of Each Timestep (ms)'
             if self.plot_type == "cycle":
                 self.y_log = True
@@ -272,26 +284,29 @@ class PlotSettings:
             y_upper = np.array(df["average_timestep_time_upper"] * 1000) - y
         elif self.y_field == "makespan":
             y = np.array(df["makespan"])
-            y_lower = y - np.array(df["makespanLower"])
-            y_upper = np.array(df["makespanUpper"]) - y
-        elif self.y_field == "averageCost":
-            y = np.array(df["averageCost"] * df["agents"])
-            y_lower = y - np.array(df["averageCostLower"] * df["agents"])
-            y_upper = np.array(df["averageCostUpper"] * df["agents"]) - y
-        elif self.y_field == "makespanTime":
-            y = np.array(df["makespanTime"] * 1000)
-            y_lower = y - np.array(df["makespanTimeLower"] * 1000)
-            y_upper = np.array(df["makespanTimeUpper"] * 1000) - y
+            y_lower = y - np.array(df["makespan_lower"])
+            y_upper = np.array(df["makespan_upper"]) - y
+        elif self.y_field == "average_cost":
+            y = np.array(df["average_cost"] * df["agents"])
+            y_lower = y - np.array(df["average_cost_lower"] * df["agents"])
+            y_upper = np.array(df["average_cost_upper"] * df["agents"]) - y
+        elif self.y_field == "makespan_time":
+            y = np.array(df["makespan_time"] * 1000)
+            y_lower = y - np.array(df["makespan_time_lower"] * 1000)
+            y_upper = np.array(df["makespan_time_upper"] * 1000) - y
         elif self.y_field == "plan_percent":
-            y = np.array(df["fullReplanCount"] / df["makespan"] * 100)
+            y = np.array(df["full_replan_count"] / df["makespan"] * 100)
         elif self.y_field == "node_pair":
             y = np.array(df["node_pair"])
         elif self.y_field == "cdf" or self.y_field == "pdf":
             data = ast.literal_eval(df["data"].iloc[0])
             data = np.array(data).transpose()
+            # logger.info(data.shape)
             if self.y_field == "cdf":
                 x = data[0]
                 y = data[2] * 100
+                # logger.info("{}", x[:10])
+                # logger.info("{}", y[:10])
             else:
                 n = 100000
                 x = data[0]
@@ -351,8 +366,9 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
                     for _, row in df2.iterrows():
                         xticks.append(int(row[settings.x_field]))
             else:
+                # logger.info("{} {}", x, y)
                 index = np.argmax(y >= 99)
-                print(indexes, f"k={key}", x[index])
+                # print(indexes, f"k={key}", x[index])
                 simulator = indexes[0]
                 if simulator == "online":
                     index = np.argmax(x > xmin)
@@ -369,7 +385,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
                 max_lines = len(settings.args.obstacles)
             max_lines = len(LINE_COLORS)
 
-            # if settings.plot_type == "simulator" and settings.y_field in ("time", "makespanTime"):
+            # if settings.plot_type == "simulator" and settings.y_field in ("time", "makespan_time"):
             #     line_index = j + 1
             # else:
             #     line_index = j
@@ -442,14 +458,14 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if settings.subplot_type in ("obstacles", "delay-interval", "map-names"):
-            ncol = 6
+            ncol = 4
         elif len(handles) % 3 == 0:
             ncol = 3
             # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
             # labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
         else:
             ncol = 2
-        bbox_to_anchor_y = 1.2 + 0.1 * (len(handles) / ncol)
+        bbox_to_anchor_y = 1.1 + 0.2 * (len(handles) / ncol)
         legend = ax.legend(handles, labels, loc='upper center', ncol=ncol, columnspacing=0.5,
                            bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure, fontsize=26)
         bbox_extra_artists.append(legend)
@@ -466,9 +482,6 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
         "setup.agents": agents,
         "setup.delay_ratio": delay_ratio,
         "setup.k_neighbor": k_neighbor,
-        "setup.simulator": {
-            "$ne": "online",
-        }
     }
     results = []
     async for document in parsed_collection.find(filter):
@@ -493,13 +506,13 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
     # df['soc_mul'] = df['soc'] * 40
     # print(df)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="averageCost", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True)
     plot(df, plot_settings)
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     # plot(df, plot_settings)
-    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="makespanTime", groupby=groupby, legend=True)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=True,
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
     # df = df[(df["simulator"] == "replan_1.1")]
@@ -534,13 +547,13 @@ def plot_simulator(args: PlotArguments, data: pd.DataFrame, agents: int, k_neigh
     else:
         assert False
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(k_neighbor), y_field="averageCost", groupby=groupby, legend=True)
+                                 plot_value=str(k_neighbor), y_field="average_cost", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(k_neighbor), y_field="time", groupby=groupby, legend=True)
     plot(df2, plot_settings)
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-    #                              k_neighbor=k_neighbor, y_field="makespanTime", groupby=groupby, legend=True)
+    #                              k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
     # plot(df2, plot_settings)
 
 
@@ -568,13 +581,13 @@ def plot_simulator_2(args: PlotArguments, data: pd.DataFrame, agents: int, obsta
     plot_type = "simulator"
     subplot_type = "k_neighbor"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(obstacles), y_field="averageCost", groupby=groupby, legend=True)
+                                 plot_value=str(obstacles), y_field="average_cost", groupby=groupby, legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  plot_value=str(obstacles), y_field="time", groupby=groupby, legend=True)
     plot(df2, plot_settings)
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-    #                              k_neighbor=k_neighbor, y_field="makespanTime", groupby=groupby, legend=True)
+    #                              k_neighbor=k_neighbor, y_field="makespan_time", groupby=groupby, legend=True)
     # plot(df2, plot_settings)
 
 
@@ -621,7 +634,7 @@ def plot_replan(args: PlotArguments, data: pd.DataFrame, agents: int):
     plot_type = "replan"
     subplot_type = "delay-ratio"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 y_field="averageCost", groupby=groupby, plot_value="2", legend=True)
+                                 y_field="average_cost", groupby=groupby, plot_value="2", legend=True)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
                                  y_field="time", groupby=groupby, plot_value="2", legend=True)
@@ -637,14 +650,14 @@ def plot_cycle(args: PlotArguments, data: pd.DataFrame, agents: int, delay_ratio
     plot_type = "cycle"
     subplot_type = "obstacles"
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="averageCost", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True)
     # print(df[['simulator', 'soc']])
     plot(df, plot_settings)
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     # plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="makespanTime", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
 
@@ -658,10 +671,24 @@ def plot_cdf(args: PlotArguments, data: pd.DataFrame, agents: int, obstacles: in
     plot(df, plot_settings)
 
 
-def plot_replan_pdf(args: PlotArguments, data: pd.DataFrame, agents: int, delay_interval: int):
-    df = data[(data["agents"] == agents) & (data["delay_interval"] == delay_interval) &
-              ((data["simulator"] == "replan_1.1") | (data["simulator"] == "online_group") |
-               (data["simulator"] == "online_opt") | (data["simulator"] == "online_fast_cycle"))]
+async def plot_replan_pdf(args: PlotArguments, agents: int, delay_ratio: float, delay_interval: int):
+    k_neighbor = 2
+    filter = {
+        "setup.agents": agents,
+        "setup.delay_ratio": delay_ratio,
+        "setup.k_neighbor": k_neighbor,
+        "cdf_data.0": {"$exists": True},
+    }
+    results = []
+    async for document in parsed_collection.find(filter):
+        result = {
+            **document["setup"],
+            "data": json.dumps(document["cdf_data"]),
+        }
+        results.append(result)
+
+    df = pd.DataFrame(results)
+
     groupby = ["simulator", "delay_ratio"]
     plot_type = "cdf"
     if args.map == "random":
@@ -709,17 +736,17 @@ async def main(ctx, map_names):
                     await plot_simulator_discrete(args, agents, delay_ratio)
         else:
             # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
-            df_discrete = df_discrete_mapf
-            df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
-            for agents in args.agents:
-                for delay_ratio in args.delay_ratios:
-                    await plot_simulator_discrete(args, agents, delay_ratio)
-
-            # plot_replan_pdf(args, df_discrete_mapf_time, 10, 1)
-
+            # df_discrete = df_discrete_mapf
+            # df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
             # for agents in args.agents:
-            #     for delay_interval in args.delay_intervals:
-            #         plot_replan_pdf(args, df_discrete_mapf_time, agents, delay_interval)
+            #     for delay_ratio in args.delay_ratios:
+            #         await plot_simulator_discrete(args, agents, delay_ratio)
+
+            # await plot_replan_pdf(args, 10, 0.1, 1)
+
+            for agents in args.agents:
+                for delay_interval in args.delay_intervals:
+                    await plot_replan_pdf(args, agents, 0.1, delay_interval)
 
             # plot_cycle(args, df_discrete, agents)
             # for obstacle in args.obstacles:

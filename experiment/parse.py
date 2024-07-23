@@ -9,6 +9,7 @@ import pandas as pd
 import os
 
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import IndexModel, ASCENDING
 from tqdm import tqdm
 from loguru import logger
 
@@ -79,6 +80,12 @@ time_column_names = [
 feasibility_cycle_enums = [("h", "h"), ("h", "n"), ("n", "h"), ("n", "n"), ("n", "o"), ("h", "o")]
 
 
+async def init_db():
+    index1 = IndexModel([("setup", ASCENDING)], name="setup")
+    index2 = IndexModel([("seeds", ASCENDING)], name="seeds")
+    await results_collection.create_indexes([index1, index2])
+
+
 def get_confidence_interval(data):
     std = scipy.stats.sem(data)
     if std == 0:
@@ -104,8 +111,9 @@ class ParsedResult:
                 lower, upper = None, None
             else:
                 lower, upper = get_confidence_interval(self.df[column])
-            self.result[f"{column}Lower"] = lower
-            self.result[f"{column}Upper"] = upper
+            self.result[f"{column}_lower"] = lower
+            self.result[f"{column}_upper"] = upper
+            # logger.info("{} {} {} {} {}", column, self.result[column], lower, upper, self.df[column].to_list())
 
     def add_div_mean(self, column_p: str, column_q: str, column_target: str, ci=False):
         if column_p not in self.df.columns or column_q not in self.df.columns:
@@ -119,26 +127,34 @@ class ParsedResult:
                 lower, upper = None, None
             else:
                 lower, upper = get_confidence_interval(data)
-            self.result[f"{column_target}Lower"] = lower
-            self.result[f"{column_target}Upper"] = upper
+            self.result[f"{column_target}_lower"] = lower
+            self.result[f"{column_target}_upper"] = upper
 
 
 async def parse_setup(args: ParseArguments, setup: ExperimentSetup):
     setup_dict = setup.get_filter_dict()
     # logger.info(setup_dict)
-    cursor = results_collection.find(setup_dict)
+    filter_dict = {
+        **setup_dict,
+        "success": True,
+    }
+    cursor = results_collection.find(filter_dict)
     results = []
     async for document in cursor:
         if "result" in document:
-            result = document["result"]
-            result["simulator"] = document["setup"]["simulator"]
-            result["details"] = document.get("details", [])
+            result = {
+                **document["result"],
+                **document["seeds"],
+                "simulator": document["setup"]["simulator"],
+                "details": document.get("details", [])
+            }
             results.append(result)
 
     if len(results) == 0:
         return None
 
     df = pd.DataFrame(results)
+    # logger.info("{} {}", len(df), setup)
     return df
 
 
@@ -146,13 +162,14 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
     try:
         result = ParsedResult(df)
         result.add_mean("makespan", ci=True)
-        result.add_mean("averageCost", ci=True)
-        result.add_mean("totalTime")
-        if setup.simulator.startswith(("replan", "prioritized")):
-            result.add_div_mean("totalTime", "fullReplanCount", "makespanTime", ci=True)
-        else:
-            result.add_div_mean("totalTime", "makespan", "makespanTime", ci=True)
+        result.add_mean("average_cost", ci=True)
+        result.add_mean("total_time")
+        result.add_div_mean("total_time", "makespan", "makespan_time", ci=True)
 
+        # if setup.simulator.startswith(("replan", "prioritized")):
+        #     result.add_div_mean("total_time", "full_replan_count", "replan_makespan_time", ci=True)
+        # else:
+        #     result.add_div_mean("total_time", "makespan", "replan_makespan_time", ci=True)
         return result.dict()
     except:
         return None
@@ -315,8 +332,10 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
 
 def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     num_cases = len(df)
-    df = df.explode("data").dropna()
-    df["time"] = df["data"].apply(lambda x: x[1])
+    df["length"] = df.apply(lambda row: len(row["details"]), axis=1)
+    df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"])), axis=1)
+    # logger.info(df["time"])
+    df = df.explode("time").dropna()
     df.sort_values(by="time", inplace=True)
 
     # df["time"] = df["time"].apply(lambda x: npy.ceil(x * 1000) / 1000)
@@ -325,20 +344,23 @@ def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[D
     # df = df.drop_duplicates(subset=['time'], keep='last')
 
     df["new_data"] = df[["time", "prob", "cdf"]].apply(lambda x: tuple(x), axis=1)
-    row = {
-        "timing": setup.timing,
-        "simulator": setup.simulator,
-        "obstacles": setup.obstacles,
-        "agents": setup.agents,
-        "k_neighbor": setup.k_neighbor,
-        "map_name": setup.map_name,
-        "delay_start": setup.delay_start,
-        "delay_interval": setup.delay_interval,
-        "delay_ratio": setup.delay_ratio,
-        "delay_type": setup.delay_type,
-        "data": list(df["new_data"])
-    }
-    return row
+    # logger.info(df["new_data"].to_list())
+    return df["new_data"].to_list()
+
+    # row = {
+    #     "timing": setup.timing,
+    #     "simulator": setup.simulator,
+    #     "obstacles": setup.obstacles,
+    #     "agents": setup.agents,
+    #     "k_neighbor": setup.k_neighbor,
+    #     "map_name": setup.map_name,
+    #     "delay_start": setup.delay_start,
+    #     "delay_interval": setup.delay_interval,
+    #     "delay_ratio": setup.delay_ratio,
+    #     "delay_type": setup.delay_type,
+    #     "data": list(df["new_data"])
+    # }
+    # return row
 
 
 async def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -420,41 +442,55 @@ async def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
             continue
 
         base_df = None
-        base_naive_df = None
         for label in parsed_labels:
             target_df = raw_dfs[label]
-            # logger.info(target_df.columns)
-            if label.startswith("online-h"):
-                if base_naive_df is None:
-                    base_naive_df = target_df
-                else:
-                    base_naive_df = base_naive_df[['mapSeed', 'agentSeed', 'iteration']]
-                    base_naive_df = base_naive_df.merge(target_df, on=['mapSeed', 'agentSeed', 'iteration'],
-                                                        how='inner')
+            if base_df is None:
+                base_df = target_df
             else:
-                if base_df is None:
-                    base_df = target_df
-                else:
-                    base_df = base_df[['mapSeed', 'agentSeed', 'iteration']]
-                    base_df = base_df.merge(target_df, on=['mapSeed', 'agentSeed', 'iteration'], how='inner')
-
-        if base_df is None or base_naive_df is None:
-            logger.error("base_df or base_naive_df is None")
+                base_df = base_df[['map_seed', 'agent_seed', 'simulation_seed']]
+                base_df = base_df.merge(target_df, on=['map_seed', 'agent_seed', 'simulation_seed'], how='inner')
+        if base_df is None:
+            logger.error("error: base_df is None")
             continue
-
-        base_df = base_df[['mapSeed', 'agentSeed', 'iteration']]
-        base_naive_df = base_naive_df[['mapSeed', 'agentSeed', 'iteration']]
+        base_df = base_df[['map_seed', 'agent_seed', 'simulation_seed']]
+        # base_df = None
+        # base_naive_df = None
+        # for label in parsed_labels:
+        #     target_df = raw_dfs[label]
+        #     # logger.info(target_df.columns)
+        #     if label.startswith("online-h"):
+        #         if base_naive_df is None:
+        #             base_naive_df = target_df
+        #         else:
+        #             base_naive_df = base_naive_df[['map_seed', 'agent_seed', 'simulation_seed']]
+        #             base_naive_df = base_naive_df.merge(target_df, on=['map_seed', 'agent_seed', 'simulation_seed'],
+        #                                                 how='inner')
+        #     else:
+        #         if base_df is None:
+        #             base_df = target_df
+        #         else:
+        #             base_df = base_df[['map_seed', 'agent_seed', 'simulation_seed']]
+        #             base_df = base_df.merge(target_df, on=['map_seed', 'agent_seed', 'simulation_seed'], how='inner')
+        #
+        # if base_df is None or base_naive_df is None:
+        #     logger.error("base_df or base_naive_df is None")
+        #     continue
+        #
+        # base_df = base_df[['map_seed', 'agent_seed', 'simulation_seed']]
+        # base_naive_df = base_naive_df[['map_seed', 'agent_seed', 'simulation_seed']]
 
         for label in parsed_labels:
             setup = setups[label]
             df = raw_dfs[label]
-            if label.startswith("online-h"):
-                df = df.merge(base_naive_df, on=['mapSeed', 'agentSeed', 'iteration'], how='inner')
-            else:
-                df = df.merge(base_df, on=['mapSeed', 'agentSeed', 'iteration'], how='inner')
+            # if label.startswith("online-h"):
+            #     df = df.merge(base_naive_df, on=['map_seed', 'agent_seed', 'simulation_seed'], how='inner')
+            # else:
+            #     df = df.merge(base_df, on=['map_seed', 'agent_seed', 'simulation_seed'], how='inner')
+            df = df.merge(base_df, on=['map_seed', 'agent_seed', 'simulation_seed'], how='inner')
             row = parse_merged_df(setup, df)
             if row is not None:
-                rows.append(row)
+                # rows.append(row)
+                cdf_data = parse_merged_time_df(setup, df)
                 doc_filter = {
                     "experiment": args.experiment_name,
                     "case": setup.get_output_prefix(),
@@ -463,11 +499,13 @@ async def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
                     "experiment": args.experiment_name,
                     "case": setup.get_output_prefix(),
                     "setup": setup.dict(),
+                    "count": len(df),
                     "result": row,
+                    "cdf_data": cdf_data,
                 }
 
                 await parsed_collection.replace_one(doc_filter, doc, upsert=True)
-                logger.info("insert: {}", setup.get_output_prefix())
+                logger.info("{} cases: {}", len(df), setup.get_output_prefix())
 
                 # main_df = pd.DataFrame(data=rows, columns=column_names)
     # return main_df
@@ -503,7 +541,7 @@ async def main(ctx, output_suffix, input_suffix, category, map_names, experiment
         experiment_name=experiment_name,
     )
     logger.info(args)
-
+    await init_db()
     await parse_data(args)
 
     # main_df, time_df = await parse_data(args)
