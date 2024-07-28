@@ -152,7 +152,7 @@ void Simulator::writeSimulationOutput() {
     resultJson["average_cost"] = averageMakeSpan(MakeSpanType::AVERAGE);
     resultJson["makespan"] = averageMakeSpan(MakeSpanType::MAXIMUM);
     resultJson["execution_time"] = executionTime;
-    resultJson["first_agent_arriving_executionTime"] = firstAgentArrivingExecutionTime;
+    resultJson["first_agent_arriving_execution_time"] = firstAgentArrivingExecutionTime;
     resultJson["first_agent_arriving_timestep"] = firstAgentArrivingTimestep;
 }
 

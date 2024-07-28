@@ -45,6 +45,7 @@ unsigned int DiscreteBTPGSimulator::simulate(double &currentTimestep, unsigned i
     std::cout << "Start BTPG simulation" << std::endl;
 #endif
     sim->BTPGTotalTimeStep = 0;
+    executionTimeStart = std::chrono::steady_clock::now();
     while (std::find(finishedAgent.begin(), finishedAgent.end(), false) != finishedAgent.end()) {
         auto start = std::chrono::steady_clock::now();
         sim->BTPGTotalTimeStep++;

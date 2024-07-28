@@ -676,6 +676,7 @@ async def plot_replan_pdf(args: PlotArguments, agents: int, delay_ratio: float, 
     filter = {
         "setup.agents": agents,
         "setup.delay_ratio": delay_ratio,
+        "setup.delay_interval": delay_interval,
         "setup.k_neighbor": k_neighbor,
         "cdf_data.0": {"$exists": True},
     }

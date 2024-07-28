@@ -332,8 +332,12 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
 
 def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     num_cases = len(df)
-    df["length"] = df.apply(lambda row: len(row["details"]), axis=1)
-    df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"])), axis=1)
+    if setup.simulator == "btpg":
+        df["length"] = df.apply(lambda row: len(row["details"][1:]), axis=1)
+        df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"][1:])), axis=1)
+    else:
+        df["length"] = df.apply(lambda row: len(row["details"]), axis=1)
+        df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"])), axis=1)
     # logger.info(df["time"])
     df = df.explode("time").dropna()
     df.sort_values(by="time", inplace=True)
