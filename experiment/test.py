@@ -212,11 +212,16 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         remove_redundant = "none"
         snapshot_order = "none"
         replan_suboptimality = 1
+        replan_nonstop = False
         dep_graph = "boost"
 
         if setup.simulator.startswith("replan_"):
             simulator = "replan"
-            replan_suboptimality = float(setup.simulator[7:])
+            if setup.simulator.startswith("replan_nonstop"):
+                replan_nonstop = True
+            arr = setup.simulator.split("_")
+            if len(arr) > 1:
+                replan_suboptimality = float(arr[-1])
 
         if setup.simulator.startswith("prioritized"):
             simulator = "replan"
@@ -299,6 +304,8 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             program_args.append("--group-determined")
         if fast_cycle:
             program_args.append("--fast-cycle")
+        if replan_nonstop:
+            program_args.append("--replan-nonstop")
 
         if map_file:
             program_args.append("--map-file")

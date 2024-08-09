@@ -62,6 +62,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("", false, 0, 0, "Don't use cache for map generator and solver", "--no-cache");
     optionParser.add("", false, 0, 0, "Use group conflicts optimization", "--group");
     optionParser.add("", false, 0, 0, "Use group by determined edges optimization", "--group-determined");
+    optionParser.add("", false, 0, 0, "Use nonstop mode when replan fails", "--replan-nonstop");
     optionParser.add("random", false, 1, 0, "Map type (random / warehouse)", "-m", "--map");
     optionParser.add("map", false, 1, 0, "Map name (eg., sparse, dense, super_dense)", "--map-name");
     optionParser.add("", false, 1, 0, "Map file", "--map-file");
@@ -154,7 +155,7 @@ int main(int argc, const char *argv[]) {
     double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep, maxTimestep;
     bool debug, verboseOutput, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck,
             fastCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup,
-            useGroupDetermined;
+            useGroupDetermined, replanNonstop;
     optionParser.get("--map")->getString(mapType);
     optionParser.get("--map-file")->getString(mapFile);
     optionParser.get("--map-name")->getString(mapName);
@@ -206,6 +207,7 @@ int main(int argc, const char *argv[]) {
     noCache = optionParser.isSet("--no-cache");
     useGroup = optionParser.isSet("--group");
     useGroupDetermined = optionParser.isSet("--group-determined");
+    replanNonstop = optionParser.isSet("--replan-nonstop");
     //    removeRedundant = optionParser.isSet("--remove-redundant");
 
     //    spdlog::
@@ -423,6 +425,7 @@ int main(int argc, const char *argv[]) {
                 defaultSimulator->replanMode = true;
                 defaultSimulator->prioritizedReplan = prioritizedReplan;
                 defaultSimulator->prioritizedOpt = prioritizedOpt;
+                defaultSimulator->replanNonstop = replanNonstop;
                 //                defaultSimulator->replanSuboptimality = replanSuboptimality;
                 if (solverType == "eecbs") {
                     std::dynamic_pointer_cast<EECBSSolver>(solver)->suboptimality = suboptimality;

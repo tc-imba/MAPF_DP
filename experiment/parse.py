@@ -121,7 +121,7 @@ class ParsedResult:
             self.result[column_target] = None
         else:
             data = npy.ma.masked_invalid(self.df[column_p] / self.df[column_q])
-            self.result[column_target] = data.mean() or None
+            self.result[column_target] = data.mean()
         if ci:
             if data is None:
                 lower, upper = None, None
@@ -164,7 +164,9 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
         result.add_mean("makespan", ci=True)
         result.add_mean("average_cost", ci=True)
         result.add_mean("total_time")
+        result.add_mean("execution_time")
         result.add_div_mean("total_time", "makespan", "makespan_time", ci=True)
+        result.add_div_mean("execution_time", "makespan", "makespan_execution_time", ci=True)
 
         # if setup.simulator.startswith(("replan", "prioritized")):
         #     result.add_div_mean("total_time", "full_replan_count", "replan_makespan_time", ci=True)
@@ -332,12 +334,12 @@ def parse_merged_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[s
 
 def parse_merged_time_df(setup: ExperimentSetup, df: pd.DataFrame) -> Optional[Dict[str, Any]]:
     num_cases = len(df)
-    if setup.simulator == "btpg":
-        df["length"] = df.apply(lambda row: len(row["details"][1:]), axis=1)
-        df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"][1:])), axis=1)
-    else:
-        df["length"] = df.apply(lambda row: len(row["details"]), axis=1)
-        df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"])), axis=1)
+    # if setup.simulator == "btpg":
+    df["length"] = df.apply(lambda row: len(row["details"][1:]), axis=1)
+    df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"][1:])), axis=1)
+    # else:
+    #     df["length"] = df.apply(lambda row: len(row["details"]), axis=1)
+    #     df["time"] = df.apply(lambda row: list(map(lambda x: x["execution_time"], row["details"])), axis=1)
     # logger.info(df["time"])
     df = df.explode("time").dropna()
     df.sort_values(by="time", inplace=True)

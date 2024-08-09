@@ -10,6 +10,7 @@
 class DefaultSimulator : virtual public Simulator {
 public:
     bool replanMode = false;
+    bool replanNonstop = false;
     bool prioritizedReplan = false;
     bool prioritizedOpt = false;
     size_t partialReplanCount = 0;

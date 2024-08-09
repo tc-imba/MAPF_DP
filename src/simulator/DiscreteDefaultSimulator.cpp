@@ -276,17 +276,30 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             break;
         }
 
-        if (replanMode && needReplan) {
-            auto currentExecutionTime = replan();
-            if (currentExecutionTime < 0) {
-                currentTimestep = maxTimeStep + 100;
-                break;
+
+        if (replanMode) {
+            if (needReplan) {
+                timestepJson["replan"] = true;
+                auto currentExecutionTime = replan();
+                if (currentExecutionTime < 0) {
+                    timestepJson["success"] = false;
+                    if (!replanNonstop) {
+                        currentTimestep = maxTimeStep + 100;
+                        break;
+                    }
+                } else {
+                    timestepJson["success"] = true;
+                    if (firstAgentArrivingTimestep == 0) {
+                        firstAgentArrivingExecutionTime += currentExecutionTime;
+                    }
+                    executionTime += currentExecutionTime;
+                    refresh = true;
+                }
+            } else {
+                timestepJson["replan"] = false;
+                timestepJson["success"] = true;
             }
-            if (firstAgentArrivingTimestep == 0) {
-                firstAgentArrivingExecutionTime += currentExecutionTime;
-            }
-            executionTime += currentExecutionTime;
-            refresh = true;
+
         }
 
         writeTimestepOutput();

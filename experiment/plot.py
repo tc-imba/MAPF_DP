@@ -113,7 +113,7 @@ class PlotSettings:
             self.y_label = '\n Makespan'
         elif self.y_field == "average_cost":
             self.y_label = '\n Sum of Costs'
-        elif self.y_field == "makespan_time":
+        elif self.y_field == "makespan_time" or self.y_field == "makespan_execution_time":
             self.y_label = 'Avg. Comp. Time \n of Each Timestep (ms)'
             if self.plot_type == "cycle":
                 self.y_log = True
@@ -294,6 +294,10 @@ class PlotSettings:
             y = np.array(df["makespan_time"] * 1000)
             y_lower = y - np.array(df["makespan_time_lower"] * 1000)
             y_upper = np.array(df["makespan_time_upper"] * 1000) - y
+        elif self.y_field == "makespan_execution_time":
+            y = np.array(df["makespan_execution_time"] * 1000)
+            y_lower = y - np.array(df["makespan_execution_time_lower"] * 1000)
+            y_upper = np.array(df["makespan_execution_time_upper"] * 1000) - y
         elif self.y_field == "plan_percent":
             y = np.array(df["full_replan_count"] / df["makespan"] * 100)
         elif self.y_field == "node_pair":
@@ -342,6 +346,8 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     plt.rcParams.update({'font.size': 20, "text.usetex": True})
     axes = []
 
+    label_index_map = {}
+
     for i, key in enumerate(settings.subplot_keys):
         ax = plt.subplot(1, len(settings.subplot_keys), i + 1)
         axes.append(ax)
@@ -389,9 +395,17 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             #     line_index = j + 1
             # else:
             #     line_index = j
-            line_index = j
+
+            if line_settings.label in label_index_map:
+                line_index = label_index_map[line_settings.label]
+            else:
+                line_index = len(label_index_map)
+                label_index_map[line_settings.label] = line_index
+
+            # line_index = j
             line_settings.color = LINE_COLORS[line_index % max_lines]
             line_settings.marker = LINE_MARKERS[line_index % max_lines]
+
 
             if settings.plot_type == "cdf":
                 ax.plot(x, y,
@@ -511,8 +525,11 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     # plot(df, plot_settings)
-    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=True,
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=False,
                                  plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
+    plot(df, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=False,
+                                 plot_value=str(delay_ratio), y_field="makespan_execution_time", groupby=groupby, legend=True)
     plot(df, plot_settings)
 
     # df = df[(df["simulator"] == "replan_1.1")]
@@ -739,9 +756,9 @@ async def main(ctx, map_names):
             # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
             # df_discrete = df_discrete_mapf
             # df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
-            # for agents in args.agents:
-            #     for delay_ratio in args.delay_ratios:
-            #         await plot_simulator_discrete(args, agents, delay_ratio)
+            for agents in args.agents:
+                for delay_ratio in args.delay_ratios:
+                    await plot_simulator_discrete(args, agents, delay_ratio)
 
             # await plot_replan_pdf(args, 10, 0.1, 1)
 
