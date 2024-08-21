@@ -178,7 +178,10 @@ class PlotSettings:
                 label = f"baseline-{subplot_key}"
             elif simulator.startswith("replan"):
                 # label = f"{simulator}-{subplot_key}"
-                label = f"replan-{subplot_key}"
+                if "with_fail" in simulator:
+                    label = f"replan-with-fail-{subplot_key}"
+                else:
+                    label = f"replan-{subplot_key}"
             elif simulator == "pibt":
                 label = f"causal-pibt+-{subplot_key}"
             elif simulator == "prioritized":
@@ -762,9 +765,9 @@ async def main(ctx, map_names):
 
             # await plot_replan_pdf(args, 10, 0.1, 1)
 
-            for agents in args.agents:
-                for delay_interval in args.delay_intervals:
-                    await plot_replan_pdf(args, agents, 0.1, delay_interval)
+            # for agents in args.agents:
+            #     for delay_interval in args.delay_intervals:
+            #         await plot_replan_pdf(args, agents, 0.1, delay_interval)
 
             # plot_cycle(args, df_discrete, agents)
             # for obstacle in args.obstacles:

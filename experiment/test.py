@@ -403,17 +403,17 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
 async def do_init_tests(args: TestArguments):
     # all_tests = []
     logger.info("Initialize tests")
-    test_file = args.result_dir / "tests.csv"
-    if test_file.exists():
-        df = pd.read_csv(test_file, header=None)
-        df.columns = TEST_FILE_COLUMNS
-        group = df.groupby(["map_seed", "obstacle", "k_neighbor", "agent"])
-        df["count"] = group["agent_seed"].transform(len)
-        idx = df.groupby(["map_seed", "obstacle", "k_neighbor", "agent"])["agent_seed"].transform(max) == df[
-            'agent_seed']
-        df = df[idx]
-    else:
-        df = pd.DataFrame(columns=TEST_FILE_COLUMNS)
+    # test_file = args.result_dir / "tests.csv"
+    # if test_file.exists():
+    #     df = pd.read_csv(test_file, header=None)
+    #     df.columns = TEST_FILE_COLUMNS
+    #     group = df.groupby(["map_seed", "obstacle", "k_neighbor", "agent"])
+    #     df["count"] = group["agent_seed"].transform(len)
+    #     idx = df.groupby(["map_seed", "obstacle", "k_neighbor", "agent"])["agent_seed"].transform(max) == df[
+    #         'agent_seed']
+    #     df = df[idx]
+    # else:
+    #     df = pd.DataFrame(columns=TEST_FILE_COLUMNS)
 
     # logger.info(df)
     # test_file.unlink(missing_ok=True)
@@ -430,24 +430,24 @@ async def do_init_tests(args: TestArguments):
 
     async def init_map(map_seed, obstacle, k_neighbor, agent):
         _current = CurrentWrapper()
-        row = df.loc[(df["map_seed"] == map_seed) & (df["obstacle"] == obstacle) &
-                     (df["k_neighbor"] == k_neighbor) & (df["agent"] == agent)]
-        if len(row) > 0:
-            row = row.iloc[0]
-            _current.current = row["agent_seed"] + 1
-            completed_seeds = min(args.agent_seeds, row["count"])
-        else:
-            completed_seeds = 0
-        if completed_seeds > 0:
-            setup = ExperimentSetup(
-                timing=args.timing, map="random", map_name="random",
-                solver=args.solver, simulator="default", obstacles=obstacle,
-                k_neighbor=k_neighbor, agents=agent, delay_type="agent",
-                delay_ratio=0, delay_start=0, delay_interval=0,
-                feasibility="h", cycle="h",
-            )
-            logger.info('{} tests skipped for {}-{}-*', completed_seeds, setup.get_output_prefix(), map_seed)
-        agent_seeds = args.agent_seeds - completed_seeds
+        # row = df.loc[(df["map_seed"] == map_seed) & (df["obstacle"] == obstacle) &
+        #              (df["k_neighbor"] == k_neighbor) & (df["agent"] == agent)]
+        # if len(row) > 0:
+        #     row = row.iloc[0]
+        #     _current.current = row["agent_seed"] + 1
+        #     completed_seeds = min(args.agent_seeds, row["count"])
+        # else:
+        #     completed_seeds = 0
+        # if completed_seeds > 0:
+        #     setup = ExperimentSetup(
+        #         timing=args.timing, map="random", map_name="random",
+        #         solver=args.solver, simulator="default", obstacles=obstacle,
+        #         k_neighbor=k_neighbor, agents=agent, delay_type="agent",
+        #         delay_ratio=0, delay_start=0, delay_interval=0,
+        #         feasibility="h", cycle="h",
+        #     )
+        #     logger.info('{} tests skipped for {}-{}-*', completed_seeds, setup.get_output_prefix(), map_seed)
+        agent_seeds = args.agent_seeds
 
         async def init_agent():
             while True:
@@ -455,8 +455,8 @@ async def do_init_tests(args: TestArguments):
                 _current.current += 1
                 result = await init_case(map_seed, agent_seed, obstacle, k_neighbor, agent)
                 if result == 1:
-                    with test_file.open("a") as file:
-                        file.write("%d,%d,%d,%d,%d\n" % (map_seed, agent_seed, obstacle, k_neighbor, agent))
+                    # with test_file.open("a") as file:
+                    #     file.write("%d,%d,%d,%d,%d\n" % (map_seed, agent_seed, obstacle, k_neighbor, agent))
                     break
 
         tasks = []
@@ -530,13 +530,21 @@ async def do_tests(args: TestArguments):
         for _obstacle in args.obstacles:
             for _agent in args.agents:
                 for _k_neighbor in args.k_neighbors:
-                    df_temp = df[(df["map_seed"] == _map_seed) & (df["obstacle"] == _obstacle) & (
-                            df["k_neighbor"] == _k_neighbor) & (df["agent"] == _agent)]
-                    df_temp.sort_values(by="agent_seed")
-                    if len(df_temp) < args.agent_seeds:
+                    doc_filter = {
+                        "setup.timing": args.timing,
+                        "setup.map": args.map,
+                        "setup.map_name": args.map,
+                        "setup.obstacles": _obstacle,
+                        "setup.k_neighbor": _k_neighbor,
+                        "setup.agents": _agent,
+                        "seeds.map_seed": _map_seed,
+                    }
+                    agent_seeds_arr = [document["seeds"]["agent_seed"] async for document in cases_collection.find(doc_filter)]
+                    agent_seeds_arr = sorted(agent_seeds_arr)
+                    if len(agent_seeds_arr) < args.agent_seeds:
                         logger.warning("{} {} {} {} no enough seeds", _map_seed, _obstacle, _k_neighbor, _agent)
-                    for i in range(min(len(df_temp), args.agent_seeds)):
-                        _agent_seed = df_temp["agent_seed"].iloc[i]
+                    for i in range(min(len(agent_seeds_arr), args.agent_seeds)):
+                        _agent_seed = agent_seeds_arr[i]
                         for _delay_ratio in args.delay_ratios:
                             for _delay_interval in args.delay_intervals:
                                 for _simulator in args.simulators:
@@ -557,19 +565,19 @@ async def do_tests(args: TestArguments):
 async def do_init_tests_den520d(args: TestArguments):
     # all_tests = []
     logger.info("Initialize tests")
-    test_file = args.result_dir / f"tests_{args.map}.csv"
-    if test_file.exists():
-        df = pd.read_csv(test_file, header=None)
-        df.columns = TEST_FILE_COLUMNS_DEN520D
-        df.sort_values(by=["map_name", "agent", "agent_seed"], inplace=True)
-        df.to_csv(test_file, header=False, index=False)
-        group = df.groupby(["map_name", "agent"])
-        df["count"] = group["agent_seed"].transform(len)
-        idx = df.groupby(["map_name", "agent"])["agent_seed"].transform(max) == df[
-            'agent_seed']
-        df = df[idx]
-    else:
-        df = pd.DataFrame(columns=TEST_FILE_COLUMNS_DEN520D)
+    # test_file = args.result_dir / f"tests_{args.map}.csv"
+    # if test_file.exists():
+    #     df = pd.read_csv(test_file, header=None)
+    #     df.columns = TEST_FILE_COLUMNS_DEN520D
+    #     df.sort_values(by=["map_name", "agent", "agent_seed"], inplace=True)
+    #     df.to_csv(test_file, header=False, index=False)
+    #     group = df.groupby(["map_name", "agent"])
+    #     df["count"] = group["agent_seed"].transform(len)
+    #     idx = df.groupby(["map_name", "agent"])["agent_seed"].transform(max) == df[
+    #         'agent_seed']
+    #     df = df[idx]
+    # else:
+    #     df = pd.DataFrame(columns=TEST_FILE_COLUMNS_DEN520D)
 
     # logger.info(df)
     # test_file.unlink(missing_ok=True)
@@ -606,8 +614,8 @@ async def do_init_tests_den520d(args: TestArguments):
                 assert False
 
             return await run(args, setup, agent_seed=agent_seed, map_name=map_name,
-                             map_file=map_file, task_file=task_file, agent_skip=agent_skip, max_timestep=10000,
-                             init_tests=True)
+                             map_file=map_file, task_file=task_file, agent_skip=agent_skip,
+                             max_timestep=10000, init_tests=True)
 
         elif args.map == "warehouse":
             return await run(args, setup, agent_seed=agent_seed, map_name=map_name,

@@ -138,6 +138,11 @@ async def parse_setup(args: ParseArguments, setup: ExperimentSetup):
         **setup_dict,
         "success": True,
     }
+    if "_with_fail" in setup_dict["setup.simulator"]:
+        parse_time = True
+        filter_dict["setup.simulator"] = filter_dict["setup.simulator"].replace("_with_fail", "")
+    else:
+        parse_time = False
     cursor = results_collection.find(filter_dict)
     results = []
     async for document in cursor:
@@ -148,6 +153,14 @@ async def parse_setup(args: ParseArguments, setup: ExperimentSetup):
                 "simulator": document["setup"]["simulator"],
                 "details": document.get("details", [])
             }
+            if parse_time:
+                execution_time = 0
+                for row in result["details"]:
+                    execution_time += row.get("execution_time", 0)
+                if execution_time < result["execution_time"]:
+                    print(result)
+                result["execution_time"] = execution_time
+
             results.append(result)
 
     if len(results) == 0:
