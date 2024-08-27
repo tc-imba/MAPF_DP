@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="experiment.test" />
-    <option name="PARAMETERS" value="-j 10 --map-seeds 10 --agent-seeds 10 --obstacles 90 --agents 10 --k-neighbors 2 --simulators btpg --delay-ratios 0.1 --delay-intervals 1 --timing discrete --timeout 10" />
+    <option name="PARAMETERS" value="-j 10 --map-seeds 5 --agent-seeds 5 --obstacles 30 --agents 10 --k-neighbors 2 --simulators online_opt --delay-ratios 0.1 --delay-intervals 1 --timing discrete --timeout 10" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="true" />

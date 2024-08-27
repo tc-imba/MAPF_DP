@@ -50,19 +50,12 @@ class ExperimentSetup(BaseModel):
 
     def get_output_prefix(self):
         if self.map == "random":
-            output_prefix = "%s-%s-%s-%d-%d-%d-%s-%s-%d-%d-%s-%s" % (
-                self.timing, self.map, self.simulator, self.obstacles, self.k_neighbor, self.agents,
-                self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
-                self.feasibility, self.cycle
-            )
-        elif self.map == "den520d" or self.map == "warehouse" or self.map == "mapf":
-            output_prefix = "%s-%s-%s-%s-%d-%s-%s-%d-%d-%s-%s" % (
-                self.timing, self.map, self.map_name, self.simulator, self.agents,
-                self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
-                self.feasibility, self.cycle
-            )
-        else:
-            assert False
+            self.map_name = "random-32-32-%d-%d" % (self.obstacles, self.k_neighbor)
+        output_prefix = "%s-%s-%s-%s-%d-%s-%s-%d-%d-%s-%s" % (
+            self.timing, self.map, self.map_name, self.simulator, self.agents,
+            self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
+            self.feasibility, self.cycle
+        )
         return output_prefix
 
     def get_filter_dict(self):

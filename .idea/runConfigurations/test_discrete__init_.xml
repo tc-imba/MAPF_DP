@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="experiment.test" />
-    <option name="PARAMETERS" value="-j 10 --init-tests --map-seeds 5 --agent-seeds 5 --obstacles 270 --agents 40 --timing discrete --k-neighbors 2 --timeout 10 --suboptimality 1.2" />
+    <option name="PARAMETERS" value="-j 10 --init-tests --map-seeds 5 --agent-seeds 5 --obstacles 30 --agents 10 --timing discrete --k-neighbors 2 --timeout 10 --suboptimality 1.2" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="true" />

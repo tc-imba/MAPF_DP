@@ -88,8 +88,8 @@ int main(int argc, const char *argv[]) {
     auto validWindowSize = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Window Size (0 means no limit, deprecated)", "-w", "--window", validWindowSize);
 
-    auto validObstacles = new ez::ezOptionValidator("u4", "ge", "0");
-    optionParser.add("90", false, 1, 0, "Obstacles", "--obstacles", validObstacles);
+    //    auto validObstacles = new ez::ezOptionValidator("u4", "ge", "0");
+    //    optionParser.add("90", false, 1, 0, "Obstacles", "--obstacles", validObstacles);
 
     auto validMapSeed = new ez::ezOptionValidator("u4", "ge", "0");
     optionParser.add("0", false, 1, 0, "Map Seed", "--map-seed", validMapSeed);
@@ -113,6 +113,9 @@ int main(int argc, const char *argv[]) {
     optionParser.add("0", false, 1, 0, "Min Delay Probability (in solver)", "--min", validMin);
     auto validMax = new ez::ezOptionValidator("d", "ge", "0");
     optionParser.add("0.5", false, 1, 0, "Min Delay Probability (in solver)", "--max", validMax);
+
+    auto validObstacleRatio = new ez::ezOptionValidator("d", "ge", "0");
+    optionParser.add("0.1", false, 1, 0, "Obstacle Ratio", "--obstacle-ratio", validObstacleRatio);
 
     auto validDelayRatio = new ez::ezOptionValidator("d", "ge", "0");
     optionParser.add("0.2", false, 1, 0, "Delay Ratio", "--delay-ratio", validDelayRatio);
@@ -150,9 +153,9 @@ int main(int argc, const char *argv[]) {
     std::string mapType, mapName, objective, simulatorType, timingType, conflictTypes, removeRedundant, outputFileName,
             outputFormat, simulatorOutputFileName, delayType, solverType, solverBinaryFile, mapFile, taskFile, logFile,
             snapshotOrder, topoGraphType;
-    unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, obstacles, kNeighbor;
+    unsigned long window, mapSeed, agentSeed, agentSkip, simulationSeed, agentNum, iteration, kNeighbor;
     long delayStart, delayInterval;
-    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep, maxTimestep;
+    double minDP, maxDP, delayRatio, suboptimality, replanSuboptimality, deltaTimestep, maxTimestep, obstacleRatio;
     bool debug, verboseOutput, allConstraint, useDP, naiveFeasibilityCheck, naiveCycleCheck, onlyCycleCheck,
             fastCycleCheck, feasibilityType, prioritizedReplan, prioritizedOpt, onlineOpt, noCache, useGroup,
             useGroupDetermined, replanNonstop;
@@ -174,7 +177,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--snapshot-order")->getString(snapshotOrder);
     optionParser.get("--dep-graph")->getString(topoGraphType);
     optionParser.get("--window")->getULong(window);
-    optionParser.get("--obstacles")->getULong(obstacles);
+    //    optionParser.get("--obstacles")->getULong(obstacles);
     optionParser.get("--map-seed")->getULong(mapSeed);
     optionParser.get("--agent-seed")->getULong(agentSeed);
     optionParser.get("--agent-skip")->getULong(agentSkip);
@@ -184,6 +187,7 @@ int main(int argc, const char *argv[]) {
     optionParser.get("--min")->getDouble(minDP);
     optionParser.get("--max")->getDouble(maxDP);
     optionParser.get("--delay")->getString(delayType);
+    optionParser.get("--obstacle-ratio")->getDouble(obstacleRatio);
     optionParser.get("--delay-ratio")->getDouble(delayRatio);
     optionParser.get("--delay-interval")->getLong(delayInterval);
     optionParser.get("--delay-start")->getLong(delayStart);
@@ -270,9 +274,9 @@ int main(int argc, const char *argv[]) {
 
 
     Graph graph;
-    unsigned int height = 30;
-    unsigned int width = 30;
-    //    unsigned int obstacles = height * width * obstacleRate;
+    unsigned int height = 32;
+    unsigned int width = 32;
+    unsigned int obstacles = std::min((unsigned int) (height * width * obstacleRatio), height * width);
 
     unsigned int deliveryWidth = 10;
     unsigned int deliveryX = 7;
@@ -291,7 +295,7 @@ int main(int argc, const char *argv[]) {
     std::string filename, cacheFileName, taskFileType;
     if (mapType == "random") {
         filename = timingType + "-random-" + std::to_string(height) + "-" + std::to_string(width) + "-" +
-                   std::to_string(obstacles) + "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
+                   std::to_string((unsigned int) (obstacleRatio * 100)) + "-" + std::to_string(mapSeed) + "-" + std::to_string(kNeighbor);
         cacheFileName = filename;
         graph.generateRandomGraph(height, width, obstacles, filename, mapSeed, kNeighbor);
     } else if (mapType == "warehouse") {
@@ -518,8 +522,8 @@ int main(int argc, const char *argv[]) {
             simulator->resultJson["success"] = false;
             std::cerr << count << " " << agentNum << std::endl;
         }
-//        simulator->resultJson["map_seed"] = mapSeed;
-//        simulator->resultJson["agent_seed"] = agentSeed;
+        //        simulator->resultJson["map_seed"] = mapSeed;
+        //        simulator->resultJson["agent_seed"] = agentSeed;
         simulator->resultJson["iteration"] = i;
         simulator->resultJson["total_time"] = elapsed_seconds.count();
         simulator->writeSimulationOutput();

@@ -141,7 +141,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         output_prefix = setup.get_output_prefix()
         if setup.map == "random":
             map_type = "random"
-            cbs_prefix = "%s-%s-30-30-%d-%d-%s-%d-%d-%s" % (
+            cbs_prefix = "%s-%s-32-32-%d-%d-%s-%d-%d-%s" % (
                 setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
             full_prefix = output_prefix + "-%d-%d-%d" % (map_seed, agent_seed, simulation_seed)
         elif setup.map == "warehouse" or setup.map == "mapf":
@@ -264,7 +264,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             "--iteration", "1",
             "--simulation-seed", str(simulation_seed),
             "--solver", setup.solver,
-            "--obstacles", str(setup.obstacles),
+            "--obstacle-ratio", str(setup.obstacles / 100),
             "--simulator", simulator,
             "--k-neighbor", str(setup.k_neighbor),
             "--timing", setup.timing,
