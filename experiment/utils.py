@@ -59,7 +59,9 @@ class ExperimentSetup(BaseModel):
         return output_prefix
 
     def get_filter_dict(self):
-        filter_dict = self.dict()
+        if self.map == "random":
+            self.map_name = "random-32-32-%d-%d" % (self.obstacles, self.k_neighbor)
+        filter_dict = self.model_dump()
         if self.map != "random":
             filter_dict.pop("obstacles", None)
         return {f"setup.{k}": v for k, v in filter_dict.items()}
