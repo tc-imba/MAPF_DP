@@ -22,9 +22,17 @@ public:
     std::vector<std::vector<Label>> plans;
 
 private:
-    bool PIBT(unsigned int agentId1, unsigned int agentId2);
+    bool PIBT(unsigned int agentId);
 
     void calculateDistances();
+
+    bool isConflict(double t1, const Graph::Node &srcNode1, const Graph::Node &destNode1, double t2, const Graph::Node &srcNode2, const Graph::Node &destNode2);
+
+//    bool isConflict();
+//
+//    bool isConflict(const Graph::Edge &edge1, double t1, const Graph::Edge &edge2, double t2);
+//
+//    bool isConflict(const Graph::Edge &edge1, double t1, const Graph::Node &node2, double t2);
 };
 
 

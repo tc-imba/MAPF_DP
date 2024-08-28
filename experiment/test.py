@@ -530,10 +530,11 @@ async def do_tests(args: TestArguments):
         for _obstacle in args.obstacles:
             for _agent in args.agents:
                 for _k_neighbor in args.k_neighbors:
+                    map_name = "random-32-32-%d-%d" % (_obstacle, _k_neighbor)
                     doc_filter = {
                         "setup.timing": args.timing,
                         "setup.map": args.map,
-                        "setup.map_name": args.map,
+                        "setup.map_name": map_name,
                         "setup.obstacles": _obstacle,
                         "setup.k_neighbor": _k_neighbor,
                         "setup.agents": _agent,
