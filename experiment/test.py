@@ -246,6 +246,14 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                 group_determined = True
             elif setup.simulator == "online_array":
                 dep_graph = "array"
+            elif setup.simulator == "online_no_opt":
+                online_opt = False
+            elif setup.simulator == "online_group_no_opt":
+                group_determined = True
+                online_opt = False
+            elif setup.simulator == "online_array_no_opt":
+                dep_graph = "array"
+                online_opt = False
             elif setup.simulator == "online_group_array":
                 group_determined = True
                 dep_graph = "array"
