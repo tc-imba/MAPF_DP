@@ -20,3 +20,6 @@
 [submodule "BTPG"]
 	path = BTPG
 	url = https://github.com/tc-imba/BTPG.git
+[submodule "MAPF-LNS2"]
+	path = MAPF-LNS2
+	url = git@github.com:Jiaoyang-Li/MAPF-LNS2.git

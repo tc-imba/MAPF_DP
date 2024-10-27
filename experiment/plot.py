@@ -33,11 +33,12 @@ from experiment.utils import asyncio_wrapper, project_root, ExperimentSetup, val
 # rc('text', useTex=False)
 
 # LINE_COLORS = ["#5BB8D7", "#57A86B", "#A8A857", "#0a2129", "#FF0000", "#330066"]
-jet = plt.get_cmap('jet')
-LINE_COLORS_NUMBER = 8
-color_norm = matplotlib.colors.Normalize(vmin=0, vmax=LINE_COLORS_NUMBER)
-scalar_map = matplotlib.cm.ScalarMappable(norm=color_norm, cmap=jet)
-LINE_COLORS = [scalar_map.to_rgba(i) for i in range(LINE_COLORS_NUMBER)]
+# jet = plt.get_cmap('jet')
+# LINE_COLORS_NUMBER = 8
+# color_norm = matplotlib.colors.Normalize(vmin=0, vmax=LINE_COLORS_NUMBER)
+# scalar_map = matplotlib.cm.ScalarMappable(norm=color_norm, cmap=jet)
+# LINE_COLORS = [scalar_map.to_rgba(i) for i in range(LINE_COLORS_NUMBER)]
+COLOR_MAP = "tab10"
 
 LINE_MARKERS = ["o", "s", "^", "+", "x", "*", ".", ",", "v", "1"]
 
@@ -97,7 +98,7 @@ class PlotSettings:
     def __post_init__(self):
         # self.y_log = False
         if self.y_field == "time":
-            if self.plot_type == "simulator" or self.plot_type == "replan":
+            if self.plot_type == "simulator" or self.plot_type == "replan" or self.plot_type == "agent":
                 if self.args.timing == "continuous":
                     self.y_label = 'Average Computation Time (ms) \n per Time Unit Simulated'
                 else:
@@ -135,6 +136,9 @@ class PlotSettings:
         elif self.plot_type == "redundant":
             self.x_label = "$2^k$ connected"
             self.x_field = "k_neighbor"
+        elif self.plot_type == "agent":
+            self.x_label = "number of agents"
+            self.x_field = "agents"
         else:
             self.x_label = 'length of each pause (k)'
             self.x_field = 'delay_interval'
@@ -169,7 +173,7 @@ class PlotSettings:
         return subplot_key
 
     def get_line_settings(self, indexes):
-        if self.plot_type == "simulator":
+        if self.plot_type == "simulator" or self.plot_type == "agent":
             (simulator, cycle, subplot_key) = indexes
             subplot_key = self.get_subplot_key(subplot_key)
             if cycle != "proposed":
@@ -201,6 +205,16 @@ class PlotSettings:
                 arr = simulator.split("_")
                 arr[0] = "proposed"
                 prefix = "-".join(arr)
+                if prefix == "proposed-group-array":
+                    prefix = "proposed+ALL"
+                elif prefix == "proposed-group-no-opt":
+                    prefix = "proposed+G"
+                elif prefix == "proposed-array-no-opt":
+                    prefix = "proposed+A"
+                elif prefix == "proposed-no-opt":
+                    prefix = "proposed"
+                elif prefix == "proposed":
+                    prefix = "proposed+H"
                 label = f"{prefix}-{subplot_key}"
             elif simulator == "btpg":
                 label = f"{simulator}-{subplot_key}"
@@ -234,14 +248,14 @@ class PlotSettings:
         elif self.subplot_type in ("obstacles", "delay-interval", "map-names", "k_neighbor"):
             label = "-".join(label.split('-')[:-1])
 
-        if self.plot_type == "simulator" or self.plot_type == "cdf":
-            if simulator == "default":
+        if self.plot_type == "simulator" or self.plot_type == "cdf" or self.plot_type == "agent":
+            if simulator == "default" or simulator == "online_group_no_opt":
                 linestyle = "dashdot"
-            elif simulator.startswith("replan"):
+            elif simulator.startswith("replan") or simulator == "online":
                 linestyle = "dotted"
-            elif simulator == "pibt":
+            elif simulator == "pibt" or simulator == "online_no_opt":
                 linestyle = (0, (3, 5, 1, 5))  # "dashdotted"
-            elif simulator == "prioritized":
+            elif simulator == "prioritized" or simulator == "online_array_no_opt":
                 linestyle = "dashed"
             elif simulator == "btpg":
                 linestyle = (0, (3, 1, 1, 1, 1, 1))
@@ -350,6 +364,12 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     axes = []
 
     label_index_map = {}
+    simulator_set = pd.unique(df["simulator"])
+    LINE_COLORS_NUMBER = len(simulator_set)
+    color_norm = matplotlib.colors.Normalize(vmin=0, vmax=LINE_COLORS_NUMBER)
+    scalar_map = matplotlib.cm.ScalarMappable(norm=color_norm, cmap=plt.get_cmap(COLOR_MAP))
+    LINE_COLORS = [scalar_map.to_rgba(i) for i in range(LINE_COLORS_NUMBER)]
+    # print(df[df["simulator"] == "online_group_array"])
 
     for i, key in enumerate(settings.subplot_keys):
         ax = plt.subplot(1, len(settings.subplot_keys), i + 1)
@@ -409,7 +429,6 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             line_settings.color = LINE_COLORS[line_index % max_lines]
             line_settings.marker = LINE_MARKERS[line_index % max_lines]
 
-
             if settings.plot_type == "cdf":
                 ax.plot(x, y,
                         linestyle=line_settings.linestyle, color=line_settings.color,
@@ -420,12 +439,15 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
                 ax.plot(xticks, y,
                         linestyle=line_settings.linestyle, color=line_settings.color,
                         marker=line_settings.marker, label=line_settings.label,
-                        linewidth=1.5, markersize=2.5)
+                        linewidth=1.5, markersize=5)
             else:
+                # print(indexes, df2)
+                # print(xticks)
+                # print(y)
                 ax.errorbar(xticks, y, yerr=[y_lower, y_upper],
                             linestyle=line_settings.linestyle, color=line_settings.color,
                             marker=line_settings.marker, label=line_settings.label,
-                            linewidth=1.5, markersize=2.5, capsize=3)
+                            linewidth=1.5, markersize=5, capsize=3)
 
         if settings.plot_type != "cdf":
             ax.set_xticks(xticks)
@@ -446,7 +468,10 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             if key == "random":
                 title = "random-grid"
             else:
-                title = key
+                if key == "random-32-32-30-2":
+                    title = "random-32-32-30"
+                else:
+                    title = key
         elif settings.subplot_type == "k_neighbor":
             title = f"$2^{key}$ connected"
         else:
@@ -475,7 +500,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if settings.subplot_type in ("obstacles", "delay-interval", "map-names"):
-            ncol = 4
+            ncol = 5
         elif len(handles) % 3 == 0:
             ncol = 3
             # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
@@ -492,8 +517,55 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     fig.savefig(fname=output_file, bbox_extra_artists=bbox_extra_artists, bbox_inches='tight')
     plt.close()
 
+async def plot_agent_discrete(args: PlotArguments, delay_ratio: float, delay_interval: int,  compare_type: str):
+    k_neighbor = 2
+    filter = {
+        "setup.delay_interval": delay_interval,
+        "setup.delay_ratio": delay_ratio,
+        "setup.k_neighbor": k_neighbor,
+        "setup.agents": {"$in": args.agents},
+    }
+    results = []
+    async for document in parsed_collection.find(filter):
+        result = {
+            **document["setup"],
+            **document["result"],
+        }
+        results.append(result)
 
-async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio: float):
+    df = pd.DataFrame(results)
+    df.sort_values(by=["agents"], inplace=True)
+    y_log = True
+    if compare_type == "all":
+        condition = ~((df["simulator"].str.startswith("online")) & (df["simulator"] != "online_group_array"))
+        df = df[condition]
+    elif compare_type == "proposed":
+        condition = (df["simulator"].str.startswith("online"))
+        df = df[condition]
+
+    groupby = ["simulator", "cycle", "delay_ratio"]
+    plot_type = "agent"
+    if args.map == "random":
+        subplot_type = "obstacles"
+    elif args.map == "mapf":
+        # df = df[(df["obstacles"] == 0) | (df["obstacles"] == 270)]
+        subplot_type = "map-names"
+    else:
+        assert False
+
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=delay_interval, y_log=y_log,
+                                 plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True, extra=compare_type)
+    plot(df, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=delay_interval, y_log=y_log,
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True, extra=compare_type)
+    plot(df, plot_settings)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=delay_interval, y_log=y_log,
+                                 plot_value=str(delay_ratio), y_field="makespan_execution_time", groupby=groupby, legend=True, extra=compare_type)
+    plot(df, plot_settings)
+
+
+
+async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio: float, compare_type: str):
     k_neighbor = 2
     filter = {
         "setup.agents": agents,
@@ -509,6 +581,17 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
         results.append(result)
 
     df = pd.DataFrame(results)
+    # print(pd.unique(df["map_name"]))
+
+    y_log = True
+    if compare_type == "all":
+        condition = ~((df["simulator"].str.startswith("online")) & (df["simulator"] != "online_group_array"))
+        df = df[condition]
+    elif compare_type == "proposed":
+        condition = (df["simulator"].str.startswith("online"))
+        df = df[condition]
+        # y_log = True
+
 
     groupby = ["simulator", "cycle", "delay_ratio"]
     plot_type = "simulator"
@@ -521,18 +604,18 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
         assert False
     # print(df[['simulator', 'soc']])
     # df['soc_mul'] = df['soc'] * 40
-    # print(df)
+    # print(pd.unique(df["simulator"]))
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True)
+                                 plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True, extra=compare_type)
     plot(df, plot_settings)
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
     # plot(df, plot_settings)
-    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=False,
-                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=y_log,
+                                 plot_value=str(delay_ratio), y_field="makespan_time", groupby=groupby, legend=True, extra=compare_type)
     plot(df, plot_settings)
-    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=False,
-                                 plot_value=str(delay_ratio), y_field="makespan_execution_time", groupby=groupby, legend=True)
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents, y_log=y_log,
+                                 plot_value=str(delay_ratio), y_field="makespan_execution_time", groupby=groupby, legend=True, extra=compare_type)
     plot(df, plot_settings)
 
     # df = df[(df["simulator"] == "replan_1.1")]
@@ -742,26 +825,32 @@ async def main(ctx, map_names):
     # df_discrete = pd.read_csv(data_dir / f"df_discrete.csv")
     # df_discrete_time = pd.read_csv(data_dir / f"df_{args.timing}_time.csv")
     # else:
-    df_discrete_random = pd.read_csv(data_dir / f"df_{args.timing}.csv")
-    df_discrete_mapf = pd.read_csv(data_dir / f"df_{args.timing}_mapf.csv")
+    # df_discrete_random = pd.read_csv(data_dir / f"df_{args.timing}.csv")
+    # df_discrete_mapf = pd.read_csv(data_dir / f"df_{args.timing}_mapf.csv")
     # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
-    df_discrete_mapf_time = pd.read_csv(data_dir / f"df_{args.timing}_time_mapf.csv")
+    # df_discrete_mapf_time = pd.read_csv(data_dir / f"df_{args.timing}_time_mapf.csv")
 
     if args.timing == "discrete":
         if args.map == "random":
-            df_discrete = df_discrete_random
+            # df_discrete = df_discrete_random
             for agents in args.agents:
                 # plot_cycle(args, df_discrete, agents, 0.1)
                 for delay_ratio in args.delay_ratios:
                     # pass
-                    await plot_simulator_discrete(args, agents, delay_ratio)
+                    await plot_simulator_discrete(args, agents, delay_ratio, "")
         else:
             # df_discrete = pd.concat([df_discrete_random, df_discrete_mapf])
             # df_discrete = df_discrete_mapf
             # df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
-            for agents in args.agents:
-                for delay_ratio in args.delay_ratios:
-                    await plot_simulator_discrete(args, agents, delay_ratio)
+
+            for delay_ratio in args.delay_ratios:
+                for delay_interval in args.delay_intervals:
+                    await plot_agent_discrete(args, delay_ratio, delay_interval, "all")
+                    # await plot_agent_discrete(args, delay_ratio, delay_interval, "proposed")
+                # for agents in args.agents:
+                #     await plot_simulator_discrete(args, agents, delay_ratio, "all")
+                #     if agents <= 40:
+                #         await plot_simulator_discrete(args, agents, delay_ratio, "proposed")
 
             # await plot_replan_pdf(args, 10, 0.1, 1)
 
@@ -773,13 +862,13 @@ async def main(ctx, map_names):
             # for obstacle in args.obstacles:
             #     plot_cdf(args, df_discrete_time, agents, obstacle)
             # plot_replan(args, df_discrete, agents)
-    else:
-        if args.map == "random":
-            df_discrete = df_discrete_random
-            for agents in args.agents:
-                for obstacles in args.obstacles:
-                    plot_simulator_2(args, df_discrete, agents, obstacles)
-                plot_redundant(args, df_discrete, agents)
+    # else:
+        # if args.map == "random":
+        #     df_discrete = df_discrete_random
+        #     for agents in args.agents:
+        #         for obstacles in args.obstacles:
+        #             plot_simulator_2(args, df_discrete, agents, obstacles)
+        #         plot_redundant(args, df_discrete, agents)
 
             # for k_neighbor in args.k_neighbors:
             #     plot_simulator(args, df_discrete, agents, k_neighbor)

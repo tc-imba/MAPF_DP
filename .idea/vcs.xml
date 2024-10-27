@@ -6,6 +6,7 @@
     <mapping directory="$PROJECT_DIR$/Continuous-CBS" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/EECBS" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/GeometricTools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/MAPF-LNS2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/MAPF-benchmark" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/spdlog" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/time-independent-planning" vcs="Git" />
