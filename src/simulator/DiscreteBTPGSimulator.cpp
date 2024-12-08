@@ -120,7 +120,8 @@ void DiscreteBTPGSimulator::initBTPGVariables() {
 
 void DiscreteBTPGSimulator::decideMovableAgents(std::vector<int> &movableAgents, unsigned int currentTimestep,
                                                 unsigned int delayStart, unsigned int delayInterval) {
-    updateDelayedSet(currentTimestep, delayStart, delayInterval);
+    discreteFixedDelay.update(currentTimestep, delayStart, delayInterval);
+    const auto &delayedSet = discreteFixedDelay.getDelayedSet();
     for (int i = 0; i < agents.size(); i++) {
         if (delayedSet.find(i) == delayedSet.end()) {
             movableAgents.emplace_back(i);

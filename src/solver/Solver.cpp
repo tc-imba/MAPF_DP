@@ -24,14 +24,6 @@ Solver::Solver(Graph &graph, std::vector<Agent> &agents, MakeSpanType makeSpanTy
 }
 
 
-size_t Solver::combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int seed) {
-    size_t result = 0;
-    boost::hash_combine(result, nodeId1 ^ nodeId2);
-    boost::hash_combine(result, timestep);
-    boost::hash_combine(result, seed);
-    return result;
-}
-
 bool Solver::removeFollowingConflict(std::shared_ptr<Solver> solver) {
     auto simulator = std::make_unique<DiscreteDefaultSimulator>(solver->graph, solver->agents, 0);
     simulator->delayRatio = 0;

@@ -176,8 +176,8 @@ class PlotSettings:
         if self.plot_type == "simulator" or self.plot_type == "agent":
             (simulator, cycle, subplot_key) = indexes
             subplot_key = self.get_subplot_key(subplot_key)
-            if cycle != "proposed":
-                cycle = "naive"
+            # if cycle != "proposed":
+            #     cycle = "naive"
             if simulator == "default":
                 label = f"baseline-{subplot_key}"
             elif simulator.startswith("replan"):
@@ -205,7 +205,14 @@ class PlotSettings:
                 arr = simulator.split("_")
                 arr[0] = "proposed"
                 prefix = "-".join(arr)
-                if prefix == "proposed-group-array":
+                if self.extra == "cycle":
+                    if cycle == "n":
+                        prefix = "semi-naive"
+                    elif cycle == "o":
+                        prefix = "naive"
+                    else:
+                        prefix = "heuristic"
+                elif prefix == "proposed-group-array":
                     prefix = "proposed+ALL"
                 elif prefix == "proposed-group-no-opt":
                     prefix = "proposed+G"
@@ -215,6 +222,7 @@ class PlotSettings:
                     prefix = "proposed"
                 elif prefix == "proposed":
                     prefix = "proposed+H"
+
                 label = f"{prefix}-{subplot_key}"
             elif simulator == "btpg":
                 label = f"{simulator}-{subplot_key}"
@@ -249,7 +257,14 @@ class PlotSettings:
             label = "-".join(label.split('-')[:-1])
 
         if self.plot_type == "simulator" or self.plot_type == "cdf" or self.plot_type == "agent":
-            if simulator == "default" or simulator == "online_group_no_opt":
+            if self.extra == "cycle":
+                if label == "semi-naive":
+                    linestyle = ":"
+                elif label == "naive":
+                    linestyle = "-."
+                else:
+                    linestyle = "-"
+            elif simulator == "default" or simulator == "online_group_no_opt":
                 linestyle = "dashdot"
             elif simulator.startswith("replan") or simulator == "online":
                 linestyle = "dotted"
@@ -261,6 +276,8 @@ class PlotSettings:
                 linestyle = (0, (3, 1, 1, 1, 1, 1))
             else:
                 linestyle = "solid"
+
+
             # linestyle = simulator == "online" and "-" or (cycle == "naive" and ":" or "-.")
         elif self.plot_type == "replan":
             if simulator == "replan":
@@ -358,13 +375,20 @@ class PlotSettings:
 
 
 def plot(df: pd.DataFrame, settings: PlotSettings):
-    fig = plt.figure(figsize=(16, 3), dpi=100)
-    # plt.rcParams.update({'font.size': 16, 'font.family': 'cmss10', 'font.weight': 'bold'})
     plt.rcParams.update({'font.size': 20, "text.usetex": True})
-    axes = []
+    matplotlib.rc('ytick', labelsize=16)
+    # plt.rcParams.update({'font.size': 16, 'font.family': 'cmss10', 'font.weight': 'bold'})
+
+    # fig = plt.figure(figsize=(16, 3), dpi=100)
+    # fig.tight_layout()
+    # axes = []
+
+    fig, axes = plt.subplots(figsize=(16, 3), dpi=100, nrows=1, ncols=len(settings.subplot_keys))
+    fig.tight_layout()
+
 
     label_index_map = {}
-    simulator_set = pd.unique(df["simulator"])
+    simulator_set = np.unique(df[["simulator", "cycle"]])
     LINE_COLORS_NUMBER = len(simulator_set)
     color_norm = matplotlib.colors.Normalize(vmin=0, vmax=LINE_COLORS_NUMBER)
     scalar_map = matplotlib.cm.ScalarMappable(norm=color_norm, cmap=plt.get_cmap(COLOR_MAP))
@@ -372,8 +396,9 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
     # print(df[df["simulator"] == "online_group_array"])
 
     for i, key in enumerate(settings.subplot_keys):
-        ax = plt.subplot(1, len(settings.subplot_keys), i + 1)
-        axes.append(ax)
+        # ax = plt.subplot(1, len(settings.subplot_keys), i + 1)
+        # axes.append(ax)
+        ax = axes[i]
         sub_df = df[df[settings.subplot_field] == key]
         xticks = []
         xmax = 0
@@ -507,7 +532,10 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
             # labels = np.concatenate((labels[::3], labels[1::3], labels[2::3]), axis=0)
         else:
             ncol = 2
-        bbox_to_anchor_y = 1.1 + 0.2 * (len(handles) / ncol)
+        if settings.extra == "cycle":
+            bbox_to_anchor_y = 1.1 + 0.3 * (len(handles) / ncol)
+        else:
+            bbox_to_anchor_y = 1.1 + 0.2 * (len(handles) / ncol)
         legend = ax.legend(handles, labels, loc='upper center', ncol=ncol, columnspacing=0.5,
                            bbox_to_anchor=(0.5, bbox_to_anchor_y), bbox_transform=fig.transFigure, fontsize=26)
         bbox_extra_artists.append(legend)
@@ -537,10 +565,13 @@ async def plot_agent_discrete(args: PlotArguments, delay_ratio: float, delay_int
     df.sort_values(by=["agents"], inplace=True)
     y_log = True
     if compare_type == "all":
-        condition = ~((df["simulator"].str.startswith("online")) & (df["simulator"] != "online_group_array"))
+        condition = (~((df["simulator"].str.startswith("online")) & (df["simulator"] != "online_group_array"))) & (df["cycle"] == "h")
         df = df[condition]
     elif compare_type == "proposed":
-        condition = (df["simulator"].str.startswith("online"))
+        condition = (df["simulator"].str.startswith("online") & (df["cycle"] == "h"))
+        df = df[condition]
+    elif compare_type == "cycle":
+        condition = (df["simulator"] == "online_group_array")
         df = df[condition]
 
     groupby = ["simulator", "cycle", "delay_ratio"]
@@ -585,12 +616,15 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
 
     y_log = True
     if compare_type == "all":
-        condition = ~((df["simulator"].str.startswith("online")) & (df["simulator"] != "online_group_array"))
+        condition = (~((df["simulator"].str.startswith("online")) & (df["simulator"] != "online_group_array"))) & (df["cycle"] == "h")
         df = df[condition]
     elif compare_type == "proposed":
-        condition = (df["simulator"].str.startswith("online"))
+        condition = (df["simulator"].str.startswith("online") & (df["cycle"] == "h"))
         df = df[condition]
-        # y_log = True
+    elif compare_type == "cycle":
+        condition = (df["simulator"] == "online_group_array")
+        df = df[condition]
+    # y_log = True
 
 
     groupby = ["simulator", "cycle", "delay_ratio"]
@@ -847,10 +881,12 @@ async def main(ctx, map_names):
                 for delay_interval in args.delay_intervals:
                     await plot_agent_discrete(args, delay_ratio, delay_interval, "all")
                     # await plot_agent_discrete(args, delay_ratio, delay_interval, "proposed")
-                # for agents in args.agents:
-                #     await plot_simulator_discrete(args, agents, delay_ratio, "all")
-                #     if agents <= 40:
-                #         await plot_simulator_discrete(args, agents, delay_ratio, "proposed")
+                for agents in args.agents:
+                    await plot_simulator_discrete(args, agents, delay_ratio, "all")
+                    if agents <= 30:
+                        await plot_simulator_discrete(args, agents, delay_ratio, "cycle")
+                    if agents <= 40:
+                        await plot_simulator_discrete(args, agents, delay_ratio, "proposed")
 
             # await plot_replan_pdf(args, 10, 0.1, 1)
 

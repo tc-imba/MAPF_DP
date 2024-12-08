@@ -9,14 +9,6 @@ const std::string Simulator::AgentStateLiterals[] = {
         "block", "unblock", "move", "delay", "complete", "fail",
 };
 
-size_t Simulator::combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep,
-                                    unsigned int _seed) {
-    size_t result = 0;
-    boost::hash_combine(result, nodeId1 ^ nodeId2);
-    boost::hash_combine(result, timestep);
-    boost::hash_combine(result, _seed);
-    return result;
-}
 
 double Simulator::averageMakeSpan(MakeSpanType makeSpanType) {
     double result = 0;

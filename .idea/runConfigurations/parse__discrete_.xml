@@ -14,7 +14,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/experiment/parse.py" />
-    <option name="PARAMETERS" value="--timing discrete --map random --delay-intervals 0,1,10,20 --obstacles 30 --agents 10,20,30,40,50,60,70,80 --simulators default,replan_nonstop_1.1,online,online_no_opt,online_group_no_opt,online_array_no_opt,online_group_array,btpg,pibt --k-neighbors 2" />
+    <option name="PARAMETERS" value="--timing discrete --map random --delay-intervals 0,1,10,20 --obstacles 30 --agents 10,20,30 --simulators default,replan_nonstop_1.1,online,online_no_opt,online_group_no_opt,online_array_no_opt,online_group_array,btpg,pibt --k-neighbors 2" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

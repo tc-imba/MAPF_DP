@@ -19,6 +19,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
 //    agentCountVec.clear();
     openOutputFiles();
     std::vector<std::string> agentOutputStates(agents.size());
+    const auto &delayedSet = discreteFixedDelay.getDelayedSet();
 
     if (outputFile.is_open()) {
         outputFile << 0 << std::endl;
@@ -56,7 +57,7 @@ unsigned int DiscreteOnlineSimulator::simulate(double &currentTimestep, unsigned
         }
 
         //        std::cout << currentTimestep << " " << delayStart << " " << delayInterval << std::endl;
-        updateDelayedSet(currentTimestep, delayStart, delayInterval);
+        discreteFixedDelay.update(currentTimestep, delayStart, delayInterval);
 
         //        if (pauseTimestep > 0 && currentTimestep == 2) {
         //            std::cout << "breakpoint" << std::endl;
@@ -324,7 +325,7 @@ void DiscreteOnlineSimulator::initSimulation() {
     //    pathTopoNodeIds.clear();
     //    pathTopoNodeIds.resize(agents.size());
     nodeAgentMap.clear();
-    delayedSet.clear();
+    discreteFixedDelay.clear();
     //    topoGraph.clear();
 
     //    unsigned int topoGraphNodeNum = 0;

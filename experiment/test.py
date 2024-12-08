@@ -223,7 +223,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             if len(arr) > 1:
                 replan_suboptimality = float(arr[-1])
 
-        if setup.simulator.startswith("prioritized"):
+        if setup.simulator.startswith("ses"):
+            simulator = "ses"
+        elif setup.simulator.startswith("prioritized"):
             simulator = "replan"
             prioritized_replan = True
             if setup.simulator == "prioritized_opt":

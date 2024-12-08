@@ -161,9 +161,6 @@ public:
 
     virtual std::string getSolverName() = 0;
 
-    static size_t
-    combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int seed);
-
     virtual void init();
 
 //    virtual bool step() = 0;

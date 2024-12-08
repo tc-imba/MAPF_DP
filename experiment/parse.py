@@ -408,7 +408,7 @@ async def parse_data(args: ParseArguments) -> Tuple[pd.DataFrame, pd.DataFrame]:
         delay_type, obstacles, agents, k_neighbor, map_name, delay_interval, delay_ratio = case
         simulator_feasibility_cycle = []
         for simulator in args.simulators:
-            if simulator == "online":
+            if simulator == "online_group_array":
                 for feasibility, cycle in feasibility_cycle_enums:
                     simulator_feasibility_cycle.append((simulator, feasibility, cycle))
             else:

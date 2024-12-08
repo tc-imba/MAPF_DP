@@ -14,6 +14,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
     std::vector<std::string> agentOutputStates(agents.size());
     agentRealPaths.clear();
     agentRealPaths.resize(agents.size());
+    const auto &delayedSet = discreteFixedDelay.getDelayedSet();
 
     openOutputFiles();
 
@@ -80,7 +81,7 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             }
         }
 
-        updateDelayedSet(currentTimestep, delayStart, delayInterval);
+        discreteFixedDelay.update(currentTimestep, delayStart, delayInterval);
 
         currentTimestep++;
 

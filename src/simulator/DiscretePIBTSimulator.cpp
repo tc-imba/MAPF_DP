@@ -8,6 +8,7 @@
 unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                     unsigned int delayStart, unsigned int delayInterval) {
     initPIBTVariables();
+    const auto &delayedSet = discreteFixedDelay.getDelayedSet();
 
 //    for (const auto& a: A) {
 //        std::cout << a->getMode() << " " << a->getHead() << " " << a->getTail() << " " << a->getGoal() << std::endl;
@@ -20,7 +21,7 @@ unsigned int DiscretePIBTSimulator::simulate(double &currentTimestep, unsigned i
     while (!flg_stop) {
         executionTimeStart = std::chrono::steady_clock::now();
         SPDLOG_DEBUG("begin timestep {}", currentTimestep);
-        updateDelayedSet(currentTimestep, delayStart, delayInterval);
+        discreteFixedDelay.update(currentTimestep, delayStart, delayInterval);
 
         pibt::Agents unstable;
 

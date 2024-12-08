@@ -16,6 +16,7 @@
 #include "simulator/DiscreteDefaultSimulator.h"
 #include "simulator/DiscreteOnlineSimulator.h"
 #include "simulator/DiscretePIBTSimulator.h"
+#include "simulator/DiscreteSESSimulator.h"
 #include "solver/CBSSolver.h"
 #include "solver/CCBSSolver.h"
 #include "solver/EECBSSolver.h"
@@ -477,6 +478,12 @@ int main(int argc, const char *argv[]) {
                 assert(0);
             } else {
                 simulator = std::make_unique<DiscreteBTPGSimulator>(graph, agents, i);
+            }
+        } else if (simulatorType == "ses") {
+            if (timingType == "continuous") {
+                assert(0);
+            } else {
+                simulator = std::make_unique<DiscreteSESSimulator>(graph, agents, i);
             }
         } else {
             assert(0);

@@ -14,17 +14,19 @@ class DiscreteOnlineSimulator : public DiscreteSimulator, public OnlineSimulator
 protected:
     NodeDependencyGraph depGraph;
 
-//    std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
-//    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
+    //    std::vector<std::vector<std::pair<size_t, unsigned int>>> deadEndStates;
+    //    std::unordered_map<unsigned int, std::vector<SharedNodePair>> sharedNodes;
 
-//    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
-//    Graph::topo_graph_t topoGraph;
+    //    std::vector<std::vector<unsigned int>> pathTopoNodeIds;
+    //    Graph::topo_graph_t topoGraph;
 
 public:
-    DiscreteOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed) : Simulator(graph, agents, seed), depGraph(graph, agents, paths, firstAgentArrivingTimestep) {}
+    DiscreteOnlineSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed)
+        : Simulator(graph, agents, seed), DiscreteSimulator(graph, agents, seed),
+          depGraph(graph, agents, paths, firstAgentArrivingTimestep) {}
 
-    unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep,
-                          unsigned int delayStart = INT_MAX, unsigned int delayInterval = INT_MAX) override;
+    unsigned int simulate(double &currentTimestep, unsigned int maxTimeStep, unsigned int delayStart = INT_MAX,
+                          unsigned int delayInterval = INT_MAX) override;
 
     bool onlineOpt = false;
     bool groupDetermined = false;

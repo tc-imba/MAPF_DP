@@ -6,6 +6,7 @@
 #define MAPF_DP_SIMULATOR_H
 
 #include "../solver/Solver.h"
+#include "../utils/math.hpp"
 #include <boost/icl/interval_set.hpp>
 #include <nlohmann/json.hpp>
 
@@ -82,8 +83,6 @@ public:
     void setSolver(std::shared_ptr<Solver> _solver) {
         solver = std::move(_solver);
     }
-
-    size_t combineRandomSeed(unsigned int nodeId1, unsigned int nodeId2, unsigned int timestep, unsigned int _seed);
 
     double averageMakeSpan(MakeSpanType makeSpanType);
 
