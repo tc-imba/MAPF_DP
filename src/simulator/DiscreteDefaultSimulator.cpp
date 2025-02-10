@@ -120,8 +120,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                 const auto &nextLabel = solver->solution->plans[i]->path[state + 1];
                 if (label.nodeId == nextLabel.nodeId) {
                     if (debug) {
-                        std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
-                                  << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
+                        SPDLOG_DEBUG("agent {}: ({},{}) -> ({},{})", i, state, label.nodeId, state + 1, nextLabel.nodeId);
+//                        std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
+//                                  << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
                     }
                     ++nodeStates[label.nodeId];
                     ++state;
@@ -136,7 +137,8 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             auto &state = agents[i].state;
             if (state + 1 >= solver->solution->plans[i]->path.size()) {
                 if (debug) {
-                    std::cout << "agent " << i << ": completed" << std::endl;
+                    SPDLOG_DEBUG("agent {}: completed", i);
+//                    std::cout << "agent " << i << ": completed" << std::endl;
                 }
                 agentOutputStates[i] = "complete";
                 agents[i].blocked = true;
@@ -162,8 +164,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             } else {
                 // blocked
                 if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") blocked"
-                              << std::endl;
+                    SPDLOG_DEBUG("agent {}: ({},{}) blocked", i, state, label.nodeId);
+//                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") blocked"
+//                              << std::endl;
                 }
                 if (!agents[i].blocked) {
                     std::cerr << "error" << std::endl;
@@ -174,9 +177,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                 agents[i].delayed = false;
 //                continue;
             }
-            if (debug) {
-                std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << std::endl;
-            }
+//            if (debug) {
+//                std::cout << "agent " << i << ": start " << agents[i].start << ", current " << agents[i].current << std::endl;
+//            }
         }
 
         bool needReplan = false;
@@ -190,8 +193,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             // delay by agent
             if (delayType == "agent" && delayedSet.find(i) != delayedSet.end()) {
                 if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by agent"
-                              << std::endl;
+                    SPDLOG_DEBUG("agent {}: ({},{}) delayed by agent", i, state, label.nodeId);
+//                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by agent"
+//                              << std::endl;
                 }
                 agentOutputStates[i] = "delay";
                 agents[i].blocked = false;
@@ -204,8 +208,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
             auto &edge = graph.getEdge(label.nodeId, nextLabel.nodeId);
             if (delayType == "edge" && delayedSet.find(edge.index) != delayedSet.end()) {
                 if (debug) {
-                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by edge"
-                              << std::endl;
+                    SPDLOG_DEBUG("agent {}: ({},{}) delayed by edge", i, state, label.nodeId);
+//                    std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") delayed by edge"
+//                              << std::endl;
                 }
                 agentOutputStates[i] = "delay";
                 agents[i].blocked = false;
@@ -238,8 +243,9 @@ unsigned int DiscreteDefaultSimulator::simulate(double &currentTimestep, unsigne
                 outputFile << i << " " << node.index << " " << node.x << " " << node.y << std::endl;
             }*/
             if (debug) {
-                std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
-                          << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
+                SPDLOG_DEBUG("agent {}: ({},{}) -> ({},{})", i, state, label.nodeId, state + 1, nextLabel.nodeId);
+//                std::cout << "agent " << i << ": (" << state << "," << label.nodeId << ") -> ("
+//                          << state + 1 << "," << nextLabel.nodeId << ")" << std::endl;
             }
             agentOutputStates[i] = "move";
             agents[i].blocked = true;

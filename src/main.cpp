@@ -20,6 +20,7 @@
 #include "solver/CBSSolver.h"
 #include "solver/CCBSSolver.h"
 #include "solver/EECBSSolver.h"
+#include "solver/LNSSolver.h"
 #include "solver/IndividualAStarSolver.h"
 #include "utils/config.hpp"
 #include "utils/ezOptionParser.hpp"
@@ -81,7 +82,7 @@ int main(int argc, const char *argv[]) {
     optionParser.add("json", false, 1, 0, "Output Format", "--output-format");
     optionParser.add("", false, 1, 0, "Simulator Output Filename", "--simulator-output");
     optionParser.add("edge", false, 1, 0, "Delay type (agent / node / edge)", "--delay");
-    optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs", "--solver");
+    optionParser.add("eecbs", false, 1, 0, "Solver (default / individual / eecbs / ccbs / lns", "--solver");
     optionParser.add("", false, 1, 0, "Solver binary (for CCBS / EECBS)", "--solver-binary");
     optionParser.add("none", false, 1, 0, "(none, start, end, collision)", "--snapshot-order");
     optionParser.add("array", false, 1, 0, "(boost / array)", "--dep-graph");
@@ -248,6 +249,8 @@ int main(int argc, const char *argv[]) {
             solverBinaryPath = solverBinaryPath / "Continuous-CBS" / "CCBS";
         } else if (solverType == "eecbs") {
             solverBinaryPath = solverBinaryPath / "EECBS" / "eecbs";
+        } else if (solverType == "lns") {
+            solverBinaryPath = solverBinaryPath / "MAPF-LNS2" / "lns";
         }
         if (!solverBinaryPath.empty()) { solverBinaryFile = solverBinaryPath.string(); }
     } else {
@@ -384,6 +387,9 @@ int main(int argc, const char *argv[]) {
     } else if (solverType == "eecbs") {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new EECBSSolver(graph, agents, makeSpanType, solverBinaryFile, suboptimality));
+    } else if (solverType == "lns") {
+        if (solverBinaryFile.empty()) exit(-1);
+        solver = std::shared_ptr<Solver>(new LNSSolver(graph, agents, makeSpanType, solverBinaryFile));
     } else if (solverType == "ccbs") {
         if (solverBinaryFile.empty()) exit(-1);
         solver = std::shared_ptr<Solver>(new CCBSSolver(graph, agents, makeSpanType, solverBinaryFile, mapType));
@@ -450,6 +456,7 @@ int main(int argc, const char *argv[]) {
                 continuousOnlineSimulator->removeRedundant = removeRedundant;
                 continuousOnlineSimulator->deltaTimestep = deltaTimestep;
                 continuousOnlineSimulator->useGroup = useGroup;
+                continuousOnlineSimulator->topoGraphType = topoGraphType;
                 if (simulatorType == "snapshot") {
                     continuousOnlineSimulator->snapshot = true;
                     continuousOnlineSimulator->snapshotOrder = snapshotOrder;

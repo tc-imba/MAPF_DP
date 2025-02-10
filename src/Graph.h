@@ -176,7 +176,7 @@ public:
     struct done {
     };
 
-//    std::vector<unsigned int> path;
+    std::vector<unsigned int> path;
 
     explicit TopoGraphBFSVisitor(const Graph::topo_graph_t::vertex_descriptor &v) : goal(v) {
     };

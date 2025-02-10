@@ -23,8 +23,10 @@ void DependencyGraph::init() {
     pathTopoNodeIds.resize(agents.size());
 
     if (topoGraphType == "boost") {
+        std::cout << "boost" << std::endl;
         topoGraph = std::make_unique<BoostTopoGraph>(*this);
     } else if (topoGraphType == "array") {
+        std::cout << "array" << std::endl;
         topoGraph = std::make_unique<ArrayTopoGraph>(*this);
     } else {
         exit(-1);

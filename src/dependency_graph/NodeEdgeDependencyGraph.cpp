@@ -4,9 +4,11 @@
 
 #include "NodeEdgeDependencyGraph.h"
 #include <boost/range/join.hpp>
+#include <ranges>
 
 void NodeEdgeDependencyGraph::init() {
 //    topoGraph.clear();
+    DependencyGraph::init();
     sdgData.resize(agents.size());
 
     unsigned int topoGraphNodeNum = 0;
@@ -51,9 +53,10 @@ void NodeEdgeDependencyGraph::init() {
                 {sharedNodePair.agentId1, sharedNodePair.state1});
     }
 
+    topoGraph->init();
+
     generateUnsettledEdges();
     initUnsettledEdges();
-    topoGraph->init();
 }
 
 
@@ -201,7 +204,7 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
         auto edgePair = makeSDGEdgePair(nodePair.first.agentId, nodePair.first.state, nodePair.second.agentId, nodePair.second.state);
         auto group = std::make_shared<SDGEdgePairGroup>();
         group->emplace(edgePair, 0);
-        unsettledEdgePairsMap.emplace(edgePair, SDGEdgePairData{group});
+        unsettledEdgePairsMap.emplace(edgePair, SDGEdgePairData{unsettledEdgePairGroupsCount++, group});
     }
     numAddedNodePairs = addedNodePairs.size();
     if (useGroup) {
@@ -216,16 +219,16 @@ bool NodeEdgeDependencyGraph::generateUnsettledEdges() {
         const auto &[edge1, edge2] = edgePair;
         sdgData[edge1.dest.agentId][edge1.dest.state].unsettledEdgePairs.push_back(edgePair);
         sdgData[edge2.dest.agentId][edge2.dest.state].unsettledEdgePairs.push_back(edgePair);
-        unsettledEdgePairGroupsSet.emplace(unsettledEdgePairsMap[edgePair].group);
+        unsettledEdgePairGroupsSet.emplace(unsettledEdgePairsMap[edgePair]);
     }
 
     if (debug) {
         SPDLOG_DEBUG("node pair groups count: {}", unsettledEdgePairGroupsSet.size());
-        for (auto &groupPtr: unsettledEdgePairGroupsSet) {
+        for (auto &unsettledEdgePairData: unsettledEdgePairGroupsSet) {
             std::ostringstream oss;
-            oss << "node pair group: size " << groupPtr->size() << " children ";
-            for (auto &p: *groupPtr) {
-                oss << "<" << p.first.first << "," << p.first.second << "> ";
+            oss << "node pair group: size " << unsettledEdgePairData.group->size() << " children ";
+            for (auto &p: *unsettledEdgePairData.group) {
+                oss << "<" << p.first.first << " " << p.first.second << ">,";
             }
             SPDLOG_DEBUG("{}", oss.str());
         }
@@ -245,7 +248,6 @@ void NodeEdgeDependencyGraph::initUnsettledEdges() {
                 SDGEdge selectedEdge = {node, {i, state}};
                 SPDLOG_DEBUG("add settled edge: {}", selectedEdge);
                 topoGraph->addEdge(selectedEdge);
-
             }
         }
     }
@@ -282,25 +284,26 @@ void NodeEdgeDependencyGraph::groupNodePair(std::set<SDGNodePair> &nodePairs, co
             std::cout << edgePair.first << " " << edgePair.second << " " << newEdgePair.first << " " << newEdgePair.second << std::endl;
         }*/
 
-        auto group = edgePairIt->second.group;
-        auto groupIt = group->find(edgePair);
-        auto newGroup = newEdgePairIt->second.group;
-        auto newGroupIt = newGroup->find(newEdgePair);
+        auto edgePairData = edgePairIt->second;
+        auto newEdgePairData = newEdgePairIt->second;
+
+        auto groupIt = edgePairData.group->find(edgePair);
+        auto newGroupIt = newEdgePairData.group->find(newEdgePair);
 
         // ensure group.size() >= newGroup.size(), we merge newGroup into group and delete newGroup
-        if (group->size() < newGroup->size()) std::swap(group, newGroup);
+        if (edgePairData.group->size() < newEdgePairData.group->size()) std::swap(edgePairData, newEdgePairData);
 
         // reverse newGroup if order is different, we use xor to determine the difference
         bool needReverse = (groupIt->second == newGroupIt->second) ^ (order == 0);
-        for (const auto &p: *newGroup) {
+        for (const auto &p: *newEdgePairData.group) {
             if (needReverse) {
-                group->emplace(p.first, 1 - p.second);
+                edgePairData.group->emplace(p.first, 1 - p.second);
             } else {
-                group->emplace(p.first, p.second);
+                edgePairData.group->emplace(p.first, p.second);
             }
         }
-        for (const auto &p: *newGroup) {
-            unsettledEdgePairsMap[p.first].group = group;
+        for (const auto &p: *newEdgePairData.group) {
+            unsettledEdgePairsMap[p.first] = edgePairData;
         }
     }
 }
@@ -523,6 +526,9 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
     /*    if (debug) {
         std::cout << "update unsettled edge pairs for " << node << std::endl;
     }*/
+    if (debug) {
+        SPDLOG_DEBUG("update unsettled edge pairs for agent {}, state {}", agentId, state);
+    }
     for (auto &pair: sdgData[agentId][state].unsettledEdgePairs) {
         auto it = unsettledEdgePairsMap.find(pair);
         if (it != unsettledEdgePairsMap.end()) {
@@ -539,18 +545,19 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
                 std::cerr << "unsettled edge pair error" << std::endl;
                 exit(-1);
             }
-            /*            if (debug) {
-                std::cout << "try to remove unsettled edge pair: " << pair.first << " " << pair.second << std::endl;
-                std::cout << "try to add settled edge: " << selectedEdge << std::endl;
-            }*/
             /*            if (agents[selectedEdge.source.agentId].state < selectedEdge.source.state) {
                 continue;
             }*/
+            auto &edgePairData = it->second;
             auto group = it->second.group;
             for (auto &[_edgePair, _]: *group) {
                 auto &selectedEdge = selectedEdgeIndex == 0 ? _edgePair.first : _edgePair.second;
+                /*if (debug) {
+                    std::cout << "try to remove unsettled edge pair: " << _edgePair.first << " " << _edgePair.second << std::endl;
+                    std::cout << "try to add settled edge: " << selectedEdge << std::endl;
+                }*/
                 if (debug) {
-                    SPDLOG_DEBUG("select unsettled edge pair: {} {} -> {}", _edgePair.first, _edgePair.second, selectedEdge);
+                    SPDLOG_DEBUG("permanently select unsettled edge pair: {} {} -> {}", _edgePair.first, _edgePair.second, selectedEdge);
                 }
                 // TODO: this may not be correct in ArrayTopoGraph
                 bool alreadyAdded = topoGraph->hasEdge(selectedEdge);
@@ -574,7 +581,7 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
                 }
             }
             if (!dryRun) {
-                auto it2 = unsettledEdgePairGroupsSet.find(group);
+                auto it2 = unsettledEdgePairGroupsSet.find(edgePairData);
                 if (it2 != unsettledEdgePairGroupsSet.end()) {
                     unsettledEdgePairGroupsSet.erase(it2);
                 }
@@ -590,7 +597,7 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
 
 /** Algorithm 1 **/
 std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
-        std::list<std::shared_ptr<SDGEdgePairGroup>> &unsettledEdgePairGroups,
+        std::list<SDGEdgePairData> &unsettledEdgePairGroups,
         bool recursive, bool save) {
     std::vector<SDGEdge> addedEdges;
     //    std::cout << "feasibility check" << std::endl;
@@ -611,7 +618,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
             bool groupSelected = false;
             bool edge1Available = true;
             bool edge2Available = true;
-            for (auto &[edgePair, _]: **it) {
+            for (auto &[edgePair, _]: *(it->group)) {
                 bool edge1Settled = edgePair.second.dest.state <= agents[edgePair.second.dest.agentId].state;
                 //                    || it->first.source.state + 1 >= pathTopoNodeIds[it->first.source.agentId].size();
                 bool edge2Settled = edgePair.first.dest.state <= agents[edgePair.first.dest.agentId].state;
@@ -712,19 +719,19 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
 
             if (!edge1Available && !edge2Available) {
                 // no edge can be selected
-                SPDLOG_DEBUG("no edge can be selected from unsettled edge pair group of size {}", (*it)->size());
+                auto &edgePair = it->group->begin()->first;
+                SPDLOG_DEBUG("no edge can be selected from unsettled edge pair group of size {}: {} {}", it->group->size(), edgePair.first, edgePair.second);
                 for (auto &edge: addedEdges) {
                     topoGraph->removeEdge(edge);
                     SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
                 }
-                auto &edgePair = (*it)->begin()->first;
                 return std::make_pair(edgePair.first.dest.agentId, edgePair.second.dest.agentId);
             } else if (edge1Available && edge2Available) {
                 ++it;
             } else {
                 int edgeIndex = edge1Available ? 0 : 1;
-                SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {}", (*it)->size());
-                for (auto &[edgePair, _]: **it) {
+                SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {}", it->group->size());
+                for (auto &[edgePair, _]: *(it->group)) {
                     auto &edge = edgeIndex == 0 ? edgePair.first : edgePair.second;
                     auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
                     if (topoGraph->addEdge(edge)) {
@@ -739,7 +746,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                         //                              << edge1Settled << " " << edge2Settled << std::endl;
                     }
                 }
-                erasedEdges += (*it)->size();
+                erasedEdges += it->group->size();
                 it = unsettledEdgePairGroups.erase(it);
             }
 
@@ -801,7 +808,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
         if (erasedEdges == 0 && !unsettledEdgePairGroups.empty()) {
             /** line 11 **/
             auto it = unsettledEdgePairGroups.begin();
-            auto edgePairGroup = *it;
+            auto edgePairGroup = it->group;
             auto &edgePair = edgePairGroup->begin()->first;
             auto edge1 = edgePair.first;
             auto edge2 = edgePair.second;
@@ -910,7 +917,13 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckTest(bool rec
     //    std::list<SharedNodePair> sharedNodesList;
     savedAddedEdges.clear();
     //    std::list<SDGEdgePair> unsettledEdgePairs(unsettledEdgePairsSet.begin(), unsettledEdgePairsSet.end());
-    std::list<std::shared_ptr<SDGEdgePairGroup>> unsettledEdgePairGroups(unsettledEdgePairGroupsSet.begin(), unsettledEdgePairGroupsSet.end());
+
+    std::list<SDGEdgePairData> unsettledEdgePairGroups(unsettledEdgePairGroupsSet.begin(), unsettledEdgePairGroupsSet.end());
+
+//    std::list<std::shared_ptr<SDGEdgePairGroup>> unsettledEdgePairGroups;
+//    for (auto group : unsettledEdgePairGroupsSet) {
+//        unsettledEdgePairGroups.emplace_back(std::move(group));
+//    }
 
 
     // neighbor check, can be removed later

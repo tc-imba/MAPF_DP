@@ -13,6 +13,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 # EECBS
 add_subdirectory(EECBS)
 
+# LNS
+add_subdirectory(MAPF-LNS2)
+
 # BTPG
 add_subdirectory(BTPG)
 

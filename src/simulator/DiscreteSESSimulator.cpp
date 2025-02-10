@@ -3,6 +3,8 @@
 //
 
 #include "DiscreteSESSimulator.h"
+#include "DiscreteDefaultSimulator.h"
+#include "../solver/SESSolver.h"
 
 #include <boost/filesystem.hpp>
 
@@ -188,6 +190,8 @@ unsigned int DiscreteSESSimulator::simulate(double &currentTimestep,
                                             unsigned int delayInterval) {
     using namespace boost::filesystem;
 
+    auto savedCurrentTimestep = currentTimestep;
+
     path ph = path("ses_results") / unique_path();
     create_directories(ph);
 
@@ -212,7 +216,7 @@ unsigned int DiscreteSESSimulator::simulate(double &currentTimestep,
 
     int timeout = 90;
     ses::ADG _adg = ses::construct_ADG((char *) adgFileName.c_str());
-    _simulator = std::make_unique<ses::Simulator>(_adg);
+    _simulator = std::make_shared<ses::Simulator>(_adg);
 
     int agentCnt = ses::get_agentCnt(_simulator->adg);
     int stepSpend = 1;
@@ -323,6 +327,25 @@ unsigned int DiscreteSESSimulator::simulate(double &currentTimestep,
 
     outFile_setup.close();
     remove_all(ph);
+
+    auto defaultAgents = agents;
+    for (int agent = 0; agent < agentCnt; agent++) {
+        defaultAgents[agent].timestep = 0;
+        defaultAgents[agent].arrivingTimestep = 0;
+        defaultAgents[agent].current = defaultAgents[agent].start;
+    }
+    auto defaultSimulator = DiscreteDefaultSimulator(graph, agents, seed);
+    auto solver = std::make_shared<SESSolver>(graph, agents, MakeSpanType::AVERAGE, _simulator);
+    if (!solver->solve()) {
+        return 0;
+    }
+    defaultSimulator.setSolver(solver);
+    defaultSimulator.debug = true;
+
+    auto result = defaultSimulator.simulate(savedCurrentTimestep, maxTimeStep, delayStart, delayInterval);
+    agents = defaultAgents;
+
+    return result;
 
     /*ses::Simulator simulator_res(_simulator->adg);
     //    simulator_res.print_soln(stdoutFileName.c_str());

@@ -14,7 +14,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/experiment/parse.py" />
-    <option name="PARAMETERS" value="--map mapf --map-names room-32-32-4,warehouse-10-20-10-2-1,random-32-32-20 --timing discrete --delay-intervals 0,1,10,20 --agents 10,20,30 --obstacles 0 --k-neighbors 2 --simulators default,replan_nonstop_1.1,online,online_no_opt,online_group_no_opt,online_array_no_opt,online_group_array,btpg,pibt --delay-ratios 0.1 -o mapf" />
+    <option name="PARAMETERS" value="--map mapf --map-names room-32-32-4,warehouse-10-20-10-2-1,random-32-32-20 --timing discrete --delay-intervals 0,1,10,20 --agents 10,20,30,40 --obstacles 0 --k-neighbors 2 --simulators default,replan_nonstop_1.1,online,online_no_opt,online_group_no_opt,online_array_no_opt,online_group_array,btpg,pibt,ses --delay-ratios 0.1 -o mapf" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

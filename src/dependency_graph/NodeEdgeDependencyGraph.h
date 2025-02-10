@@ -39,14 +39,23 @@ public:
     typedef std::map<SDGEdgePair, int> SDGEdgePairGroup;
 
     struct SDGEdgePairData {
+        // correct ordering in unsettledEdgePairGroupsSet
+        size_t id;
         // map<SDGEdgePair, order>
         std::shared_ptr<SDGEdgePairGroup> group = nullptr;
+    };
+
+    struct SDGEdgePairDataComp {
+        bool operator()(const SDGEdgePairData &a, const SDGEdgePairData &b) const {
+            return a.id < b.id;
+        }
     };
 
     std::vector<std::vector<SDGData>> sdgData;
     std::set<SDGEdgePair> unsettledEdgePairsSet;
     std::map<SDGEdgePair, SDGEdgePairData> unsettledEdgePairsMap;
-    std::set<std::shared_ptr<SDGEdgePairGroup >> unsettledEdgePairGroupsSet;
+    std::set<SDGEdgePairData, SDGEdgePairDataComp> unsettledEdgePairGroupsSet;
+    size_t unsettledEdgePairGroupsCount = 0;
     std::vector<SharedNodePair> sharedStates;
     std::vector<SDGEdge> savedAddedEdges;
 
@@ -92,7 +101,7 @@ public:
     std::vector<SDGEdge> updateSharedNode(size_t agentId, unsigned int state, bool dryRun = false);
 
     std::pair<size_t, size_t> feasibilityCheckHelper(
-            std::list<std::shared_ptr<SDGEdgePairGroup>> &unsettledEdgePairGroups,
+            std::list<SDGEdgePairData> &unsettledEdgePairGroups,
             bool recursive, bool save
             //            std::vector<std::pair<unsigned int, unsigned int>> &addedEdges
     );

@@ -113,6 +113,8 @@ class PlotSettings:
         elif self.y_field == "makespan":
             self.y_label = '\n Makespan'
         elif self.y_field == "average_cost":
+            self.y_label = '\n Avg. Sum of Costs'
+        elif self.y_field == "cost":
             self.y_label = '\n Sum of Costs'
         elif self.y_field == "makespan_time" or self.y_field == "makespan_execution_time":
             self.y_label = 'Avg. Comp. Time \n of Each Timestep (ms)'
@@ -226,6 +228,8 @@ class PlotSettings:
                 label = f"{prefix}-{subplot_key}"
             elif simulator == "btpg":
                 label = f"{simulator}-{subplot_key}"
+            elif simulator == "ses":
+                label = f"gses-{subplot_key}"
             else:
                 label = f"{cycle}-{subplot_key}"
         elif self.plot_type == "category":
@@ -321,6 +325,10 @@ class PlotSettings:
             y_lower = y - np.array(df["makespan_lower"])
             y_upper = np.array(df["makespan_upper"]) - y
         elif self.y_field == "average_cost":
+            y = np.array(df["average_cost"])
+            y_lower = y - np.array(df["average_cost_lower"])
+            y_upper = np.array(df["average_cost_upper"]) - y
+        elif self.y_field == "cost":
             y = np.array(df["average_cost"] * df["agents"])
             y_lower = y - np.array(df["average_cost_lower"] * df["agents"])
             y_upper = np.array(df["average_cost_upper"] * df["agents"]) - y
@@ -525,7 +533,7 @@ def plot(df: pd.DataFrame, settings: PlotSettings):
         # ax.set_ylabel(ylabel)
         handles, labels = ax.get_legend_handles_labels()
         if settings.subplot_type in ("obstacles", "delay-interval", "map-names"):
-            ncol = 5
+            ncol = 6
         elif len(handles) % 3 == 0:
             ncol = 3
             # handles = np.concatenate((handles[::3], handles[1::3], handles[2::3]), axis=0)
@@ -584,7 +592,8 @@ async def plot_agent_discrete(args: PlotArguments, delay_ratio: float, delay_int
     else:
         assert False
 
-    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=delay_interval, y_log=y_log,
+
+    plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=delay_interval, y_log=False,
                                  plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True, extra=compare_type)
     plot(df, plot_settings)
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=delay_interval, y_log=y_log,
@@ -640,7 +649,7 @@ async def plot_simulator_discrete(args: PlotArguments, agents: int, delay_ratio:
     # df['soc_mul'] = df['soc'] * 40
     # print(pd.unique(df["simulator"]))
     plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
-                                 plot_value=str(delay_ratio), y_field="average_cost", groupby=groupby, legend=True, extra=compare_type)
+                                 plot_value=str(delay_ratio), y_field="cost", groupby=groupby, legend=True, extra=compare_type)
     plot(df, plot_settings)
     # plot_settings = PlotSettings(args=args, plot_type=plot_type, subplot_type=subplot_type, agents=agents,
     #                              plot_value=str(delay_ratio), y_field="time", groupby=groupby, legend=True)
@@ -878,15 +887,15 @@ async def main(ctx, map_names):
             # df_discrete = df_discrete.drop(df_discrete[df_discrete.delay_interval == 0].index)
 
             for delay_ratio in args.delay_ratios:
-                for delay_interval in args.delay_intervals:
-                    await plot_agent_discrete(args, delay_ratio, delay_interval, "all")
+                # for delay_interval in args.delay_intervals:
+                #     await plot_agent_discrete(args, delay_ratio, delay_interval, "all")
                     # await plot_agent_discrete(args, delay_ratio, delay_interval, "proposed")
                 for agents in args.agents:
                     await plot_simulator_discrete(args, agents, delay_ratio, "all")
-                    if agents <= 30:
-                        await plot_simulator_discrete(args, agents, delay_ratio, "cycle")
-                    if agents <= 40:
-                        await plot_simulator_discrete(args, agents, delay_ratio, "proposed")
+                    # if agents <= 30:
+                    #     await plot_simulator_discrete(args, agents, delay_ratio, "cycle")
+                    # if agents <= 40:
+                    #     await plot_simulator_discrete(args, agents, delay_ratio, "proposed")
 
             # await plot_replan_pdf(args, 10, 0.1, 1)
 

@@ -13,7 +13,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/experiment/plot.py" />
-    <option name="PARAMETERS" value="--timing discrete --delay-intervals 0,1,10,20 --agents 10,20,30,40,50,60,70,80 --delay-ratios 0.1 --k-neighbors 2 --map mapf --map-names room-32-32-4,warehouse-10-20-10-2-1,random-32-32-20,random-32-32-30-2" />
+    <option name="PARAMETERS" value="--timing discrete --delay-intervals 0,1,10,20 --agents 30 --delay-ratios 0.1 --k-neighbors 2 --map mapf --map-names room-32-32-4,warehouse-10-20-10-2-1,random-32-32-20,random-32-32-30-2" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

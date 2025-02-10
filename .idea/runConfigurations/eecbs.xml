@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="eecbs" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-m discrete-random-30-30-270-0-2.map -a discrete-random-30-30-270-0-2.scen -o test.csv --outputPaths=paths.txt -k 30 -t 300 --suboptimality=1.2" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/result" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="eecbs" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="eecbs">
+  <configuration default="false" name="eecbs" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-m random-32-32-20.map -a random-32-32-20-random-1.scen -o test.csv --outputPaths=paths.txt -k 100 -t 60 --suboptimality=1.1" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$/EECBS" PASS_PARENT_ENVS_2="true" PROJECT_NAME="MAPF_DP" TARGET_NAME="eecbs" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="MAPF_DP" RUN_TARGET_NAME="eecbs">
     <method v="2">
       <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
     </method>

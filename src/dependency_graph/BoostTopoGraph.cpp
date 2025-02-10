@@ -6,7 +6,7 @@
 
 void BoostTopoGraph::init() {
     for (size_t i = 0; i < depGraph.agents.size(); i++) {
-        for (size_t j = 0; j < depGraph.paths[i].size() - 1; j++) {
+        for (size_t j = 0; j < depGraph.pathTopoNodeIds[i].size() - 1; j++) {
             boost::add_edge(depGraph.pathTopoNodeIds[i][j], depGraph.pathTopoNodeIds[i][j + 1], topoGraph);
         }
     }

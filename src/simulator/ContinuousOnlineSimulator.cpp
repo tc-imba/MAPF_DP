@@ -296,7 +296,7 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
 
                     auto it = nodeAgentMap.find(nextNodeId);
                     if (it != nodeAgentMap.end() && it->second != i) {
-                        std::cerr << "error: collision " << i << " " << it->second << " " << nextNodeId << std::endl;
+                        std::cerr << "error: collision " << i << " " << state << " " << it->second << " " << agents[it->second].state  << " " << nextNodeId << std::endl;
                         exit(-1);
                     }
 
@@ -310,6 +310,9 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
                         //                                  << state + 1 << "," << currentNodeId << "-" << nextNodeId << ")" << std::endl;
                     }
                     nodeAgentMap[nextNodeId] = i;
+                    if (debug) {
+                        SPDLOG_DEBUG("update node agent map: {} -> {}", nextNodeId, i);
+                    }
                     depGraph.updateSharedNode(i, state);
                     arrivingTimestepSet.insert(agents[i].arrivingTimestep);
                 }
@@ -547,6 +550,7 @@ void ContinuousOnlineSimulator::initSimulation() {
     depGraph.snapshotOrder = snapshotOrder;
     depGraph.removeRedundant = removeRedundant;
     depGraph.useGroup = useGroup;
+    depGraph.topoGraphType = topoGraphType;
     depGraph.init();
 }
 

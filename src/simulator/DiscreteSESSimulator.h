@@ -13,7 +13,7 @@
 
 class DiscreteSESSimulator : public DiscreteSimulator, public SESSimulator {
 protected:
-    std::unique_ptr<ses::Simulator> _simulator;
+    std::shared_ptr<ses::Simulator> _simulator;
 
 public:
     DiscreteSESSimulator(Graph &graph, std::vector<Agent> &agents, unsigned int seed)
