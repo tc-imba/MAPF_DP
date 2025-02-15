@@ -22,7 +22,7 @@
 	url = https://github.com/tc-imba/BTPG.git
 [submodule "MAPF-LNS2"]
 	path = MAPF-LNS2
-	url = git@github.com:Jiaoyang-Li/MAPF-LNS2.git
+	url = https://github.com/tc-imba/MAPF-LNS2.git
 [submodule "Switchable-Edge-Search"]
 	path = Switchable-Edge-Search
 	url = https://github.com/tc-imba/Switchable-Edge-Search.git
