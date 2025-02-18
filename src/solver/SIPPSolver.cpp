@@ -3,3 +3,14 @@
 //
 
 #include "SIPPSolver.h"
+
+void SIPPSolver::solve() {
+    init();
+
+    
+
+}
+
+void SIPPSolver::init() {
+
+}

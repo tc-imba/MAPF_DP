@@ -51,6 +51,8 @@ set(SOURCE_FILES
         ${DELAY_SOURCE_FILES}
         src/Graph.cpp
         Continuous-CBS/tinyxml2.cpp
+        src/ConstraintTable.cpp
+        src/ConstraintTable.h
 )
 
 add_executable(MAPF_DP src/main.cpp ${SOURCE_FILES})
