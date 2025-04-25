@@ -40,6 +40,7 @@ add_library(lib-ses ${SES_SOURCE_FILES})
 # MAPF-DP
 add_definitions("-D SPDLOG_ACTIVE_LEVEL=1")
 set(CMAKE_CXX_STANDARD 20)
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie")
 file(GLOB SIMULATOR_SOURCE_FILES "src/simulator/*.cpp")
 file(GLOB SOLVER_SOURCE_FILES "src/solver/*.cpp")
 file(GLOB DEPENDENCY_GRAPH_SOURCE_FILES "src/dependency_graph/*.cpp")

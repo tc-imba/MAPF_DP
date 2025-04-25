@@ -3,6 +3,7 @@
 //
 
 #include "NodeEdgeDependencyGraph.h"
+#include "ArrayTopoGraph.h"
 #include <boost/range/join.hpp>
 #include <ranges>
 
@@ -23,18 +24,15 @@ void NodeEdgeDependencyGraph::init() {
                 if (!pathTopoNodeIds[i].empty()) {
                     // add an edge state to topo graph
                     pathTopoNodeIds[i].emplace_back(topoGraphNodeNum++);
-//                    pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
                 }
                 // add a node state to topo graph
                 pathTopoNodeIds[i].emplace_back(topoGraphNodeNum++);
-//                pathTopoNodeIds[i].emplace_back(boost::add_vertex(topoGraph));
             }
         }
-        // when j % 2 == 0, it is a node state; when j % 2 == 1, it is an edge state
-//        for (size_t j = 0; j < pathTopoNodeIds[i].size() - 1; j++) {
-//            boost::add_edge(pathTopoNodeIds[i][j], pathTopoNodeIds[i][j + 1], topoGraph);
-//        }
-        topoGraphNodeNum += pathTopoNodeIds[i].size();
+        if (topoGraphType == "boost") {
+            // TODO: idk why this should be added, but removing this causes a strange error
+            topoGraphNodeNum += pathTopoNodeIds[i].size();
+        }
         sdgData[i].resize(pathTopoNodeIds[i].size());
     }
 
@@ -600,6 +598,7 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
         std::list<SDGEdgePairData> &unsettledEdgePairGroups,
         bool recursive, bool save) {
     std::vector<SDGEdge> addedEdges;
+    std::unique_ptr<ArrayTopoGraph> topoGraphSaved;
     //    std::cout << "feasibility check" << std::endl;
 
     /** line 1 **/
@@ -721,9 +720,11 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 // no edge can be selected
                 auto &edgePair = it->group->begin()->first;
                 SPDLOG_DEBUG("no edge can be selected from unsettled edge pair group of size {}: {} {}", it->group->size(), edgePair.first, edgePair.second);
-                for (auto &edge: addedEdges) {
-                    topoGraph->removeEdge(edge);
-                    SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+                if (debug || topoGraphType != "array") {
+                    for (auto &edge: addedEdges) {
+                        topoGraph->removeEdge(edge);
+                        SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+                    }
                 }
                 return std::make_pair(edgePair.first.dest.agentId, edgePair.second.dest.agentId);
             } else if (edge1Available && edge2Available) {
@@ -830,6 +831,9 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
 
             SPDLOG_DEBUG("temporarily select unsettled edge pair group of size {}", edgePairGroup->size());
             std::vector<SDGEdge> recursiveAddedEdges;
+            if (recursive && topoGraphType == "array") {
+                topoGraphSaved = std::make_unique<ArrayTopoGraph>(*dynamic_cast<ArrayTopoGraph*>(topoGraph.get()));
+            }
             for (auto &[_edgePair, __]: *edgePairGroup) {
                 auto &edge = edgeIndex == 0 ? _edgePair.first : _edgePair.second;
                 auto [nodeId1, nodeId2] = getTopoEdgeBySDGEdge(edge);
@@ -857,11 +861,21 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 if (firstAgentArrivingTimestep == 0) {
                     feasibilityCheckRecursionCount++;
                 }
-                for (const auto &edge: recursiveAddedEdges) {
-                    topoGraph->removeEdge(edge);
-                    addedEdges.pop_back();
-                    SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+                if (!recursiveAddedEdges.empty()) {
+                    bool needLoop = false;
+                    if (topoGraphType == "array") {
+                        topoGraph = std::move(topoGraphSaved);
+                        if (debug) needLoop = true;
+                    }
+                    if (needLoop) {
+                        for (const auto &edge: recursiveAddedEdges) {
+                            topoGraph->removeEdge(edge);
+                            addedEdges.pop_back();
+                            SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+                        }
+                    }
                 }
+
                 //                if (randomEdgeSelected) {
                 //                    boost::remove_edge(nodeId1, nodeId2, topoGraph);
                 //                    SPDLOG_DEBUG("temporarily remove settled edge: {}", edge1);
@@ -869,9 +883,11 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
                 //                }
 
                 if (result.first == agents.size() && result.second == agents.size()) {
-                    for (auto &edge: addedEdges) {
-                        topoGraph->removeEdge(edge);
-                        SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+                    if (debug || topoGraphType != "array") {
+                        for (auto &edge: addedEdges) {
+                            topoGraph->removeEdge(edge);
+                            SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+                        }
                     }
                     if (save) {
                         savedAddedEdges.insert(savedAddedEdges.end(), addedEdges.begin(), addedEdges.end());
@@ -898,9 +914,11 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckHelper(
             //            std::cout << "random choose: " << nodeId1 << " " << nodeId2 << std::endl;
         }
     }
-    for (auto &edge: addedEdges) {
-        topoGraph->removeEdge(edge);
-        SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+    if (debug || topoGraphType != "array") {
+        for (auto &edge: addedEdges) {
+            topoGraph->removeEdge(edge);
+            SPDLOG_DEBUG("temporarily remove settled edge: {}", edge);
+        }
     }
     if (!addedEdges.empty() && save) {
         savedAddedEdges.insert(savedAddedEdges.end(), addedEdges.begin(), addedEdges.end());
@@ -957,8 +975,15 @@ std::pair<size_t, size_t> NodeEdgeDependencyGraph::feasibilityCheckTest(bool rec
     //            sharedNodesList.emplace_back(sharedNodePair);
     //        }
     //    }
-
-    return feasibilityCheckHelper(unsettledEdgePairGroups, recursive, save);
+    std::unique_ptr<ArrayTopoGraph> topoGraphSaved;
+    if (topoGraphType == "array") {
+        topoGraphSaved = std::make_unique<ArrayTopoGraph>(*dynamic_cast<ArrayTopoGraph*>(topoGraph.get()));
+    }
+    auto result =  feasibilityCheckHelper(unsettledEdgePairGroups, recursive, save);
+    if (topoGraphType == "array") {
+        topoGraph = std::move(topoGraphSaved);
+    }
+    return result;
 
     /*
     while (!sharedNodesList.empty()) {

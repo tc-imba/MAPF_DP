@@ -13,7 +13,9 @@ protected:
     unsigned int topoGraphNodeNum = 0;
 
 public:
-    explicit TopoGraph(DependencyGraph &depGraph): depGraph(depGraph) {}
+    explicit TopoGraph(DependencyGraph &depGraph) : depGraph(depGraph) {}
+
+    TopoGraph(const TopoGraph &) = default;
 
     virtual ~TopoGraph() = default;
 

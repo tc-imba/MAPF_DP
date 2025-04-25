@@ -13,7 +13,9 @@ protected:
     // staring from l_{i,j}, the smallest reachable state l_{k,h}
     std::vector<std::vector<unsigned int> > connectedGraph;
 public:
-    ArrayTopoGraph(DependencyGraph &depGraph): TopoGraph(depGraph) {}
+    explicit ArrayTopoGraph(DependencyGraph &depGraph): TopoGraph(depGraph) {}
+
+    ArrayTopoGraph(const ArrayTopoGraph&) = default;
 
     void init() override;
 

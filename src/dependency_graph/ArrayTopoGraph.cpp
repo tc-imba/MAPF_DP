@@ -6,7 +6,9 @@
 
 void ArrayTopoGraph::init() {
     topoGraphNodeNum = 0;
-    for (size_t i = 0; i < depGraph.agents.size(); i++) { topoGraphNodeNum += depGraph.paths[i].size(); }
+    for (size_t i = 0; i < depGraph.agents.size(); i++) {
+        topoGraphNodeNum +=  depGraph.pathTopoNodeIds[i].size();
+    }
     connectedGraph.resize(depGraph.agents.size(),
                           std::vector<unsigned int>(topoGraphNodeNum, std::numeric_limits<unsigned int>::max() / 2));
 }
@@ -56,7 +58,7 @@ bool ArrayTopoGraph::addEdge(const DependencyGraph::SDGEdge &edge) {
     // for any G[a][b][c] (where a \neq i and i'), if G[a][b][i'] <= j', set G[a][b][c] = min{G[i][j][c], G[a][b][c]}.
     for (unsigned int a = 0; a < depGraph.agents.size(); a++) {
         if (a == i || a == ip) { continue; }
-        for (unsigned int b = depGraph.agents[a].state; b < depGraph.paths[a].size(); b++) {
+        for (unsigned int b = depGraph.agents[a].state; b < depGraph.pathTopoNodeIds[a].size(); b++) {
             auto ab = depGraph.pathTopoNodeIds[a][b];
             //            SPDLOG_INFO("G[{}][{}][{}]={}, jp={}", a, b, ip, connectedGraph[ip][ab], jp);
             if (connectedGraph[ip][ab] <= jp) {

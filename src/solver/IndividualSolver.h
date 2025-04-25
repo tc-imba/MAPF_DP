@@ -67,6 +67,8 @@ public:
             }
         };
     };
+
+    virtual std::string getSolverName() = 0;
 };
 
 
