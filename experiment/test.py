@@ -239,6 +239,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                 snapshot_order = "end"
             elif setup.simulator == "snapshot_collision":
                 snapshot_order = "collision"
+            remove_redundant = "physical"
+            group_determined = True
+
         elif setup.simulator.startswith("online"):
             simulator = "online"
             if setup.simulator == "online_remove_redundant_physical":
@@ -246,6 +249,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             elif setup.simulator == "online_remove_redundant_graph":
                 remove_redundant = "graph"
             elif setup.simulator == "online_group":
+                group_determined = True
+            elif setup.simulator == "online_all_opt":
+                remove_redundant = "physical"
                 group_determined = True
             elif setup.simulator == "online_array":
                 dep_graph = "array"
@@ -262,6 +268,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
                 dep_graph = "array"
             elif setup.simulator == "online_fast_cycle":
                 fast_cycle = True
+
 
         program_args = [
             args.program.as_posix(),
@@ -313,6 +320,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             program_args.append("--online-opt")
         if group_determined:
             program_args.append("--group-determined")
+            program_args.append("--group")
         if fast_cycle:
             program_args.append("--fast-cycle")
         if replan_nonstop:
@@ -325,10 +333,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             program_args.append("--task-file")
             program_args.append(task_file.as_posix())
 
-        if init_tests and setup.timing == "continuous":
-            program_args.append("--group")
-            program_args.append("--remove-redundant")
-            program_args.append("physical")
+
 
     # logger.info("{}", " ".join(program_args))
         elapsed_seconds, success = await asyncio.get_event_loop().run_in_executor(
