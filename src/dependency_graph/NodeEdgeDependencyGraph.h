@@ -55,6 +55,9 @@ public:
     std::set<SDGEdgePair> unsettledEdgePairsSet;
     std::map<SDGEdgePair, SDGEdgePairData> unsettledEdgePairsMap;
     std::set<SDGEdgePairData, SDGEdgePairDataComp> unsettledEdgePairGroupsSet;
+    // TODO: unsettledEdgePairsMap and unsettledEdgePairGroupsSet can be improved
+    // std::map<SDGEdgePair, std::shared_ptr<SDGEdgePairGroup>> unsettledEdgePairGroupMap;
+
     size_t unsettledEdgePairGroupsCount = 0;
     std::vector<SharedNodePair> sharedStates;
     std::vector<SDGEdge> savedAddedEdges;

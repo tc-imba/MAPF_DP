@@ -323,7 +323,7 @@ int main(int argc, const char *argv[]) {
     } else if (mapType == "mapf") {
         filename = mapFile;
         if (boost::algorithm::ends_with(filename, ".map")) { filename = filename.substr(0, filename.length() - 4); }
-        cacheFileName = timingType + "-mapf-" + mapName;
+        cacheFileName = timingType + "-mapf-" + mapName + "-" + std::to_string(kNeighbor);
         graph.generateMAPFBenchmarkGraph(filename, kNeighbor);
         taskFileType = "scen";
     }

@@ -15,6 +15,7 @@
 unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsigned int maxTimeStep,
                                                  unsigned int delayStart, unsigned int delayInterval) {
     if (debug) {
+        SPDLOG_DEBUG("solution:");
         std::ostringstream oss;
         for (unsigned int i = 0; i < agents.size(); i++) {
             //        if (agents[i].current == agents[i].goal) continue;
@@ -31,16 +32,33 @@ unsigned int ContinuousOnlineSimulator::simulate(double &currentTimestep, unsign
     }
 
     initSimulation();
+
+    if (debug) {
+        SPDLOG_DEBUG("SDG:");
+        std::ostringstream oss;
+        for (unsigned int i = 0; i < agents.size(); i++) {
+            oss.str("");
+            oss.clear();
+            oss << "agent " << i << " (" << agents[i].start << "->" << agents[i].goal << "): ";
+            for (unsigned int j = 0; j < depGraph.paths[i].size(); j++) {
+                auto &node = graph.getNode(depGraph.paths[i][j]);
+                oss << "(" << j * 2 << "," << node.index << "," << node.x << "," << node.y << ")->";
+            }
+            SPDLOG_DEBUG("{}", oss.str());
+            //        nodeStates[agents[i].start] = 0;
+        }
+    }
+
 //    executionTimeVec.clear();
 
-    // check whether the initial plans is feasible
+    // check whether the initial plan is feasible
     auto start = std::chrono::steady_clock::now();
     auto [agentId1, agentId2] = feasibilityCheck();
     auto end = std::chrono::steady_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::cerr << elapsed_seconds.count() << std::endl;
     if (agentId1 != agents.size() || agentId2 != agents.size()) {
-        std::cerr << "initial plans is not feasible" << std::endl;
+        std::cerr << "initial plan is not feasible" << std::endl;
         exit(-1);
     }
     if (snapshot) {
@@ -597,12 +615,13 @@ void ContinuousOnlineSimulator::initChecks() {
 
     for (auto i: boost::join(blocked, moved)) {
         auto &agent = agents[i];
-        if (agent.current != agent.goal && agent.state + 1 < depGraph.pathTopoNodeIds[i].size()) {
+//        if (agent.current != agent.goal && agent.state + 1 < depGraph.pathTopoNodeIds[i].size()) {
+        if (agent.state + 1 < depGraph.pathTopoNodeIds[i].size()) {
             ready.insert(i);
         }
     }
     blocked.clear();
-    //    moved.clear();
+    moved.clear();
     unshared.clear();
     //    for (auto i: delayed_set) {
     //        if (ready.find(i) != ready.end()) {
@@ -689,6 +708,7 @@ void ContinuousOnlineSimulator::singleAgentCheck() {
 //                auto [nodeId1, nodeId2] = depGraph.getTopoEdgeBySDGEdge(edge);
 //                if (depGraph.isPathInTopoGraph(nodeId2, nodeId1)) {
                 if (depGraph.topoGraph->hasReversedPath(edge)) {
+                    SPDLOG_DEBUG("agent {}: blocked by single agent check {}", i, edge);
                     fail = true;
                     break;
                 }

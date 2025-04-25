@@ -106,8 +106,8 @@ def run_program(full_prefix, program_args, timeout):
         # p = subprocess.run(program_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         # logger.debug(p.args)
         # logger.debug(p.returncode)
-        # logger.debug(p.stderr.readlines())
-        # logger.debug(p.stdout.readlines())
+        # logger.debug(p.stderr)
+        # logger.debug(p.stdout)
     except subprocess.TimeoutExpired:
         logger.warning('{} timeout', full_prefix)
     except Exception as e:
@@ -146,8 +146,9 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             full_prefix = output_prefix + "-%d-%d-%d" % (map_seed, agent_seed, simulation_seed)
         elif setup.map == "warehouse" or setup.map == "mapf":
             map_type = setup.map
-            cbs_prefix = "%s-%s-%s-%d-%d-%s" % (
-                setup.timing, setup.map, map_name, setup.agents, agent_seed, setup.solver)
+            cbs_prefix = "%s-%s-%s-%d-%d-%d-%s" % (
+                setup.timing, setup.map, map_name, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
+            # logger.info(cbs_prefix)
             full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
         elif setup.map == "den520d":
             map_type = "graphml"
@@ -324,7 +325,12 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             program_args.append("--task-file")
             program_args.append(task_file.as_posix())
 
-        # logger.info("{}", " ".join(program_args))
+        if init_tests and setup.timing == "continuous":
+            program_args.append("--group")
+            program_args.append("--remove-redundant")
+            program_args.append("physical")
+
+    # logger.info("{}", " ".join(program_args))
         elapsed_seconds, success = await asyncio.get_event_loop().run_in_executor(
             args.pool, run_program, full_prefix, program_args, args.timeout)
 
@@ -333,6 +339,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             try:
                 async with aiofiles.open(str(output_file), "rb") as f:
                     output_data = await f.read()
+                # logger.info(output_data)
                 decoded_data = bson.decode(output_data)
             except Exception as e:
                 logger.error("{} {}", e.__class__, str(e))
@@ -407,6 +414,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             logger.info('{} failed ({}/{}/{}) in {} seconds', full_prefix,
                         EXPERIMENT_JOBS_COMPLETED, EXPERIMENT_JOBS_FAILED,
                         EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED, elapsed_seconds)
+            # logger.info(" ".join(program_args))
         return result
 
 
@@ -822,7 +830,8 @@ async def main(ctx, map_seeds, map_names, agent_seeds, iteration, timeout, subop
     if ctx.obj.timing == "discrete":
         solver = "eecbs"
     else:
-        solver = "ccbs"
+        solver = "eecbs"
+        # solver = "ccbs"
 
     pool = concurrent.futures.ProcessPoolExecutor(max_workers=jobs)
     semaphore = asyncio.Semaphore(jobs * 2)

@@ -546,7 +546,8 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
             /*            if (agents[selectedEdge.source.agentId].state < selectedEdge.source.state) {
                 continue;
             }*/
-            auto &edgePairData = it->second;
+//            auto &edgePairData = it->second;
+            auto edgePairDataId = it->second.id;
             auto group = it->second.group;
             for (auto &[_edgePair, _]: *group) {
                 auto &selectedEdge = selectedEdgeIndex == 0 ? _edgePair.first : _edgePair.second;
@@ -558,7 +559,10 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
                     SPDLOG_DEBUG("permanently select unsettled edge pair: {} {} -> {}", _edgePair.first, _edgePair.second, selectedEdge);
                 }
                 // TODO: this may not be correct in ArrayTopoGraph
-                bool alreadyAdded = topoGraph->hasEdge(selectedEdge);
+                bool alreadyAdded = false;
+                if (topoGraphType != "array") {
+                    alreadyAdded = topoGraph->hasEdge(selectedEdge);
+                }
                 if (alreadyAdded) {
                     SPDLOG_DEBUG("unsettled edge already added: {}", selectedEdge);
                 } else {
@@ -579,6 +583,7 @@ NodeEdgeDependencyGraph::updateSharedNode(size_t agentId, unsigned int state, bo
                 }
             }
             if (!dryRun) {
+                auto edgePairData = SDGEdgePairData{edgePairDataId, nullptr};
                 auto it2 = unsettledEdgePairGroupsSet.find(edgePairData);
                 if (it2 != unsettledEdgePairGroupsSet.end()) {
                     unsettledEdgePairGroupsSet.erase(it2);

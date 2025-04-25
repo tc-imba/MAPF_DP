@@ -50,9 +50,9 @@ class ExperimentSetup(BaseModel):
 
     def get_output_prefix(self):
         if self.map == "random":
-            self.map_name = "random-32-32-%d-%d" % (self.obstacles, self.k_neighbor)
-        output_prefix = "%s-%s-%s-%s-%d-%s-%s-%d-%d-%s-%s" % (
-            self.timing, self.map, self.map_name, self.simulator, self.agents,
+            self.map_name = "random-32-32-%d" % self.obstacles
+        output_prefix = "%s-%s-%s-%d-%s-%d-%s-%s-%d-%d-%s-%s" % (
+            self.timing, self.map, self.map_name, self.k_neighbor, self.simulator, self.agents,
             self.delay_type, self.delay_ratio, self.delay_start, self.delay_interval,
             self.feasibility, self.cycle
         )
