@@ -219,8 +219,11 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
         snapshot_order = "none"
         replan_suboptimality = 1
         replan_nonstop = False
-        dep_graph = "boost"
 
+        if setup.timing == "discrete":
+            dep_graph = "boost"
+        else:
+            dep_graph = "array"
         if setup.simulator.startswith("replan_"):
             simulator = "replan"
             if setup.simulator.startswith("replan_nonstop"):
