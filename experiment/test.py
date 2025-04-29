@@ -137,23 +137,28 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
     PBAR.total = EXPERIMENT_JOBS - EXPERIMENT_JOBS_FAILED
     PBAR.update(0)
 
+    if setup.k_neighbor > 2:
+        solver = "ccbs"
+    else:
+        solver = setup.solver
+
     async with args.semaphore:
         output_prefix = setup.get_output_prefix()
         if setup.map == "random":
             map_type = "random"
             cbs_prefix = "%s-%s-32-32-%d-%d-%s-%d-%d-%s" % (
-                setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
+                setup.timing, map_name, setup.obstacles, map_seed, setup.k_neighbor, setup.agents, agent_seed, solver)
             full_prefix = output_prefix + "-%d-%d-%d" % (map_seed, agent_seed, simulation_seed)
         elif setup.map == "warehouse" or setup.map == "mapf":
             map_type = setup.map
             cbs_prefix = "%s-%s-%s-%d-%d-%d-%s" % (
-                setup.timing, setup.map, map_name, setup.k_neighbor, setup.agents, agent_seed, setup.solver)
+                setup.timing, setup.map, map_name, setup.k_neighbor, setup.agents, agent_seed, solver)
             # logger.info(cbs_prefix)
             full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
         elif setup.map == "den520d":
             map_type = "graphml"
             cbs_prefix = "%s-%s-%d-%d-%s" % (
-                setup.timing, map_name, setup.agents, agent_seed, setup.solver)
+                setup.timing, map_name, setup.agents, agent_seed, solver)
             full_prefix = output_prefix + "-%d-%d" % (agent_seed, simulation_seed)
         else:
             assert False
@@ -281,7 +286,7 @@ async def run(args: TestArguments, setup: ExperimentSetup, objective="maximum",
             "--agents", str(setup.agents),
             "--iteration", "1",
             "--simulation-seed", str(simulation_seed),
-            "--solver", setup.solver,
+            "--solver", solver,
             "--obstacle-ratio", str(setup.obstacles / 100),
             "--simulator", simulator,
             "--k-neighbor", str(setup.k_neighbor),
@@ -611,10 +616,10 @@ async def do_init_tests_den520d(args: TestArguments):
     else:
         simulator = "snapshot_start"
 
-    async def init_case(map_name, agent_seed, agents, agents_per_task_file):
+    async def init_case(map_name, agent_seed, agents, k_neighbor, agents_per_task_file):
         setup = ExperimentSetup(
             timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
-            simulator=simulator, agents=agents, delay_type="agent",
+            simulator=simulator, agents=agents, delay_type="agent", k_neighbor=k_neighbor,
             delay_ratio=0, delay_start=0, delay_interval=0,
             feasibility="h", cycle="h",
         )
@@ -645,7 +650,7 @@ async def do_init_tests_den520d(args: TestArguments):
             return await run(args, setup, agent_seed=agent_seed, map_name=map_name,
                              max_timestep=10000, init_tests=True)
 
-    async def init_map(map_name, agent):
+    async def init_map(map_name, agent, k_neighbor):
         _current = CurrentWrapper()
         # row = df.loc[(df["map_name"] == map_name) & (df["agent"] == agent)]
         # if len(row) > 0:
@@ -688,7 +693,7 @@ async def do_init_tests_den520d(args: TestArguments):
                 _current.current += 1
                 if agent_seed >= max_agent_seed:
                     break
-                result = await init_case(map_name, agent_seed, agent, agents_per_task_file)
+                result = await init_case(map_name, agent_seed, agent, k_neighbor, agents_per_task_file)
                 if result == 1:
                     # with test_file.open("a") as file:
                     #     file.write("%s,%d,%d\n" % (map_name, agent_seed, agent))
@@ -703,13 +708,14 @@ async def do_init_tests_den520d(args: TestArguments):
     map_tasks = []
     for _map_name in args.map_names:
         for _agent in args.agents:
-            map_tasks.append(init_map(_map_name, _agent))
+            for _k_neighbor in args.k_neighbors:
+                map_tasks.append(init_map(_map_name, _agent, _k_neighbor))
     await asyncio.gather(*map_tasks)
 
 
 async def do_tests_den520d(args: TestArguments):
     async def init_case(map_name, agent_seed, agents, simulator, delay_ratio, delay_interval,
-                        naive_feasibility, naive_cycle, only_cycle, agents_per_task_file, simulation_seed):
+                        naive_feasibility, naive_cycle, only_cycle, agents_per_task_file, simulation_seed, k_neighbor):
         if not naive_feasibility:
             feasibility = "h"
         else:
@@ -724,7 +730,7 @@ async def do_tests_den520d(args: TestArguments):
 
         setup = ExperimentSetup(
             timing=args.timing, map=args.map, map_name=map_name, solver=args.solver,
-            simulator=simulator, agents=agents, delay_type="agent",
+            simulator=simulator, agents=agents, delay_type="agent", k_neighbor=k_neighbor,
             delay_ratio=delay_ratio, delay_start=0, delay_interval=delay_interval,
             feasibility=feasibility, cycle=cycle,
         )
@@ -797,11 +803,12 @@ async def do_tests_den520d(args: TestArguments):
                                 naive_settings = [(False, False, False)]
                             for (_naive_feasibility, _naive_cycle, _only_cycle) in naive_settings:
                                 for _simulation_seed in range(args.iteration):
-                                    tasks.append(
-                                        init_case(_map_name, _agent_seed, _agent,
-                                                  _simulator, _delay_ratio, _delay_interval,
-                                                  _naive_feasibility, _naive_cycle, _only_cycle,
-                                                  agents_per_task_file, _simulation_seed))
+                                    for _k_neighbor in args.k_neighbors:
+                                        tasks.append(
+                                            init_case(_map_name, _agent_seed, _agent,
+                                                      _simulator, _delay_ratio, _delay_interval,
+                                                      _naive_feasibility, _naive_cycle, _only_cycle,
+                                                      agents_per_task_file, _simulation_seed, _k_neighbor))
     await asyncio.gather(*tasks)
 
 
